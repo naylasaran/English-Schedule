@@ -1,3 +1,294 @@
+
+existe isso:
+
+
+hoje 11:22
+
+Github criado com os arquivos do print (igual no branch da Nayla)
+login teacher e aluno funcionando e agenda do aluno funcionando
+
+https://github.com/naylasaran/English-Schedule
+
+
+só aparece main
+
+Deu certo 
+
+Deu ruim 
+
+Agora tá assim 
+
+
+e deu outro probleminha, a reserva pegou as aulas das semanas seguintes e anteriores também
+
+
+
+
+
+
+toma um energético e se concentra antes de responder 
+
+
+
+deu certo 
+
+
+
+
+
+
+
+o login parou de funcionar 
+
+
+Texto colado.txt
+Documento
+
+
+
+
+
+
+
+Texto colado.txt
+Documento
+
+veja os prints, não aparece cancelamento e nem a data para a qual a reposição está agendada
+
+
+
+
+
+
+
+
+Sim — consegui abrir o repositório e conferir o app.js diretamente. 
+
+Mas encontrei uma diferença importante antes de eu te mandar um código inteiro:
+
+O app.js que está atualmente no main do GitHub tem só 178 linhas e contém basicamente:
+
+login;
+
+carregamento de profiles;
+
+separação professor/aluno;
+
+logout;
+
+recuperação de senha;
+
+inicialização da sessão. 
+
+Ele não contém as funções que estão funcionando no site que você me mostrou, como:
+
+agenda semanal;
+
+reposições;
+
+mensalidade;
+
+histórico;
+
+regras;
+
+navegação;
+
+get_student_weekly_schedule();
+
+get_my_makeups();
+
+cancelamento de reserva.
+
+Isso é importante porque, se eu simplesmente substituir seu app.js atual pelo arquivo que está no main, vamos apagar tudo o que já fizemos.
+
+O próprio GitHub mostra que o repositório English-Schedule está no branch main e possui os arquivos app.js, config.js, index.html e style.css. 
+
+Então vamos fazer do jeito certo
+Não substitua o app.js ainda.
+
+O arquivo que você precisa me fornecer é o app.js que está atualmente funcionando no seu site, aquele que contém as telas de:
+
+Agenda → Histórico → Reposições → Mensalidade → Regras
+
+Pode fazer assim:
+
+Abra o GitHub.
+
+Entre no app.js.
+
+Confira se ele realmente tem as funções/telas que estamos usando.
+
+Se tiver, copie o arquivo inteiro e cole aqui.
+
+Se no GitHub ele estiver exatamente igual ao que eu consegui abrir — aquele de 178 linhas — então provavelmente o código que está funcionando está em outro branch/commit.
+
+Nesse caso, me mande o nome do branch que aparece no GitHub onde está a versão que estamos usando.
+
+Não quero te passar um app.js novo no escuro e destruir o que já está funcionando. Agora que conseguimos diagnosticar o problema da semana, vale preservar a versão atual e alterar somente o necessário.
+
+
+
+c677a150-97aa-4835-aa20-2bcedc6d6d05.txt
+Documento
+aqui está o código completo 
+
+Perfeito. Agora dá para revisar o código inteiro sem mexer no que já está funcionando. 
+
+
+E encontrei o problema principal que explica exatamente os dois erros dos prints:
+
+A reposição reservada não aparece na agenda como “Minha reposição”.
+
+A data/horário da reposição não aparecem em “Minhas reposições”.
+
+O botão “Cancelar reposição” também não aparece.
+
+O erro
+No seu app.js existe isto:
+
+.eq(
+  "student_id",
+  currentStudentIdForQuery()
+)
+Isso está correto.
+
+Porém, currentStudentIdForQuery() faz:
+
+return currentUser?.id || null;
+E esse é o problema.
+
+No seu banco, vimos que:
+
+auth.users.id = ID do usuário autenticado
+
+students.id = ID do aluno
+
+Eles não são o mesmo UUID.
+
+Inclusive seu próprio teste mostrou:
+
+current_student_id = 5c304058-e905-481f-8654-3e962515a607
+enquanto o usuário autenticado tinha outro ID.
+
+Então o código está procurando a reserva com:
+
+student_id = ID DO AUTH
+quando deveria procurar com:
+
+student_id = ID DA TABELA students
+E tem um segundo problema
+A sua função:
+
+get_student_weekly_schedule
+está retornando os horários, mas no seu print a reserva de:
+
+24/08/2026 às 10:30
+
+não está vindo marcada como sua reposição.
+
+Então vamos fazer o app.js ficar mais robusto:
+
+O novo comportamento será:
+pegar o verdadeiro student_id através de get_current_student_id();
+
+buscar as reservas diretamente;
+
+cruzar essas reservas com a agenda;
+
+marcar automaticamente como “Minha reposição”;
+
+mostrar a data e horário em “Minhas reposições”;
+
+mostrar “Cancelar reposição”;
+
+respeitar o cancel_reservation() que já corrigimos;
+
+continuar permitindo que o aluno escolha horários livres;
+
+não mexer no financeiro, regras, histórico ou login que já estão funcionando.
+
+Importante
+Não altere nada no Supabase agora.
+
+O cancel_reservation() que você mostrou está adequado para essa lógica:
+
+1º cancelamento → reposição volta para available;
+
+2º cancelamento → reposição vira lost;
+
+professor → devolve a reposição;
+
+aluno → precisa respeitar as horas mínimas.
+
+O que precisamos corrigir agora é principalmente a ligação entre auth.users, students, reservas e agenda.
+
+Vou montar o app.js completo revisado a partir deste arquivo, preservando as partes que já funcionaram e corrigindo essa identificação do aluno e a integração das reservas.
+
+Não cole ainda nenhum código antigo por cima. A próxima versão deve substituir o arquivo inteiro de uma vez, para não ficarem funções antigas misturadas com as novas.
+
+
+ok
+
+Perfeito. Fiz a revisão completa do app.js, mantendo o que já estava funcionando e corrigindo a ligação do aluno com as reservas.
+
+Corrigido nesta versão
+✅ Usa o students.id correto através de get_current_student_id().
+
+✅ A reposição agendada passa a aparecer na agenda como “Minha reposição”.
+
+✅ Em Minhas reposições, aparece:
+
+data da reposição;
+
+horário;
+
+duração;
+
+validade;
+
+número de cancelamentos.
+
+✅ Aparece o botão “Cancelar reposição” quando existe uma reserva ativa.
+
+✅ O cancelamento continua usando sua função cancel_reservation().
+
+✅ Depois de cancelar, a reposição e a agenda são atualizadas.
+
+✅ Mantidos login, histórico, comentários, mensalidade e regras.
+
+O código foi baseado no app.js que você enviou. 
+
+
+Baixe o arquivo completo revisado aqui:
+
+Baixar app.js revisado
+
+Agora faça só isso
+Abra o arquivo app.js do GitHub.
+
+Apague todo o conteúdo.
+
+Cole o conteúdo do arquivo revisado.
+
+Salve/commit.
+
+Abra o site novamente e faça login.
+
+Entre em Reposições e depois em Agenda.
+
+Depois me mande os dois prints: Reposições e Agenda. Aí conferimos se os três pontos apareceram: data/horário, botão cancelar e “Minha reposição” na agenda. 
+
+
+app.js
+Código
+
+Esta é uma conversa entre ChatGPT e Gabriel Baggio Montes. Respondê-la criará uma conversa derivada.
+
+
+app.js
+
+
 // =====================================================
 // AGENDA DE AULAS
 // APP.JS COMPLETO
@@ -10,6 +301,7 @@
 
 let currentUser = null;
 let currentProfile = null;
+let currentStudentId = null;
 
 let currentStudentSchedule = [];
 let selectedScheduleSlot = null;
@@ -95,6 +387,8 @@ async function showLoggedUser(user) {
     currentProfile.role === "student"
   ) {
 
+    await loadCurrentStudentId();
+
     await showStudentArea();
 
   }
@@ -120,6 +414,43 @@ async function showLoggedUser(user) {
     loginMessage.textContent =
       "Tipo de usuário inválido.";
   }
+}
+
+
+// =====================================================
+// IDENTIFICAR ALUNO ATUAL
+// =====================================================
+
+async function loadCurrentStudentId() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_current_student_id"
+    );
+
+  if (error) {
+
+    console.error(
+      "Erro ao identificar aluno atual:",
+      error
+    );
+
+    currentStudentId = null;
+
+    return null;
+  }
+
+  currentStudentId = data || null;
+
+  console.log(
+    "STUDENT ID ATUAL:",
+    currentStudentId
+  );
+
+  return currentStudentId;
 }
 
 
@@ -1567,227 +1898,101 @@ async function loadStudentMakeups() {
       "makeupsContent"
     );
 
+  if (!container) return;
 
-  if (!container) {
-    return;
+  container.innerHTML = `<p>Carregando reposições...</p>`;
+
+  if (!currentStudentId) {
+    await loadCurrentStudentId();
   }
-
-
-  container.innerHTML = `
-    <p>Carregando reposições...</p>
-  `;
-
 
   const {
     data,
     error
-  } =
-    await supabaseClient.rpc(
-      "get_my_makeups"
-    );
-
+  } = await supabaseClient.rpc("get_my_makeups");
 
   if (error) {
-
-    console.error(
-      "Erro ao carregar reposições:",
-      error
-    );
-
-
-    container.innerHTML = `
-      <p>
-        Não foi possível carregar suas reposições.
-      </p>
-    `;
-
+    console.error("Erro ao carregar reposições:", error);
+    container.innerHTML = `<p>Não foi possível carregar suas reposições.</p>`;
     return;
   }
 
-
-  const makeups =
-    data || [];
-
+  const makeups = data || [];
 
   if (makeups.length === 0) {
-
     container.innerHTML = `
-
-      <div
-        style="
-          padding:20px;
-          text-align:center;
-          border:1px solid #ddd;
-          border-radius:10px;
-        "
-      >
-
-        <strong>
-          Você não possui reposições cadastradas.
-        </strong>
-
-        <p>
-          Quando uma falta gerar uma reposição
-          ou o professor atribuir uma,
-          ela aparecerá aqui.
-        </p>
-
+      <div style="padding:20px;text-align:center;border:1px solid #ddd;border-radius:10px;">
+        <strong>Você não possui reposições cadastradas.</strong>
+        <p>Quando uma falta gerar uma reposição ou o professor atribuir uma, ela aparecerá aqui.</p>
       </div>
-
     `;
-
     return;
   }
 
-
-  // ---------------------------------------------------
-  // Buscar as reservas do próprio aluno.
-  // Isso permite colocar o botão de cancelamento
-  // somente na reposição que está realmente reservada.
-  // ---------------------------------------------------
-
-  const makeupIds =
-    makeups.map(
-      makeup =>
-        makeup.makeup_id ||
-        makeup.id
-    ).filter(Boolean);
-
+  const makeupIds = makeups
+    .map(makeup => makeup.makeup_id || makeup.id)
+    .filter(Boolean);
 
   let reservations = [];
 
-
-  if (makeupIds.length > 0) {
-
+  if (makeupIds.length > 0 && currentStudentId) {
     const {
       data: reservationData,
       error: reservationError
-    } =
-      await supabaseClient
-        .from("reservations")
-        .select(`
-          id,
-          makeup_id,
-          reservation_date,
-          start_time,
-          end_time,
-          status
-        `)
-        .in(
-          "makeup_id",
-          makeupIds
-        )
-        .eq(
-          "student_id",
-          currentStudentIdForQuery()
-        )
-        .eq(
-          "status",
-          "active"
-        );
-
+    } = await supabaseClient
+      .from("reservations")
+      .select(`
+        id,
+        makeup_id,
+        student_id,
+        reservation_date,
+        start_time,
+        end_time,
+        status
+      `)
+      .in("makeup_id", makeupIds)
+      .eq("student_id", currentStudentId);
 
     if (reservationError) {
-
-      console.warn(
-        "Não foi possível consultar as reservas do aluno:",
-        reservationError
-      );
-
+      console.warn("Não foi possível consultar as reservas do aluno:", reservationError);
+    } else {
+      reservations = reservationData || [];
     }
-    else {
-
-      reservations =
-        reservationData || [];
-
-    }
-
   }
 
+  const enrichedMakeups = makeups.map(makeup => {
+    const makeupId = makeup.makeup_id || makeup.id;
 
-  const enrichedMakeups =
-    makeups.map(
-      makeup => {
-
-        const makeupId =
-          makeup.makeup_id ||
-          makeup.id;
-
-
-        const reservation =
-          reservations.find(
-            item =>
-              item.makeup_id ===
-              makeupId
-          );
-
-
-        return {
-          ...makeup,
-          reservation_id:
-            makeup.reservation_id ||
-            reservation?.id ||
-            null,
-          reservation_date:
-            makeup.reservation_date ||
-            reservation?.reservation_date ||
-            null,
-          reservation_start_time:
-            makeup.reservation_start_time ||
-            reservation?.start_time ||
-            null,
-          reservation_end_time:
-            makeup.reservation_end_time ||
-            reservation?.end_time ||
-            null
-        };
-
-      }
+    const activeReservation = reservations.find(
+      item =>
+        item.makeup_id === makeupId &&
+        String(item.status || "").toLowerCase() === "active"
     );
 
+    return {
+      ...makeup,
+      reservation_id: activeReservation?.id || null,
+      reservation_date: activeReservation?.reservation_date || null,
+      reservation_start_time: activeReservation?.start_time || null,
+      reservation_end_time: activeReservation?.end_time || null,
+      reserved_now: Boolean(activeReservation),
+      display_status: activeReservation ? "reserved" : makeup.status
+    };
+  });
 
   container.innerHTML = `
-
-    <div
-      style="
-        display:grid;
-        gap:15px;
-      "
-    >
-
-      ${enrichedMakeups
-        .map(
-          makeup =>
-            renderMakeupCard(
-              makeup
-            )
-        )
-        .join("")}
-
+    <div style="display:grid;gap:15px;">
+      ${enrichedMakeups.map(renderMakeupCard).join("")}
     </div>
-
   `;
 
-
-  document
-    .querySelectorAll(
-      ".cancel-makeup-button"
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          cancelStudentMakeup(
-            button.dataset.reservationId
-          );
-
-        }
-      );
-
+  document.querySelectorAll(".cancel-makeup-button").forEach(button => {
+    button.addEventListener("click", () => {
+      cancelStudentMakeup(button.dataset.reservationId);
     });
+  });
 }
+
 
 
 // =====================================================
@@ -1797,11 +2002,12 @@ async function loadStudentMakeups() {
 function currentStudentIdForQuery() {
 
   /*
-   * Em todo o sistema o auth user e o profile
-   * usam o mesmo id.
+   * IMPORTANTE:
+   * reservations.student_id aponta para students.id.
+   * students.id não é necessariamente igual ao auth user id.
    */
 
-  return currentUser?.id || null;
+  return currentStudentId || null;
 }
 
 
@@ -1811,165 +2017,71 @@ function currentStudentIdForQuery() {
 
 function renderMakeupCard(makeup) {
 
-  const duration =
-    makeup.duration_minutes || 0;
+  const duration = makeup.duration_minutes || 0;
+  const source = formatMakeupSource(makeup.source);
+  const status = formatMakeupStatus(makeup.display_status || makeup.status);
 
+  const expires = makeup.expires_at
+    ? formatDateTime(makeup.expires_at)
+    : "Não informado";
 
-  const source =
-    formatMakeupSource(
-      makeup.source
-    );
+  const cancellationCount = Number(makeup.cancellation_count || 0);
 
-
-  const status =
-    formatMakeupStatus(
-      makeup.status
-    );
-
-
-  const expires =
-    makeup.expires_at
-      ? formatDateTime(
-          makeup.expires_at
-        )
-      : "Não informado";
-
-
-  const cancellationCount =
-    Number(
-      makeup.cancellation_count || 0
-    );
-
-
-  const isReserved =
-    String(
-      makeup.status || ""
-    ).toLowerCase() ===
-    "reserved";
-
-
-  const reservationId =
-    makeup.reservation_id;
-
+  const isReserved = Boolean(
+    makeup.reserved_now &&
+    makeup.reservation_id
+  );
 
   let reservationInfo = "";
 
-
-  if (
-    isReserved &&
-    makeup.reservation_date
-  ) {
+  if (isReserved && makeup.reservation_date) {
 
     reservationInfo = `
-
-      <div
-        style="
-          margin-top:15px;
-          padding:12px;
-          border-radius:8px;
-          background:#eef5ff;
-        "
-      >
-
-        <strong>
-          Reserva:
-        </strong>
-
+      <div style="margin-top:15px;padding:14px;border-radius:8px;background:#eef5ff;">
+        <strong>Reposição agendada:</strong>
         <br>
-
-        ${formatDate(
-          new Date(
-            makeup.reservation_date +
-            "T12:00:00"
-          )
-        )}
-
-        ${
-          makeup.reservation_start_time
-            ? ` às ${normalizeTime(
-                makeup.reservation_start_time
-              )}`
-            : ""
-        }
-
+        ${formatDate(new Date(makeup.reservation_date + "T12:00:00"))}
+        ${makeup.reservation_start_time ? ` às ${normalizeTime(makeup.reservation_start_time)}` : ""}
+        ${makeup.reservation_end_time ? ` até ${normalizeTime(makeup.reservation_end_time)}` : ""}
       </div>
-
     `;
-
   }
-
 
   let cancelButton = "";
 
-
-  if (
-    isReserved &&
-    reservationId
-  ) {
+  if (isReserved && makeup.reservation_id) {
 
     cancelButton = `
-
       <button
         type="button"
         class="secondary-button cancel-makeup-button"
-        data-reservation-id="${reservationId}"
-        style="
-          margin-top:15px;
-          border-color:#c0392b;
-          color:#c0392b;
-        "
+        data-reservation-id="${makeup.reservation_id}"
+        style="margin-top:15px;border-color:#c0392b;color:#c0392b;"
       >
         Cancelar reposição
       </button>
 
       <p
-        id="cancel-makeup-message-${reservationId}"
+        id="cancel-makeup-message-${makeup.reservation_id}"
         style="margin-top:8px;"
       ></p>
-
     `;
-
   }
 
-
   return `
+    <div style="border:1px solid #ddd;border-radius:12px;padding:18px;background:white;">
 
-    <div
-      style="
-        border:1px solid #ddd;
-        border-radius:12px;
-        padding:18px;
-        background:white;
-      "
-    >
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
 
-      <div
-        style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          gap:10px;
-          flex-wrap:wrap;
-        "
-      >
-
-        <h4
-          style="
-            margin:0;
-            font-size:20px;
-          "
-        >
+        <h4 style="margin:0;font-size:20px;">
           ${duration} minutos
         </h4>
 
-        <span
-          style="font-weight:bold;"
-        >
+        <span style="font-weight:bold;">
           ${status.label}
         </span>
 
       </div>
-
 
       <div style="margin-top:12px;">
 
@@ -1995,9 +2107,9 @@ function renderMakeupCard(makeup) {
       </div>
 
     </div>
-
   `;
 }
+
 
 
 // =====================================================
@@ -2227,89 +2339,92 @@ function formatMakeupSource(source) {
 
 async function loadStudentWeeklySchedule() {
 
-  const body =
-    document.getElementById(
-      "studentScheduleBody"
-    );
+  const body = document.getElementById("studentScheduleBody");
 
+  if (!body) return;
 
-  if (!body) {
-    return;
-  }
-
-
-  const label =
-    document.getElementById(
-      "selectedWeekLabel"
-    );
-
+  const label = document.getElementById("selectedWeekLabel");
 
   if (label) {
-
-    label.textContent =
-      formatWeekLabel(
-        selectedWeekStart
-      );
-
+    label.textContent = formatWeekLabel(selectedWeekStart);
   }
-
 
   body.innerHTML = `
     <tr>
-      <td colspan="8">
-        Carregando agenda...
-      </td>
+      <td colspan="8">Carregando agenda...</td>
     </tr>
   `;
 
+  if (!currentStudentId) {
+    await loadCurrentStudentId();
+  }
 
-  const weekStart =
-    formatDateForDatabase(
-      selectedWeekStart
-    );
-
+  const weekStart = formatDateForDatabase(selectedWeekStart);
 
   const {
     data,
     error
-  } =
-    await supabaseClient.rpc(
-      "get_student_weekly_schedule",
-      {
-        p_week_start:
-          weekStart
-      }
-    );
-
+  } = await supabaseClient.rpc(
+    "get_student_weekly_schedule",
+    { p_week_start: weekStart }
+  );
 
   if (error) {
-
-    console.error(
-      "Erro ao carregar agenda:",
-      error
-    );
-
+    console.error("Erro ao carregar agenda:", error);
 
     body.innerHTML = `
       <tr>
-        <td colspan="8">
-          Erro ao carregar a agenda.
-        </td>
+        <td colspan="8">Erro ao carregar a agenda.</td>
       </tr>
     `;
 
     return;
   }
 
+  currentStudentSchedule = data || [];
 
-  currentStudentSchedule =
-    data || [];
+  let weeklyMakeupReservations = [];
 
+  if (currentStudentId) {
+
+    const weekEnd = addDays(selectedWeekStart, 6);
+
+    const {
+      data: reservationData,
+      error: reservationError
+    } = await supabaseClient
+      .from("reservations")
+      .select(`
+        id,
+        makeup_id,
+        student_id,
+        reservation_date,
+        start_time,
+        end_time,
+        status
+      `)
+      .eq("student_id", currentStudentId)
+      .eq("status", "active")
+      .not("makeup_id", "is", null)
+      .gte("reservation_date", formatDateForDatabase(selectedWeekStart))
+      .lte("reservation_date", formatDateForDatabase(weekEnd));
+
+    if (reservationError) {
+      console.warn(
+        "Não foi possível carregar as reposições da semana:",
+        reservationError
+      );
+    } else {
+      weeklyMakeupReservations = reservationData || [];
+    }
+  }
 
   renderStudentWeeklySchedule(
-    currentStudentSchedule
+    currentStudentSchedule,
+    weeklyMakeupReservations
   );
 }
+
 
 
 // =====================================================
@@ -2317,7 +2432,8 @@ async function loadStudentWeeklySchedule() {
 // =====================================================
 
 function renderStudentWeeklySchedule(
-  schedule
+  schedule,
+  makeupReservations = []
 ) {
 
   const head =
@@ -2446,11 +2562,30 @@ function renderStudentWeeklySchedule(
 
       else {
 
-        const status =
-          normalizeStudentScheduleStatus(
-            slot.status
+        const slotDate =
+          getDateForDay(
+            selectedWeekStart,
+            Number(slot.day_of_week)
           );
 
+        const slotDateDb =
+          formatDateForDatabase(slotDate);
+
+        const ownMakeupReservation =
+          makeupReservations.find(
+            reservation =>
+              String(reservation.reservation_date) === slotDateDb &&
+              normalizeTime(reservation.start_time) ===
+                normalizeTime(slot.start_time)
+          );
+
+        const status =
+          ownMakeupReservation
+            ? {
+                className: "own-makeup",
+                label: "Minha reposição"
+              }
+            : normalizeStudentScheduleStatus(slot.status);
 
         cell.classList.add(
           status.className
@@ -2866,6 +3001,10 @@ async function openMakeupSelection(
 // =====================================================
 
 async function getAvailableMakeups() {
+
+  if (!currentStudentId) {
+    await loadCurrentStudentId();
+  }
 
   const {
     data,
@@ -4129,6 +4268,8 @@ if (logoutButton) {
       currentUser = null;
 
       currentProfile = null;
+
+      currentStudentId = null;
 
 
       teacherScreen.classList.add(
