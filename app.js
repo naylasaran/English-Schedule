@@ -2738,6 +2738,46 @@ else if (
   // HORÁRIO FUTURO
   // =================================================
 
+else if (
+  status.className ===
+  "available"
+) {
+
+  // ================================================
+  // VERIFICAR ANTECEDÊNCIA MÍNIMA
+  // ================================================
+
+  if (
+    !canBookMakeupOnDate(
+      slotDate
+    )
+  ) {
+
+    cell.textContent =
+      "Prazo encerrado";
+
+    cell.style.cursor =
+      "not-allowed";
+
+    cell.style.opacity =
+      "0.55";
+
+    cell.style.backgroundColor =
+      "#eeeeee";
+
+    cell.style.color =
+      "#777777";
+
+    cell.title =
+      "Reposições precisam ser marcadas até o dia anterior.";
+
+  }
+
+
+  // ================================================
+  // PODE MARCAR
+  // ================================================
+
   else {
 
     cell.style.cursor =
@@ -2758,6 +2798,8 @@ else if (
     );
 
   }
+
+}
 
 }
       }
@@ -2913,6 +2955,19 @@ async function openMakeupSelection(
       )
     );
 
+    if (
+    !canBookMakeupOnDate(
+      reservationDate
+    )
+  ) {
+
+    alert(
+      "As reposições precisam ser marcadas até o dia anterior à aula."
+    );
+
+    return;
+  }
+  
     const reservationDateTime =
     combineDateAndTime(
       reservationDate,
@@ -4102,6 +4157,54 @@ function getWeekDays() {
 // DATAS
 // =====================================================
 
+// =====================================================
+// ANTECEDÊNCIA MÍNIMA PARA REPOSIÇÃO
+// =====================================================
+
+function canBookMakeupOnDate(
+  reservationDate
+) {
+
+  const today =
+    new Date();
+
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  const targetDate =
+    new Date(
+      reservationDate
+    );
+
+
+  targetDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  /*
+   * A reposição precisa ser marcada,
+   * no mínimo, no dia anterior.
+   *
+   * Hoje 17/08:
+   * 17/08 -> não pode
+   * 18/08 -> pode
+   * 19/08 -> pode
+   */
+
+  return (
+    targetDate > today
+  );
+}
 function formatDate(date) {
 
   return new Intl.DateTimeFormat(
