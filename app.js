@@ -359,9 +359,7 @@ function setStudentPage(page) {
     `;
 
 
-    // NavegaÃ§Ã£o entre semanas da agenda.
-    // Os botÃµes alteram selectedWeekStart e recarregam
-    // a agenda usando o novo p_week_start.
+    // NavegaÃ§Ã£o entre semanas.
     const previousWeekButton =
       document.getElementById("previousWeekButton");
 
@@ -374,40 +372,78 @@ function setStudentPage(page) {
 
     if (previousWeekButton) {
       previousWeekButton.onclick = async () => {
-        selectedWeekStart = addDays(
-          selectedWeekStart,
-          -7
-        );
 
-        await loadStudentWeeklySchedule();
+        selectedWeekStart =
+          addDays(
+            selectedWeekStart,
+            -7
+          );
+
+        await loadStudentWeeklySchedule()
+          .catch(error => {
+            console.error(
+              "Erro ao carregar semana anterior:",
+              error
+            );
+          });
+
       };
     }
 
 
     if (currentWeekButton) {
       currentWeekButton.onclick = async () => {
-        selectedWeekStart = getMonday(
-          new Date()
-        );
 
-        await loadStudentWeeklySchedule();
+        selectedWeekStart =
+          getMonday(
+            new Date()
+          );
+
+        await loadStudentWeeklySchedule()
+          .catch(error => {
+            console.error(
+              "Erro ao carregar semana atual:",
+              error
+            );
+          });
+
       };
     }
 
 
     if (nextWeekButton) {
       nextWeekButton.onclick = async () => {
-        selectedWeekStart = addDays(
-          selectedWeekStart,
-          7
-        );
 
-        await loadStudentWeeklySchedule();
+        selectedWeekStart =
+          addDays(
+            selectedWeekStart,
+            7
+          );
+
+        await loadStudentWeeklySchedule()
+          .catch(error => {
+            console.error(
+              "Erro ao carregar prÃ³xima semana:",
+              error
+            );
+          });
+
       };
     }
 
 
-    await loadStudentWeeklySchedule();
+    // A agenda nÃ£o pode impedir o login caso haja
+    // algum erro isolado ao carregar os horÃ¡rios.
+    loadStudentWeeklySchedule()
+      .catch(error => {
+
+        console.error(
+          "Erro ao carregar agenda:",
+          error
+        );
+
+      });
+
 
     return;
   }
