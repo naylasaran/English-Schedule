@@ -490,16 +490,93 @@ function setStudentPage(page) {
   // REGRAS
   // ===================================================
 
-  if (page === "rules") {
+ if (page === "rules") {
 
-    content.innerHTML = `
+  content.innerHTML = `
 
-      <div class="card">
+    <div class="card">
 
-        <h3>Regras</h3>
+      <h3>Regras</h3>
+
+      <p>
+        Confira abaixo as regras definidas pelo seu professor.
+      </p>
+
+      <div
+        id="studentRulesContent"
+        style="
+          margin-top:20px;
+          white-space:pre-wrap;
+          line-height:1.6;
+        "
+      >
+        Carregando regras...
+      </div>
+
+    </div>
+
+  `;
+
+  loadStudentRules();
+
+  return;
+}
+
+}
+
+// =====================================================
+// REGRAS DO ALUNO
+// =====================================================
+
+async function loadStudentRules() {
+
+  const container =
+    document.getElementById(
+      "studentRulesContent"
+    );
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML = `
+    <p>Carregando regras...</p>
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_student_rules"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar regras:",
+      error
+    );
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+
+        <strong>
+          Não foi possível carregar as regras.
+        </strong>
 
         <p>
-          As regras do seu professor aparecerão aqui.
+          Tente novamente mais tarde.
         </p>
 
       </div>
@@ -509,8 +586,60 @@ function setStudentPage(page) {
     return;
   }
 
-}
 
+  const rules =
+    typeof data === "string"
+      ? data.trim()
+      : "";
+
+
+  if (!rules) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+
+        <strong>
+          Nenhuma regra cadastrada.
+        </strong>
+
+        <p>
+          As regras aparecerão aqui
+          quando forem definidas pelo professor.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        padding:20px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:white;
+      "
+    >
+
+      ${escapeHtml(rules)}
+
+    </div>
+
+  `;
+}
 
 // =====================================================
 // FINANCEIRO DO ALUNO
