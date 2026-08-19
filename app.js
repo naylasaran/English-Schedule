@@ -1,294 +1,3 @@
-
-existe isso:
-
-
-hoje 11:22
-
-Github criado com os arquivos do print (igual no branch da Nayla)
-login teacher e aluno funcionando e agenda do aluno funcionando
-
-https://github.com/naylasaran/English-Schedule
-
-
-só aparece main
-
-Deu certo 
-
-Deu ruim 
-
-Agora tá assim 
-
-
-e deu outro probleminha, a reserva pegou as aulas das semanas seguintes e anteriores também
-
-
-
-
-
-
-toma um energético e se concentra antes de responder 
-
-
-
-deu certo 
-
-
-
-
-
-
-
-o login parou de funcionar 
-
-
-Texto colado.txt
-Documento
-
-
-
-
-
-
-
-Texto colado.txt
-Documento
-
-veja os prints, não aparece cancelamento e nem a data para a qual a reposição está agendada
-
-
-
-
-
-
-
-
-Sim — consegui abrir o repositório e conferir o app.js diretamente. 
-
-Mas encontrei uma diferença importante antes de eu te mandar um código inteiro:
-
-O app.js que está atualmente no main do GitHub tem só 178 linhas e contém basicamente:
-
-login;
-
-carregamento de profiles;
-
-separação professor/aluno;
-
-logout;
-
-recuperação de senha;
-
-inicialização da sessão. 
-
-Ele não contém as funções que estão funcionando no site que você me mostrou, como:
-
-agenda semanal;
-
-reposições;
-
-mensalidade;
-
-histórico;
-
-regras;
-
-navegação;
-
-get_student_weekly_schedule();
-
-get_my_makeups();
-
-cancelamento de reserva.
-
-Isso é importante porque, se eu simplesmente substituir seu app.js atual pelo arquivo que está no main, vamos apagar tudo o que já fizemos.
-
-O próprio GitHub mostra que o repositório English-Schedule está no branch main e possui os arquivos app.js, config.js, index.html e style.css. 
-
-Então vamos fazer do jeito certo
-Não substitua o app.js ainda.
-
-O arquivo que você precisa me fornecer é o app.js que está atualmente funcionando no seu site, aquele que contém as telas de:
-
-Agenda → Histórico → Reposições → Mensalidade → Regras
-
-Pode fazer assim:
-
-Abra o GitHub.
-
-Entre no app.js.
-
-Confira se ele realmente tem as funções/telas que estamos usando.
-
-Se tiver, copie o arquivo inteiro e cole aqui.
-
-Se no GitHub ele estiver exatamente igual ao que eu consegui abrir — aquele de 178 linhas — então provavelmente o código que está funcionando está em outro branch/commit.
-
-Nesse caso, me mande o nome do branch que aparece no GitHub onde está a versão que estamos usando.
-
-Não quero te passar um app.js novo no escuro e destruir o que já está funcionando. Agora que conseguimos diagnosticar o problema da semana, vale preservar a versão atual e alterar somente o necessário.
-
-
-
-c677a150-97aa-4835-aa20-2bcedc6d6d05.txt
-Documento
-aqui está o código completo 
-
-Perfeito. Agora dá para revisar o código inteiro sem mexer no que já está funcionando. 
-
-
-E encontrei o problema principal que explica exatamente os dois erros dos prints:
-
-A reposição reservada não aparece na agenda como “Minha reposição”.
-
-A data/horário da reposição não aparecem em “Minhas reposições”.
-
-O botão “Cancelar reposição” também não aparece.
-
-O erro
-No seu app.js existe isto:
-
-.eq(
-  "student_id",
-  currentStudentIdForQuery()
-)
-Isso está correto.
-
-Porém, currentStudentIdForQuery() faz:
-
-return currentUser?.id || null;
-E esse é o problema.
-
-No seu banco, vimos que:
-
-auth.users.id = ID do usuário autenticado
-
-students.id = ID do aluno
-
-Eles não são o mesmo UUID.
-
-Inclusive seu próprio teste mostrou:
-
-current_student_id = 5c304058-e905-481f-8654-3e962515a607
-enquanto o usuário autenticado tinha outro ID.
-
-Então o código está procurando a reserva com:
-
-student_id = ID DO AUTH
-quando deveria procurar com:
-
-student_id = ID DA TABELA students
-E tem um segundo problema
-A sua função:
-
-get_student_weekly_schedule
-está retornando os horários, mas no seu print a reserva de:
-
-24/08/2026 às 10:30
-
-não está vindo marcada como sua reposição.
-
-Então vamos fazer o app.js ficar mais robusto:
-
-O novo comportamento será:
-pegar o verdadeiro student_id através de get_current_student_id();
-
-buscar as reservas diretamente;
-
-cruzar essas reservas com a agenda;
-
-marcar automaticamente como “Minha reposição”;
-
-mostrar a data e horário em “Minhas reposições”;
-
-mostrar “Cancelar reposição”;
-
-respeitar o cancel_reservation() que já corrigimos;
-
-continuar permitindo que o aluno escolha horários livres;
-
-não mexer no financeiro, regras, histórico ou login que já estão funcionando.
-
-Importante
-Não altere nada no Supabase agora.
-
-O cancel_reservation() que você mostrou está adequado para essa lógica:
-
-1º cancelamento → reposição volta para available;
-
-2º cancelamento → reposição vira lost;
-
-professor → devolve a reposição;
-
-aluno → precisa respeitar as horas mínimas.
-
-O que precisamos corrigir agora é principalmente a ligação entre auth.users, students, reservas e agenda.
-
-Vou montar o app.js completo revisado a partir deste arquivo, preservando as partes que já funcionaram e corrigindo essa identificação do aluno e a integração das reservas.
-
-Não cole ainda nenhum código antigo por cima. A próxima versão deve substituir o arquivo inteiro de uma vez, para não ficarem funções antigas misturadas com as novas.
-
-
-ok
-
-Perfeito. Fiz a revisão completa do app.js, mantendo o que já estava funcionando e corrigindo a ligação do aluno com as reservas.
-
-Corrigido nesta versão
-✅ Usa o students.id correto através de get_current_student_id().
-
-✅ A reposição agendada passa a aparecer na agenda como “Minha reposição”.
-
-✅ Em Minhas reposições, aparece:
-
-data da reposição;
-
-horário;
-
-duração;
-
-validade;
-
-número de cancelamentos.
-
-✅ Aparece o botão “Cancelar reposição” quando existe uma reserva ativa.
-
-✅ O cancelamento continua usando sua função cancel_reservation().
-
-✅ Depois de cancelar, a reposição e a agenda são atualizadas.
-
-✅ Mantidos login, histórico, comentários, mensalidade e regras.
-
-O código foi baseado no app.js que você enviou. 
-
-
-Baixe o arquivo completo revisado aqui:
-
-Baixar app.js revisado
-
-Agora faça só isso
-Abra o arquivo app.js do GitHub.
-
-Apague todo o conteúdo.
-
-Cole o conteúdo do arquivo revisado.
-
-Salve/commit.
-
-Abra o site novamente e faça login.
-
-Entre em Reposições e depois em Agenda.
-
-Depois me mande os dois prints: Reposições e Agenda. Aí conferimos se os três pontos apareceram: data/horário, botão cancelar e “Minha reposição” na agenda. 
-
-
-app.js
-Código
-
-Esta é uma conversa entre ChatGPT e Gabriel Baggio Montes. Respondê-la criará uma conversa derivada.
-
-
-app.js
-
-
 // =====================================================
 // AGENDA DE AULAS
 // APP.JS COMPLETO
@@ -362,7 +71,7 @@ async function loadProfile(userId) {
 
 
 // =====================================================
-// MOSTRAR USUÁRIO LOGADO
+// MOSTRAR USUÃRIO LOGADO
 // =====================================================
 
 async function showLoggedUser(user) {
@@ -375,7 +84,7 @@ async function showLoggedUser(user) {
   if (!currentProfile) {
 
     loginMessage.textContent =
-      "Não foi possível carregar seu perfil.";
+      "NÃ£o foi possÃ­vel carregar seu perfil.";
 
     return;
   }
@@ -412,7 +121,7 @@ async function showLoggedUser(user) {
     );
 
     loginMessage.textContent =
-      "Tipo de usuário inválido.";
+      "Tipo de usuÃ¡rio invÃ¡lido.";
   }
 }
 
@@ -455,7 +164,7 @@ async function loadCurrentStudentId() {
 
 
 // =====================================================
-// ÁREA DO ALUNO
+// ÃREA DO ALUNO
 // =====================================================
 
 async function showStudentArea() {
@@ -478,8 +187,8 @@ async function showStudentArea() {
   if (header) {
 
     header.innerHTML = `
-      <h2>Olá, ${escapeHtml(currentProfile.name)}</h2>
-      <p>Área do aluno.</p>
+      <h2>OlÃ¡, ${escapeHtml(currentProfile.name)}</h2>
+      <p>Ãrea do aluno.</p>
     `;
 
   }
@@ -490,7 +199,7 @@ async function showStudentArea() {
 
 
 // =====================================================
-// ÁREA DO PROFESSOR
+// ÃREA DO PROFESSOR
 // =====================================================
 
 async function showTeacherArea() {
@@ -513,8 +222,8 @@ async function showTeacherArea() {
   if (header) {
 
     header.innerHTML = `
-      <h2>Olá, ${escapeHtml(currentProfile.name)}</h2>
-      <p>Área do professor.</p>
+      <h2>OlÃ¡, ${escapeHtml(currentProfile.name)}</h2>
+      <p>Ãrea do professor.</p>
     `;
 
   }
@@ -525,7 +234,7 @@ async function showTeacherArea() {
 
 
 // =====================================================
-// NAVEGAÇÃO DO ALUNO
+// NAVEGAÃ‡ÃƒO DO ALUNO
 // =====================================================
 
 function setStudentPage(page) {
@@ -568,8 +277,8 @@ function setStudentPage(page) {
         <h3>Agenda semanal</h3>
 
         <p>
-          Clique em um horário livre para
-          escolher uma reposição.
+          Clique em um horÃ¡rio livre para
+          escolher uma reposiÃ§Ã£o.
         </p>
 
         <div
@@ -587,7 +296,7 @@ function setStudentPage(page) {
             class="secondary-button"
             id="previousWeekButton"
           >
-            ← Semana anterior
+            â† Semana anterior
           </button>
 
           <button
@@ -603,7 +312,7 @@ function setStudentPage(page) {
             class="secondary-button"
             id="nextWeekButton"
           >
-            Próxima semana →
+            PrÃ³xima semana â†’
           </button>
 
         </div>
@@ -648,23 +357,23 @@ function setStudentPage(page) {
         >
 
           <span>
-            🟢 Livre
+            ðŸŸ¢ Livre
           </span>
 
           <span>
-            🔴 Ocupado
+            ðŸ”´ Ocupado
           </span>
 
           <span>
-            ⚫ Indisponível
+            âš« IndisponÃ­vel
           </span>
 
           <span>
-            🔵 Minha aula
+            ðŸ”µ Minha aula
           </span>
 
           <span>
-            🟣 Minha reposição
+            ðŸŸ£ Minha reposiÃ§Ã£o
           </span>
 
         </div>
@@ -742,7 +451,7 @@ function setStudentPage(page) {
 
 
   // ===================================================
-  // HISTÓRICO
+  // HISTÃ“RICO
   // ===================================================
 
   if (page === "history") {
@@ -751,18 +460,18 @@ function setStudentPage(page) {
 
       <div class="card">
 
-        <h3>Histórico de aulas</h3>
+        <h3>HistÃ³rico de aulas</h3>
 
         <p>
-          Aqui você pode acompanhar suas aulas,
-          conteúdos, presença e observações.
+          Aqui vocÃª pode acompanhar suas aulas,
+          conteÃºdos, presenÃ§a e observaÃ§Ãµes.
         </p>
 
         <div
           id="studentHistoryContent"
           style="margin-top:20px;"
         >
-          Carregando histórico...
+          Carregando histÃ³rico...
         </div>
 
       </div>
@@ -777,7 +486,7 @@ function setStudentPage(page) {
 
 
   // ===================================================
-  // REPOSIÇÕES
+  // REPOSIÃ‡Ã•ES
   // ===================================================
 
   if (page === "makeups") {
@@ -786,11 +495,11 @@ function setStudentPage(page) {
 
       <div class="card">
 
-        <h3>Minhas reposições</h3>
+        <h3>Minhas reposiÃ§Ãµes</h3>
 
         <p>
-          Consulte suas reposições,
-          duração, validade e situação.
+          Consulte suas reposiÃ§Ãµes,
+          duraÃ§Ã£o, validade e situaÃ§Ã£o.
         </p>
 
         <div
@@ -825,7 +534,7 @@ function setStudentPage(page) {
 
         <p>
           Consulte suas mensalidades e
-          histórico de pagamentos.
+          histÃ³rico de pagamentos.
         </p>
 
         <div
@@ -937,7 +646,7 @@ async function loadStudentRules() {
       >
 
         <strong>
-          Não foi possível carregar as regras.
+          NÃ£o foi possÃ­vel carregar as regras.
         </strong>
 
         <p>
@@ -976,7 +685,7 @@ async function loadStudentRules() {
         </strong>
 
         <p>
-          As regras aparecerão aqui
+          As regras aparecerÃ£o aqui
           quando forem definidas pelo professor.
         </p>
 
@@ -1048,7 +757,7 @@ async function loadStudentFinancialHistory() {
 
     container.innerHTML = `
       <p>
-        Não foi possível carregar
+        NÃ£o foi possÃ­vel carregar
         suas mensalidades.
       </p>
     `;
@@ -1080,7 +789,7 @@ async function loadStudentFinancialHistory() {
 
         <p>
           Quando o professor cadastrar
-          uma mensalidade, ela aparecerá aqui.
+          uma mensalidade, ela aparecerÃ¡ aqui.
         </p>
 
       </div>
@@ -1207,10 +916,10 @@ function renderFinancialCard(item) {
 
 
       <p>
-        <strong>Observações:</strong>
+        <strong>ObservaÃ§Ãµes:</strong>
         ${
           item.notes ||
-          "Nenhuma observação."
+          "Nenhuma observaÃ§Ã£o."
         }
       </p>
 
@@ -1221,7 +930,7 @@ function renderFinancialCard(item) {
 
 
 // =====================================================
-// MÊS
+// MÃŠS
 // =====================================================
 
 function formatMonth(month) {
@@ -1231,7 +940,7 @@ function formatMonth(month) {
     "",
     "Janeiro",
     "Fevereiro",
-    "Março",
+    "MarÃ§o",
     "Abril",
     "Maio",
     "Junho",
@@ -1248,7 +957,7 @@ function formatMonth(month) {
   return (
     months[
       Number(month)
-    ] || `Mês ${month}`
+    ] || `MÃªs ${month}`
   );
 }
 
@@ -1267,7 +976,7 @@ function formatCurrency(amount) {
     Number.isNaN(value)
   ) {
 
-    return "Valor não informado";
+    return "Valor nÃ£o informado";
 
   }
 
@@ -1295,32 +1004,32 @@ function formatPaymentStatus(status) {
     case "paid":
     case "pago":
 
-      return "🟢 Pago";
+      return "ðŸŸ¢ Pago";
 
 
     case "pending":
     case "pendente":
 
-      return "🟡 Pendente";
+      return "ðŸŸ¡ Pendente";
 
 
     case "overdue":
     case "atrasado":
 
-      return "🔴 Atrasado";
+      return "ðŸ”´ Atrasado";
 
 
     case "cancelled":
     case "cancelado":
 
-      return "⚫ Cancelado";
+      return "âš« Cancelado";
 
 
     default:
 
       return (
         status ||
-        "Status não informado"
+        "Status nÃ£o informado"
       );
 
   }
@@ -1328,7 +1037,7 @@ function formatPaymentStatus(status) {
 
 
 // =====================================================
-// HISTÓRICO
+// HISTÃ“RICO
 // =====================================================
 
 async function loadStudentHistory() {
@@ -1345,7 +1054,7 @@ async function loadStudentHistory() {
 
 
   container.innerHTML = `
-    <p>Carregando histórico...</p>
+    <p>Carregando histÃ³rico...</p>
   `;
 
 
@@ -1361,14 +1070,14 @@ async function loadStudentHistory() {
   if (error) {
 
     console.error(
-      "Erro ao carregar histórico:",
+      "Erro ao carregar histÃ³rico:",
       error
     );
 
 
     container.innerHTML = `
       <p>
-        Não foi possível carregar seu histórico.
+        NÃ£o foi possÃ­vel carregar seu histÃ³rico.
       </p>
     `;
 
@@ -1398,7 +1107,7 @@ async function loadStudentHistory() {
         </strong>
 
         <p>
-          Seu histórico aparecerá aqui
+          Seu histÃ³rico aparecerÃ¡ aqui
           depois que houver aulas registradas.
         </p>
 
@@ -1444,7 +1153,7 @@ async function loadStudentHistory() {
   if (commentsError) {
 
     console.error(
-      "Erro ao carregar comentários:",
+      "Erro ao carregar comentÃ¡rios:",
       commentsError
     );
 
@@ -1501,7 +1210,7 @@ async function loadStudentHistory() {
 
 
 // =====================================================
-// CARD DO HISTÓRICO
+// CARD DO HISTÃ“RICO
 // =====================================================
 
 function renderHistoryLesson(
@@ -1525,7 +1234,7 @@ function renderHistoryLesson(
             "T12:00:00"
           )
         )
-      : "Data não informada";
+      : "Data nÃ£o informada";
 
 
   const start =
@@ -1576,32 +1285,32 @@ function renderHistoryLesson(
 
         <strong>
           ${start}
-          ${end ? " às " + end : ""}
+          ${end ? " Ã s " + end : ""}
         </strong>
 
       </div>
 
 
       <p>
-        <strong>Matéria:</strong>
+        <strong>MatÃ©ria:</strong>
         ${
           lesson.subject_name ||
-          "Não informada"
+          "NÃ£o informada"
         }
       </p>
 
 
       <p>
-        <strong>Conteúdo:</strong>
+        <strong>ConteÃºdo:</strong>
         ${
           lesson.content_title ||
-          "Não informado"
+          "NÃ£o informado"
         }
       </p>
 
 
       <p>
-        <strong>Presença:</strong>
+        <strong>PresenÃ§a:</strong>
         ${formatAttendanceStatus(
           lesson.attendance_status
         )}
@@ -1618,13 +1327,13 @@ function renderHistoryLesson(
       >
 
         <strong>
-          Observações do professor
+          ObservaÃ§Ãµes do professor
         </strong>
 
         <p>
           ${
             lesson.teacher_notes ||
-            "Nenhuma observação registrada."
+            "Nenhuma observaÃ§Ã£o registrada."
           }
         </p>
 
@@ -1638,7 +1347,7 @@ function renderHistoryLesson(
       >
 
         <strong>
-          Comentários do aluno
+          ComentÃ¡rios do aluno
         </strong>
 
 
@@ -1648,8 +1357,8 @@ function renderHistoryLesson(
             ? `
 
               <p>
-                Você ainda não adicionou
-                um comentário nesta aula.
+                VocÃª ainda nÃ£o adicionou
+                um comentÃ¡rio nesta aula.
               </p>
 
             `
@@ -1695,7 +1404,7 @@ function renderHistoryLesson(
 
           <textarea
             id="comment-${lesson.lesson_id}"
-            placeholder="Escreva um comentário sobre esta aula..."
+            placeholder="Escreva um comentÃ¡rio sobre esta aula..."
             rows="3"
             style="
               width:100%;
@@ -1714,7 +1423,7 @@ function renderHistoryLesson(
             data-lesson-id="${lesson.lesson_id}"
             style="margin-top:8px;"
           >
-            Adicionar comentário
+            Adicionar comentÃ¡rio
           </button>
 
 
@@ -1734,7 +1443,7 @@ function renderHistoryLesson(
 
 
 // =====================================================
-// ADICIONAR COMENTÁRIO
+// ADICIONAR COMENTÃRIO
 // =====================================================
 
 async function addLessonComment(
@@ -1773,7 +1482,7 @@ async function addLessonComment(
     if (message) {
 
       message.textContent =
-        "Escreva um comentário antes de enviar.";
+        "Escreva um comentÃ¡rio antes de enviar.";
 
       message.style.color =
         "red";
@@ -1809,7 +1518,7 @@ async function addLessonComment(
   if (error) {
 
     console.error(
-      "Erro ao adicionar comentário:",
+      "Erro ao adicionar comentÃ¡rio:",
       error
     );
 
@@ -1817,7 +1526,7 @@ async function addLessonComment(
     if (message) {
 
       message.textContent =
-        "Não foi possível adicionar o comentário.";
+        "NÃ£o foi possÃ­vel adicionar o comentÃ¡rio.";
 
       message.style.color =
         "red";
@@ -1830,7 +1539,7 @@ async function addLessonComment(
       button.disabled = false;
 
       button.textContent =
-        "Adicionar comentário";
+        "Adicionar comentÃ¡rio";
 
     }
 
@@ -1841,7 +1550,7 @@ async function addLessonComment(
   if (message) {
 
     message.textContent =
-      "Comentário adicionado com sucesso.";
+      "ComentÃ¡rio adicionado com sucesso.";
 
     message.style.color =
       "green";
@@ -1856,7 +1565,7 @@ async function addLessonComment(
 
 
 // =====================================================
-// PRESENÇA
+// PRESENÃ‡A
 // =====================================================
 
 function formatAttendanceStatus(status) {
@@ -1866,29 +1575,29 @@ function formatAttendanceStatus(status) {
   ) {
 
     case "present":
-      return "✅ Presente";
+      return "âœ… Presente";
 
     case "absent":
-      return "❌ Falta";
+      return "âŒ Falta";
 
     case "justified_absence":
-      return "⚠️ Falta justificada";
+      return "âš ï¸ Falta justificada";
 
     case "cancelled":
-      return "🚫 Cancelada";
+      return "ðŸš« Cancelada";
 
     case "makeup":
-      return "🔄 Reposição";
+      return "ðŸ”„ ReposiÃ§Ã£o";
 
     default:
-      return status || "Não registrado";
+      return status || "NÃ£o registrado";
 
   }
 }
 
 
 // =====================================================
-// REPOSIÇÕES
+// REPOSIÃ‡Ã•ES
 // =====================================================
 
 async function loadStudentMakeups() {
@@ -1900,7 +1609,7 @@ async function loadStudentMakeups() {
 
   if (!container) return;
 
-  container.innerHTML = `<p>Carregando reposições...</p>`;
+  container.innerHTML = `<p>Carregando reposiÃ§Ãµes...</p>`;
 
   if (!currentStudentId) {
     await loadCurrentStudentId();
@@ -1912,8 +1621,8 @@ async function loadStudentMakeups() {
   } = await supabaseClient.rpc("get_my_makeups");
 
   if (error) {
-    console.error("Erro ao carregar reposições:", error);
-    container.innerHTML = `<p>Não foi possível carregar suas reposições.</p>`;
+    console.error("Erro ao carregar reposiÃ§Ãµes:", error);
+    container.innerHTML = `<p>NÃ£o foi possÃ­vel carregar suas reposiÃ§Ãµes.</p>`;
     return;
   }
 
@@ -1922,8 +1631,8 @@ async function loadStudentMakeups() {
   if (makeups.length === 0) {
     container.innerHTML = `
       <div style="padding:20px;text-align:center;border:1px solid #ddd;border-radius:10px;">
-        <strong>Você não possui reposições cadastradas.</strong>
-        <p>Quando uma falta gerar uma reposição ou o professor atribuir uma, ela aparecerá aqui.</p>
+        <strong>VocÃª nÃ£o possui reposiÃ§Ãµes cadastradas.</strong>
+        <p>Quando uma falta gerar uma reposiÃ§Ã£o ou o professor atribuir uma, ela aparecerÃ¡ aqui.</p>
       </div>
     `;
     return;
@@ -1954,7 +1663,7 @@ async function loadStudentMakeups() {
       .eq("student_id", currentStudentId);
 
     if (reservationError) {
-      console.warn("Não foi possível consultar as reservas do aluno:", reservationError);
+      console.warn("NÃ£o foi possÃ­vel consultar as reservas do aluno:", reservationError);
     } else {
       reservations = reservationData || [];
     }
@@ -2004,7 +1713,7 @@ function currentStudentIdForQuery() {
   /*
    * IMPORTANTE:
    * reservations.student_id aponta para students.id.
-   * students.id não é necessariamente igual ao auth user id.
+   * students.id nÃ£o Ã© necessariamente igual ao auth user id.
    */
 
   return currentStudentId || null;
@@ -2012,7 +1721,7 @@ function currentStudentIdForQuery() {
 
 
 // =====================================================
-// CARD DE REPOSIÇÃO
+// CARD DE REPOSIÃ‡ÃƒO
 // =====================================================
 
 function renderMakeupCard(makeup) {
@@ -2023,7 +1732,7 @@ function renderMakeupCard(makeup) {
 
   const expires = makeup.expires_at
     ? formatDateTime(makeup.expires_at)
-    : "Não informado";
+    : "NÃ£o informado";
 
   const cancellationCount = Number(makeup.cancellation_count || 0);
 
@@ -2038,11 +1747,11 @@ function renderMakeupCard(makeup) {
 
     reservationInfo = `
       <div style="margin-top:15px;padding:14px;border-radius:8px;background:#eef5ff;">
-        <strong>Reposição agendada:</strong>
+        <strong>ReposiÃ§Ã£o agendada:</strong>
         <br>
         ${formatDate(new Date(makeup.reservation_date + "T12:00:00"))}
-        ${makeup.reservation_start_time ? ` às ${normalizeTime(makeup.reservation_start_time)}` : ""}
-        ${makeup.reservation_end_time ? ` até ${normalizeTime(makeup.reservation_end_time)}` : ""}
+        ${makeup.reservation_start_time ? ` Ã s ${normalizeTime(makeup.reservation_start_time)}` : ""}
+        ${makeup.reservation_end_time ? ` atÃ© ${normalizeTime(makeup.reservation_end_time)}` : ""}
       </div>
     `;
   }
@@ -2058,7 +1767,7 @@ function renderMakeupCard(makeup) {
         data-reservation-id="${makeup.reservation_id}"
         style="margin-top:15px;border-color:#c0392b;color:#c0392b;"
       >
-        Cancelar reposição
+        Cancelar reposiÃ§Ã£o
       </button>
 
       <p
@@ -2113,7 +1822,7 @@ function renderMakeupCard(makeup) {
 
 
 // =====================================================
-// CANCELAR REPOSIÇÃO DO ALUNO
+// CANCELAR REPOSIÃ‡ÃƒO DO ALUNO
 // =====================================================
 
 async function cancelStudentMakeup(
@@ -2123,7 +1832,7 @@ async function cancelStudentMakeup(
   if (!reservationId) {
 
     alert(
-      "Não foi possível identificar a reserva."
+      "NÃ£o foi possÃ­vel identificar a reserva."
     );
 
     return;
@@ -2132,10 +1841,10 @@ async function cancelStudentMakeup(
 
   const confirmed =
     window.confirm(
-      "Tem certeza que deseja cancelar esta reposição?\n\n" +
-      "O cancelamento seguirá as regras do sistema. " +
-      "Se esta for a segunda vez que você cancela esta reposição, " +
-      "ela será perdida."
+      "Tem certeza que deseja cancelar esta reposiÃ§Ã£o?\n\n" +
+      "O cancelamento seguirÃ¡ as regras do sistema. " +
+      "Se esta for a segunda vez que vocÃª cancela esta reposiÃ§Ã£o, " +
+      "ela serÃ¡ perdida."
     );
 
 
@@ -2182,7 +1891,7 @@ async function cancelStudentMakeup(
   if (error) {
 
     console.error(
-      "Erro ao cancelar reposição:",
+      "Erro ao cancelar reposiÃ§Ã£o:",
       error
     );
 
@@ -2191,7 +1900,7 @@ async function cancelStudentMakeup(
 
       message.textContent =
         error.message ||
-        "Não foi possível cancelar a reposição.";
+        "NÃ£o foi possÃ­vel cancelar a reposiÃ§Ã£o.";
 
       message.style.color =
         "red";
@@ -2204,7 +1913,7 @@ async function cancelStudentMakeup(
       button.disabled = false;
 
       button.textContent =
-        "Cancelar reposição";
+        "Cancelar reposiÃ§Ã£o";
 
     }
 
@@ -2221,7 +1930,7 @@ async function cancelStudentMakeup(
   if (message) {
 
     message.textContent =
-      "Reposição cancelada com sucesso.";
+      "ReposiÃ§Ã£o cancelada com sucesso.";
 
     message.style.color =
       "green";
@@ -2243,8 +1952,8 @@ async function cancelStudentMakeup(
 
 
   /*
-   * Também atualiza a agenda.
-   * Assim o horário volta a ficar disponível
+   * TambÃ©m atualiza a agenda.
+   * Assim o horÃ¡rio volta a ficar disponÃ­vel
    * imediatamente.
    */
 
@@ -2254,7 +1963,7 @@ async function cancelStudentMakeup(
 
 
 // =====================================================
-// STATUS REPOSIÇÃO
+// STATUS REPOSIÃ‡ÃƒO
 // =====================================================
 
 function formatMakeupStatus(status) {
@@ -2266,35 +1975,35 @@ function formatMakeupStatus(status) {
     case "available":
 
       return {
-        label: "🟢 Disponível"
+        label: "ðŸŸ¢ DisponÃ­vel"
       };
 
 
     case "reserved":
 
       return {
-        label: "🟣 Minha reposição"
+        label: "ðŸŸ£ Minha reposiÃ§Ã£o"
       };
 
 
     case "used":
 
       return {
-        label: "⚫ Utilizada"
+        label: "âš« Utilizada"
       };
 
 
     case "lost":
 
       return {
-        label: "🔴 Perdida"
+        label: "ðŸ”´ Perdida"
       };
 
 
     case "expired":
 
       return {
-        label: "🟠 Expirada"
+        label: "ðŸŸ  Expirada"
       };
 
 
@@ -2303,7 +2012,7 @@ function formatMakeupStatus(status) {
       return {
         label:
           status ||
-          "Situação desconhecida"
+          "SituaÃ§Ã£o desconhecida"
       };
 
   }
@@ -2311,7 +2020,7 @@ function formatMakeupStatus(status) {
 
 
 // =====================================================
-// ORIGEM REPOSIÇÃO
+// ORIGEM REPOSIÃ‡ÃƒO
 // =====================================================
 
 function formatMakeupSource(source) {
@@ -2327,7 +2036,7 @@ function formatMakeupSource(source) {
       return "Professor";
 
     default:
-      return source || "Não informado";
+      return source || "NÃ£o informado";
 
   }
 }
@@ -2411,7 +2120,7 @@ async function loadStudentWeeklySchedule() {
 
     if (reservationError) {
       console.warn(
-        "Não foi possível carregar as reposições da semana:",
+        "NÃ£o foi possÃ­vel carregar as reposiÃ§Ãµes da semana:",
         reservationError
       );
     } else {
@@ -2457,7 +2166,7 @@ function renderStudentWeeklySchedule(
 
     <tr>
 
-      <th>Horário</th>
+      <th>HorÃ¡rio</th>
 
       ${getWeekDays()
         .map(
@@ -2552,7 +2261,7 @@ function renderStudentWeeklySchedule(
 
       if (!slot) {
 
-        cell.textContent = "—";
+        cell.textContent = "â€”";
 
         cell.classList.add(
           "unavailable"
@@ -2583,7 +2292,7 @@ function renderStudentWeeklySchedule(
           ownMakeupReservation
             ? {
                 className: "own-makeup",
-                label: "Minha reposição"
+                label: "Minha reposiÃ§Ã£o"
               }
             : normalizeStudentScheduleStatus(slot.status);
 
@@ -2597,7 +2306,7 @@ function renderStudentWeeklySchedule(
 
 
         // ------------------------------------------------
-        // Minha reposição
+        // Minha reposiÃ§Ã£o
         // ------------------------------------------------
 
         if (
@@ -2612,7 +2321,7 @@ function renderStudentWeeklySchedule(
             "default";
 
           cell.title =
-            "Esta é a sua reposição.";
+            "Esta Ã© a sua reposiÃ§Ã£o.";
 
         }
 
@@ -2633,13 +2342,13 @@ function renderStudentWeeklySchedule(
             "default";
 
           cell.title =
-            "Esta é a sua aula.";
+            "Esta Ã© a sua aula.";
 
         }
 
 
         // ------------------------------------------------
-        // Horário livre
+        // HorÃ¡rio livre
         // ------------------------------------------------
 
         else if (
@@ -2651,7 +2360,7 @@ function renderStudentWeeklySchedule(
             "pointer";
 
           cell.title =
-            "Clique para escolher uma reposição.";
+            "Clique para escolher uma reposiÃ§Ã£o.";
 
           cell.addEventListener(
             "click",
@@ -2688,7 +2397,7 @@ function renderStudentWeeklySchedule(
     body.innerHTML = `
       <tr>
         <td colspan="8">
-          Nenhum horário cadastrado.
+          Nenhum horÃ¡rio cadastrado.
         </td>
       </tr>
     `;
@@ -2698,7 +2407,7 @@ function renderStudentWeeklySchedule(
 
 
 // =====================================================
-// ENCONTRAR HORÁRIO
+// ENCONTRAR HORÃRIO
 // =====================================================
 
 function findScheduleSlot(
@@ -2754,7 +2463,7 @@ function normalizeStudentScheduleStatus(
 
       return {
         className: "unavailable",
-        label: "Indisponível"
+        label: "IndisponÃ­vel"
       };
 
 
@@ -2763,7 +2472,7 @@ function normalizeStudentScheduleStatus(
 
       return {
         className: "own-makeup",
-        label: "Minha reposição"
+        label: "Minha reposiÃ§Ã£o"
       };
 
 
@@ -2789,7 +2498,7 @@ function normalizeStudentScheduleStatus(
 
 
 // =====================================================
-// SELECIONAR REPOSIÇÃO
+// SELECIONAR REPOSIÃ‡ÃƒO
 // =====================================================
 
 async function openMakeupSelection(
@@ -2840,12 +2549,12 @@ async function openMakeupSelection(
       <div class="card">
 
         <h3>
-          Nenhuma reposição compatível
+          Nenhuma reposiÃ§Ã£o compatÃ­vel
         </h3>
 
         <p>
-          Você não possui uma reposição
-          compatível com este horário.
+          VocÃª nÃ£o possui uma reposiÃ§Ã£o
+          compatÃ­vel com este horÃ¡rio.
         </p>
 
         <button
@@ -2880,7 +2589,7 @@ async function openMakeupSelection(
     <div class="card">
 
       <h3>
-        Escolher reposição
+        Escolher reposiÃ§Ã£o
       </h3>
 
       <p>
@@ -2889,11 +2598,11 @@ async function openMakeupSelection(
           slot.day_of_week
         )}
 
-        — ${formatDate(
+        â€” ${formatDate(
           reservationDate
         )}
 
-        às
+        Ã s
 
         ${normalizeTime(
           slot.start_time
@@ -2903,7 +2612,7 @@ async function openMakeupSelection(
 
 
       <label>
-        Reposição:
+        ReposiÃ§Ã£o:
       </label>
 
 
@@ -2918,7 +2627,7 @@ async function openMakeupSelection(
       >
 
         <option value="">
-          Selecione uma reposição
+          Selecione uma reposiÃ§Ã£o
         </option>
 
         ${compatibleMakeups
@@ -2930,7 +2639,7 @@ async function openMakeupSelection(
               >
 
                 ${makeup.duration_minutes}
-                minutos —
+                minutos â€”
                 ${formatMakeupSource(
                   makeup.source
                 )}
@@ -2997,7 +2706,7 @@ async function openMakeupSelection(
 
 
 // =====================================================
-// REPOSIÇÕES DISPONÍVEIS
+// REPOSIÃ‡Ã•ES DISPONÃVEIS
 // =====================================================
 
 async function getAvailableMakeups() {
@@ -3018,7 +2727,7 @@ async function getAvailableMakeups() {
   if (error) {
 
     console.error(
-      "Erro ao carregar reposições:",
+      "Erro ao carregar reposiÃ§Ãµes:",
       error
     );
 
@@ -3039,7 +2748,7 @@ async function getAvailableMakeups() {
 
 
 // =====================================================
-// REPOSIÇÕES COMPATÍVEIS
+// REPOSIÃ‡Ã•ES COMPATÃVEIS
 // =====================================================
 
 function getCompatibleMakeups(
@@ -3100,7 +2809,7 @@ function getCompatibleMakeups(
 
 
 // =====================================================
-// HORÁRIO SEGUINTE
+// HORÃRIO SEGUINTE
 // =====================================================
 
 function findNextFreeSlot(
@@ -3178,7 +2887,7 @@ function prepareMakeupReservation() {
   if (!makeupId) {
 
     alert(
-      "Selecione uma reposição."
+      "Selecione uma reposiÃ§Ã£o."
     );
 
     return;
@@ -3222,14 +2931,14 @@ function prepareMakeupReservation() {
       </p>
 
       <p>
-        <strong>Horário:</strong>
+        <strong>HorÃ¡rio:</strong>
         ${normalizeTime(
           selectedScheduleSlot.start_time
         )}
       </p>
 
       <p>
-        <strong>Reposição:</strong>
+        <strong>ReposiÃ§Ã£o:</strong>
         ${escapeHtml(makeup)}
       </p>
 
@@ -3295,7 +3004,7 @@ function prepareMakeupReservation() {
 
 
 // =====================================================
-// RESERVAR REPOSIÇÃO
+// RESERVAR REPOSIÃ‡ÃƒO
 // =====================================================
 
 async function confirmRealReservation(
@@ -3365,7 +3074,7 @@ async function confirmRealReservation(
 
     message.textContent =
       error.message ||
-      "Não foi possível realizar a reserva.";
+      "NÃ£o foi possÃ­vel realizar a reserva.";
 
     message.style.color =
       "red";
@@ -3383,7 +3092,7 @@ async function confirmRealReservation(
     ${formatDate(
       reservationDate
     )}
-    às
+    Ã s
     ${normalizeTime(
       startTime
     )}
@@ -3438,7 +3147,7 @@ function closeMakeupSelection() {
 
 
 // =====================================================
-// NAVEGAÇÃO DO PROFESSOR
+// NAVEGAÃ‡ÃƒO DO PROFESSOR
 // =====================================================
 
 function setTeacherPage(page) {
@@ -3481,7 +3190,7 @@ function setTeacherPage(page) {
         <h3>Regras</h3>
 
         <p>
-          Defina as regras que serão
+          Defina as regras que serÃ£o
           visualizadas pelos seus alunos.
         </p>
 
@@ -3529,7 +3238,7 @@ function setTeacherPage(page) {
 
 
   // ===================================================
-  // DEMAIS PÁGINAS DO PROFESSOR
+  // DEMAIS PÃGINAS DO PROFESSOR
   // ===================================================
 
   const titles = {
@@ -3539,10 +3248,10 @@ function setTeacherPage(page) {
     students: "Alunos",
 
     attendance:
-      "Presença / Faltas",
+      "PresenÃ§a / Faltas",
 
     subjects:
-      "Matérias",
+      "MatÃ©rias",
 
     planning:
       "Planejamento",
@@ -3560,13 +3269,13 @@ function setTeacherPage(page) {
       <h3>
         ${
           titles[page] ||
-          "Página"
+          "PÃ¡gina"
         }
       </h3>
 
       <p>
-        Esta área será implementada
-        nas próximas etapas.
+        Esta Ã¡rea serÃ¡ implementada
+        nas prÃ³ximas etapas.
       </p>
 
     </div>
@@ -3625,7 +3334,7 @@ async function loadTeacherRules() {
     if (message) {
 
       message.textContent =
-        "Não foi possível identificar o professor.";
+        "NÃ£o foi possÃ­vel identificar o professor.";
 
       message.style.color =
         "red";
@@ -3671,7 +3380,7 @@ async function loadTeacherRules() {
     if (message) {
 
       message.textContent =
-        "Não foi possível carregar as regras.";
+        "NÃ£o foi possÃ­vel carregar as regras.";
 
       message.style.color =
         "red";
@@ -3782,7 +3491,7 @@ async function saveTeacherRules() {
 
       message.textContent =
         error.message ||
-        "Não foi possível salvar as regras.";
+        "NÃ£o foi possÃ­vel salvar as regras.";
 
       message.style.color =
         "red";
@@ -3827,7 +3536,7 @@ async function saveTeacherRules() {
 
 
 // =====================================================
-// BOTÕES DE NAVEGAÇÃO
+// BOTÃ•ES DE NAVEGAÃ‡ÃƒO
 // =====================================================
 
 document
@@ -3944,11 +3653,11 @@ function getWeekDays() {
   const names = [
 
     "Segunda",
-    "Terça",
+    "TerÃ§a",
     "Quarta",
     "Quinta",
     "Sexta",
-    "Sábado",
+    "SÃ¡bado",
     "Domingo"
 
   ];
@@ -4022,7 +3731,7 @@ function formatWeekLabel(
 
   return (
     formatDate(weekStart) +
-    " → " +
+    " â†’ " +
     formatDate(weekEnd)
   );
 }
@@ -4065,7 +3774,7 @@ function formatDateForDatabase(
 
 
 // =====================================================
-// HORÁRIOS
+// HORÃRIOS
 // =====================================================
 
 function normalizeTime(time) {
@@ -4129,7 +3838,7 @@ function formatDay(day) {
 
     1: "Segunda-feira",
 
-    2: "Terça-feira",
+    2: "TerÃ§a-feira",
 
     3: "Quarta-feira",
 
@@ -4137,7 +3846,7 @@ function formatDay(day) {
 
     5: "Sexta-feira",
 
-    6: "Sábado",
+    6: "SÃ¡bado",
 
     7: "Domingo"
 
@@ -4298,7 +4007,7 @@ if (logoutButton) {
 
 
 // =====================================================
-// RECUPERAÇÃO DE SENHA
+// RECUPERAÃ‡ÃƒO DE SENHA
 // =====================================================
 
 if (forgotPasswordButton) {
@@ -4342,7 +4051,7 @@ if (forgotPasswordButton) {
 
 
         loginMessage.textContent =
-          "Não foi possível enviar o e-mail de recuperação.";
+          "NÃ£o foi possÃ­vel enviar o e-mail de recuperaÃ§Ã£o.";
 
 
         return;
@@ -4350,7 +4059,7 @@ if (forgotPasswordButton) {
 
 
       loginMessage.textContent =
-        "E-mail de recuperação enviado.";
+        "E-mail de recuperaÃ§Ã£o enviado.";
 
     }
   );
@@ -4359,7 +4068,7 @@ if (forgotPasswordButton) {
 
 
 // =====================================================
-// INICIALIZAÇÃO
+// INICIALIZAÃ‡ÃƒO
 // =====================================================
 
 async function initializeApp() {
@@ -4384,7 +4093,7 @@ async function initializeApp() {
 
 
 // =====================================================
-// ALTERAÇÃO DE AUTENTICAÇÃO
+// ALTERAÃ‡ÃƒO DE AUTENTICAÃ‡ÃƒO
 // =====================================================
 
 supabaseClient.auth.onAuthStateChange(
