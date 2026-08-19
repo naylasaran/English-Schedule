@@ -359,7 +359,7 @@ function setStudentPage(page) {
     `;
 
 
-    loadStudentHistory();
+    loadStudentWeeklySchedule();
 
     return;
   }
