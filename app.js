@@ -448,7 +448,62 @@ function setStudentPage(page) {
     return;
   }
 
+ // ===================================================
+  // HISTÓRICO
+  // ===================================================
 
+  if (page === "history") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>Histórico de aulas</h3>
+
+        <p>
+          Aqui você pode acompanhar suas aulas,
+          conteúdos, presença e observações.
+        </p>
+
+        <div
+          id="studentHistoryContent"
+          style="margin-top:20px;"
+        >
+          Carregando histórico...
+        </div>
+
+      </div>
+
+    `;
+
+    loadStudentHistory()
+      .catch(error => {
+
+        console.error(
+          "Erro ao carregar histórico:",
+          error
+        );
+
+        const container =
+          document.getElementById(
+            "studentHistoryContent"
+          );
+
+        if (container) {
+
+          container.innerHTML = `
+            <p>
+              Não foi possível carregar seu histórico.
+            </p>
+          `;
+
+        }
+
+      });
+
+    return;
+  }
+  
   // ===================================================
   // REPOSI\xc7\xd5ES
   // ===================================================
