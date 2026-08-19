@@ -1,5 +1,11 @@
 // =====================================================
-// ESTADO DO APLICATIVO
+// AGENDA DE AULAS
+// APP.JS COMPLETO
+// =====================================================
+
+
+// =====================================================
+// ESTADO
 // =====================================================
 
 let currentUser = null;
@@ -11,7 +17,7 @@ let selectedWeekStart = getMonday(new Date());
 
 
 // =====================================================
-// ELEMENTOS
+// ELEMENTOS PRINCIPAIS
 // =====================================================
 
 const loginScreen =
@@ -37,7 +43,7 @@ const forgotPasswordButton =
 
 
 // =====================================================
-// PERFIL
+// CARREGAR PERFIL
 // =====================================================
 
 async function loadProfile(userId) {
@@ -50,6 +56,7 @@ async function loadProfile(userId) {
       .single();
 
   if (error) {
+
     console.error(
       "Erro ao carregar perfil:",
       error
@@ -63,7 +70,7 @@ async function loadProfile(userId) {
 
 
 // =====================================================
-// USUÁRIO LOGADO
+// MOSTRAR USUÁRIO LOGADO
 // =====================================================
 
 async function showLoggedUser(user) {
@@ -83,6 +90,7 @@ async function showLoggedUser(user) {
 
   loginScreen.classList.add("hidden");
 
+
   if (
     currentProfile.role === "student"
   ) {
@@ -91,6 +99,7 @@ async function showLoggedUser(user) {
 
   }
 
+
   else if (
     currentProfile.role === "teacher"
   ) {
@@ -98,6 +107,7 @@ async function showLoggedUser(user) {
     await showTeacherArea();
 
   }
+
 
   else {
 
@@ -127,19 +137,22 @@ async function showStudentArea() {
     "hidden"
   );
 
+
   const header =
     document.getElementById(
       "studentHeader"
     );
 
+
   if (header) {
 
     header.innerHTML = `
-      <h2>Olá, ${currentProfile.name}</h2>
+      <h2>Olá, ${escapeHtml(currentProfile.name)}</h2>
       <p>Área do aluno.</p>
     `;
 
   }
+
 
   setStudentPage("agenda");
 }
@@ -159,19 +172,22 @@ async function showTeacherArea() {
     "hidden"
   );
 
+
   const header =
     document.getElementById(
       "teacherHeader"
     );
 
+
   if (header) {
 
     header.innerHTML = `
-      <h2>Olá, ${currentProfile.name}</h2>
+      <h2>Olá, ${escapeHtml(currentProfile.name)}</h2>
       <p>Área do professor.</p>
     `;
 
   }
+
 
   setTeacherPage("agenda");
 }
@@ -187,6 +203,7 @@ function setStudentPage(page) {
     document.getElementById(
       "studentContent"
     );
+
 
   if (!content) {
     return;
@@ -412,41 +429,8 @@ function setStudentPage(page) {
 
     `;
 
+
     loadStudentHistory();
-
-    return;
-  }
-
-
-  // ===================================================
-  // MENSALIDADE
-  // ===================================================
-
-  if (page === "financial") {
-
-    content.innerHTML = `
-
-      <div class="card">
-
-        <h3>Minha mensalidade</h3>
-
-        <p>
-          Consulte suas mensalidades e
-          histórico de pagamentos.
-        </p>
-
-        <div
-          id="studentFinancialContent"
-          style="margin-top:20px;"
-        >
-          Carregando mensalidades...
-        </div>
-
-      </div>
-
-    `;
-
-    loadStudentFinancialHistory();
 
     return;
   }
@@ -480,7 +464,43 @@ function setStudentPage(page) {
 
     `;
 
+
     loadStudentMakeups();
+
+    return;
+  }
+
+
+  // ===================================================
+  // MENSALIDADE
+  // ===================================================
+
+  if (page === "financial") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>Minha mensalidade</h3>
+
+        <p>
+          Consulte suas mensalidades e
+          histórico de pagamentos.
+        </p>
+
+        <div
+          id="studentFinancialContent"
+          style="margin-top:20px;"
+        >
+          Carregando mensalidades...
+        </div>
+
+      </div>
+
+    `;
+
+
+    loadStudentFinancialHistory();
 
     return;
   }
@@ -490,39 +510,42 @@ function setStudentPage(page) {
   // REGRAS
   // ===================================================
 
- if (page === "rules") {
+  if (page === "rules") {
 
-  content.innerHTML = `
+    content.innerHTML = `
 
-    <div class="card">
+      <div class="card">
 
-      <h3>Regras</h3>
+        <h3>Regras</h3>
 
-      <p>
-        Confira abaixo as regras definidas pelo seu professor.
-      </p>
+        <p>
+          Confira abaixo as regras definidas
+          pelo seu professor.
+        </p>
 
-      <div
-        id="studentRulesContent"
-        style="
-          margin-top:20px;
-          white-space:pre-wrap;
-          line-height:1.6;
-        "
-      >
-        Carregando regras...
+        <div
+          id="studentRulesContent"
+          style="
+            margin-top:20px;
+            white-space:pre-wrap;
+            line-height:1.6;
+          "
+        >
+          Carregando regras...
+        </div>
+
       </div>
 
-    </div>
+    `;
 
-  `;
 
-  loadStudentRules();
+    loadStudentRules();
 
-  return;
+    return;
+  }
+
 }
 
-}
 
 // =====================================================
 // REGRAS DO ALUNO
@@ -534,6 +557,7 @@ async function loadStudentRules() {
     document.getElementById(
       "studentRulesContent"
     );
+
 
   if (!container) {
     return;
@@ -560,6 +584,7 @@ async function loadStudentRules() {
       "Erro ao carregar regras:",
       error
     );
+
 
     container.innerHTML = `
 
@@ -641,6 +666,7 @@ async function loadStudentRules() {
   `;
 }
 
+
 // =====================================================
 // FINANCEIRO DO ALUNO
 // =====================================================
@@ -651,6 +677,7 @@ async function loadStudentFinancialHistory() {
     document.getElementById(
       "studentFinancialContent"
     );
+
 
   if (!container) {
     return;
@@ -677,6 +704,7 @@ async function loadStudentFinancialHistory() {
       "Erro ao carregar financeiro:",
       error
     );
+
 
     container.innerHTML = `
       <p>
@@ -766,9 +794,7 @@ async function loadStudentFinancialHistory() {
 // CARD FINANCEIRO
 // =====================================================
 
-function renderFinancialCard(
-  item
-) {
+function renderFinancialCard(item) {
 
   const month =
     formatMonth(
@@ -858,9 +884,7 @@ function renderFinancialCard(
 // MÊS
 // =====================================================
 
-function formatMonth(
-  month
-) {
+function formatMonth(month) {
 
   const months = [
 
@@ -890,12 +914,10 @@ function formatMonth(
 
 
 // =====================================================
-// VALOR
+// MOEDA
 // =====================================================
 
-function formatCurrency(
-  amount
-) {
+function formatCurrency(amount) {
 
   const value =
     Number(amount);
@@ -921,12 +943,10 @@ function formatCurrency(
 
 
 // =====================================================
-// STATUS DO PAGAMENTO
+// STATUS FINANCEIRO
 // =====================================================
 
-function formatPaymentStatus(
-  status
-) {
+function formatPaymentStatus(status) {
 
   switch (
     String(status || "").toLowerCase()
@@ -968,7 +988,7 @@ function formatPaymentStatus(
 
 
 // =====================================================
-// HISTÓRICO DO ALUNO
+// HISTÓRICO
 // =====================================================
 
 async function loadStudentHistory() {
@@ -977,6 +997,7 @@ async function loadStudentHistory() {
     document.getElementById(
       "studentHistoryContent"
     );
+
 
   if (!container) {
     return;
@@ -1003,6 +1024,7 @@ async function loadStudentHistory() {
       "Erro ao carregar histórico:",
       error
     );
+
 
     container.innerHTML = `
       <p>
@@ -1139,7 +1161,7 @@ async function loadStudentHistory() {
 
 
 // =====================================================
-// RENDERIZAR UMA AULA DO HISTÓRICO
+// CARD DO HISTÓRICO
 // =====================================================
 
 function renderHistoryLesson(
@@ -1333,7 +1355,6 @@ function renderHistoryLesson(
 
           <textarea
             id="comment-${lesson.lesson_id}"
-            class="lesson-comment-input"
             placeholder="Escreva um comentário sobre esta aula..."
             rows="3"
             style="
@@ -1351,9 +1372,7 @@ function renderHistoryLesson(
             type="button"
             class="action-button add-lesson-comment-button"
             data-lesson-id="${lesson.lesson_id}"
-            style="
-              margin-top:8px;
-            "
+            style="margin-top:8px;"
           >
             Adicionar comentário
           </button>
@@ -1361,9 +1380,7 @@ function renderHistoryLesson(
 
           <p
             id="comment-message-${lesson.lesson_id}"
-            style="
-              margin-top:8px;
-            "
+            style="margin-top:8px;"
           ></p>
 
         </div>
@@ -1389,9 +1406,16 @@ async function addLessonComment(
       `comment-${lessonId}`
     );
 
+
   const message =
     document.getElementById(
       `comment-message-${lessonId}`
+    );
+
+
+  const button =
+    document.querySelector(
+      `.add-lesson-comment-button[data-lesson-id="${lessonId}"]`
     );
 
 
@@ -1420,12 +1444,6 @@ async function addLessonComment(
   }
 
 
-  const button =
-    document.querySelector(
-      `.add-lesson-comment-button[data-lesson-id="${lessonId}"]`
-    );
-
-
   if (button) {
 
     button.disabled = true;
@@ -1444,7 +1462,7 @@ async function addLessonComment(
       .insert({
         lesson_id: lessonId,
         student_id: currentUser.id,
-        comment: comment
+        comment
       });
 
 
@@ -1493,7 +1511,6 @@ async function addLessonComment(
 
   input.value = "";
 
-
   await loadStudentHistory();
 }
 
@@ -1502,9 +1519,7 @@ async function addLessonComment(
 // PRESENÇA
 // =====================================================
 
-function formatAttendanceStatus(
-  status
-) {
+function formatAttendanceStatus(status) {
 
   switch (
     String(status || "").toLowerCase()
@@ -1533,41 +1548,7 @@ function formatAttendanceStatus(
 
 
 // =====================================================
-// PROTEÇÃO DE TEXTO
-// =====================================================
-
-function escapeHtml(
-  value
-) {
-
-  return String(
-    value || ""
-  )
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
-}
-
-
-// =====================================================
-// REPOSIÇÕES DO ALUNO
+// REPOSIÇÕES
 // =====================================================
 
 async function loadStudentMakeups() {
@@ -1576,6 +1557,7 @@ async function loadStudentMakeups() {
     document.getElementById(
       "makeupsContent"
     );
+
 
   if (!container) {
     return;
@@ -1661,7 +1643,9 @@ async function loadStudentMakeups() {
       ${makeups
         .map(
           makeup =>
-            renderMakeupCard(makeup)
+            renderMakeupCard(
+              makeup
+            )
         )
         .join("")}
 
@@ -1675,9 +1659,7 @@ async function loadStudentMakeups() {
 // CARD DE REPOSIÇÃO
 // =====================================================
 
-function renderMakeupCard(
-  makeup
-) {
+function renderMakeupCard(makeup) {
 
   const duration =
     makeup.duration_minutes || 0;
@@ -1740,9 +1722,7 @@ function renderMakeupCard(
         </h4>
 
         <span
-          style="
-            font-weight:bold;
-          "
+          style="font-weight:bold;"
         >
           ${status.label}
         </span>
@@ -1776,12 +1756,10 @@ function renderMakeupCard(
 
 
 // =====================================================
-// STATUS DA REPOSIÇÃO
+// STATUS REPOSIÇÃO
 // =====================================================
 
-function formatMakeupStatus(
-  status
-) {
+function formatMakeupStatus(status) {
 
   switch (
     String(status || "").toLowerCase()
@@ -1826,7 +1804,8 @@ function formatMakeupStatus(
 
       return {
         label:
-          status || "Situação desconhecida"
+          status ||
+          "Situação desconhecida"
       };
 
   }
@@ -1834,12 +1813,10 @@ function formatMakeupStatus(
 
 
 // =====================================================
-// ORIGEM DA REPOSIÇÃO
+// ORIGEM REPOSIÇÃO
 // =====================================================
 
-function formatMakeupSource(
-  source
-) {
+function formatMakeupSource(source) {
 
   switch (
     String(source || "").toLowerCase()
@@ -1868,6 +1845,7 @@ async function loadStudentWeeklySchedule() {
     document.getElementById(
       "studentScheduleBody"
     );
+
 
   if (!body) {
     return;
@@ -1961,6 +1939,7 @@ function renderStudentWeeklySchedule(
       "studentScheduleHead"
     );
 
+
   const body =
     document.getElementById(
       "studentScheduleBody"
@@ -1979,19 +1958,21 @@ function renderStudentWeeklySchedule(
       <th>Horário</th>
 
       ${getWeekDays()
-        .map(day => `
+        .map(
+          day => `
 
-          <th>
+            <th>
 
-            ${day.name}<br>
+              ${day.name}<br>
 
-            <small>
-              ${formatDate(day.date)}
-            </small>
+              <small>
+                ${formatDate(day.date)}
+              </small>
 
-          </th>
+            </th>
 
-        `)
+          `
+        )
         .join("")}
 
     </tr>
@@ -2227,7 +2208,7 @@ function normalizeStudentScheduleStatus(
 
 
 // =====================================================
-// SELEÇÃO DE REPOSIÇÃO
+// SELECIONAR REPOSIÇÃO
 // =====================================================
 
 async function openMakeupSelection(
@@ -2435,7 +2416,7 @@ async function openMakeupSelection(
 
 
 // =====================================================
-// BUSCAR REPOSIÇÕES DISPONÍVEIS
+// REPOSIÇÕES DISPONÍVEIS
 // =====================================================
 
 async function getAvailableMakeups() {
@@ -2534,7 +2515,7 @@ function getCompatibleMakeups(
 
 
 // =====================================================
-// VERIFICAR BLOCO SEGUINTE
+// HORÁRIO SEGUINTE
 // =====================================================
 
 function findNextFreeSlot(
@@ -2664,7 +2645,7 @@ function prepareMakeupReservation() {
 
       <p>
         <strong>Reposição:</strong>
-        ${makeup}
+        ${escapeHtml(makeup)}
       </p>
 
       <button
@@ -2729,7 +2710,7 @@ function prepareMakeupReservation() {
 
 
 // =====================================================
-// RESERVA REAL
+// RESERVAR REPOSIÇÃO
 // =====================================================
 
 async function confirmRealReservation(
@@ -2742,6 +2723,7 @@ async function confirmRealReservation(
     document.getElementById(
       "confirmReservationButton"
     );
+
 
   const message =
     document.getElementById(
@@ -2797,6 +2779,7 @@ async function confirmRealReservation(
 
 
     message.textContent =
+      error.message ||
       "Não foi possível realizar a reserva.";
 
     message.style.color =
@@ -2846,7 +2829,7 @@ async function confirmRealReservation(
 
 
 // =====================================================
-// FECHAR SELEÇÃO
+// FECHAR RESERVA
 // =====================================================
 
 function closeMakeupSelection() {
@@ -2862,13 +2845,15 @@ function closeMakeupSelection() {
 
 
   if (area) {
+
     area.innerHTML = "";
+
   }
 }
 
 
 // =====================================================
-// NAVEGAÇÃO PROFESSOR
+// NAVEGAÇÃO DO PROFESSOR
 // =====================================================
 
 function setTeacherPage(page) {
@@ -2898,15 +2883,87 @@ function setTeacherPage(page) {
     });
 
 
+  // ===================================================
+  // REGRAS DO PROFESSOR
+  // ===================================================
+
+  if (page === "rules") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>Regras</h3>
+
+        <p>
+          Defina as regras que serão
+          visualizadas pelos seus alunos.
+        </p>
+
+        <textarea
+          id="teacherRulesInput"
+          rows="12"
+          placeholder="Digite aqui as regras..."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:15px;
+            margin-top:15px;
+            border:1px solid #ccc;
+            border-radius:10px;
+            resize:vertical;
+            font-family:inherit;
+            font-size:16px;
+            line-height:1.5;
+          "
+        ></textarea>
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherRulesButton"
+          style="margin-top:15px;"
+        >
+          Salvar regras
+        </button>
+
+        <p
+          id="teacherRulesMessage"
+          style="margin-top:15px;"
+        ></p>
+
+      </div>
+
+    `;
+
+
+    loadTeacherRules();
+
+    return;
+  }
+
+
+  // ===================================================
+  // DEMAIS PÁGINAS DO PROFESSOR
+  // ===================================================
+
   const titles = {
 
     agenda: "Agenda",
+
     students: "Alunos",
-    attendance: "Presença / Faltas",
-    subjects: "Matérias",
-    planning: "Planejamento",
-    financial: "Financeiro",
-    rules: "Regras"
+
+    attendance:
+      "Presença / Faltas",
+
+    subjects:
+      "Matérias",
+
+    planning:
+      "Planejamento",
+
+    financial:
+      "Financeiro"
 
   };
 
@@ -2916,7 +2973,10 @@ function setTeacherPage(page) {
     <div class="card">
 
       <h3>
-        ${titles[page] || "Página"}
+        ${
+          titles[page] ||
+          "Página"
+        }
       </h3>
 
       <p>
@@ -2927,6 +2987,260 @@ function setTeacherPage(page) {
     </div>
 
   `;
+}
+
+
+// =====================================================
+// CARREGAR REGRAS DO PROFESSOR
+// =====================================================
+
+async function loadTeacherRules() {
+
+  const input =
+    document.getElementById(
+      "teacherRulesInput"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  input.value =
+    "Carregando regras...";
+
+
+  // Primeiro descobrimos o professor logado
+  // usando a função de segurança já existente.
+
+  const {
+    data: teacherId,
+    error: teacherError
+  } =
+    await supabaseClient.rpc(
+      "get_current_teacher_id"
+    );
+
+
+  if (teacherError) {
+
+    console.error(
+      "Erro ao descobrir professor:",
+      teacherError
+    );
+
+
+    input.value = "";
+
+
+    const message =
+      document.getElementById(
+        "teacherRulesMessage"
+      );
+
+
+    if (message) {
+
+      message.textContent =
+        "Não foi possível identificar o professor.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("teacher_settings")
+      .select("rules_text")
+      .eq(
+        "teacher_id",
+        teacherId
+      )
+      .maybeSingle();
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar regras:",
+      error
+    );
+
+
+    input.value = "";
+
+
+    const message =
+      document.getElementById(
+        "teacherRulesMessage"
+      );
+
+
+    if (message) {
+
+      message.textContent =
+        "Não foi possível carregar as regras.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+  }
+
+  else {
+
+    input.value =
+      data?.rules_text || "";
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherRulesButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      saveTeacherRules
+    );
+
+  }
+}
+
+
+// =====================================================
+// SALVAR REGRAS DO PROFESSOR
+// =====================================================
+
+async function saveTeacherRules() {
+
+  const input =
+    document.getElementById(
+      "teacherRulesInput"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherRulesMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherRulesButton"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const rules =
+    input.value.trim();
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "update_rules",
+      {
+        p_rules_text:
+          rules
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar regras:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível salvar as regras.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent =
+        "Salvar regras";
+
+    }
+
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Regras salvas com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  if (button) {
+
+    button.disabled = false;
+
+    button.textContent =
+      "Salvar regras";
+
+  }
 }
 
 
@@ -2975,7 +3289,7 @@ document
 
 
 // =====================================================
-// SEMANAS
+// SEMANA
 // =====================================================
 
 function getMonday(date) {
@@ -3086,9 +3400,7 @@ function formatDate(date) {
 }
 
 
-function formatDateTime(
-  value
-) {
+function formatDateTime(value) {
 
   const date =
     new Date(value);
@@ -3174,9 +3486,7 @@ function formatDateForDatabase(
 // HORÁRIOS
 // =====================================================
 
-function normalizeTime(
-  time
-) {
+function normalizeTime(time) {
 
   return String(
     time
@@ -3187,9 +3497,7 @@ function normalizeTime(
 }
 
 
-function timeToMinutes(
-  time
-) {
+function timeToMinutes(time) {
 
   const parts =
     normalizeTime(time)
@@ -3203,9 +3511,7 @@ function timeToMinutes(
 }
 
 
-function minutesToTime(
-  minutes
-) {
+function minutesToTime(minutes) {
 
   const hours =
     Math.floor(
@@ -3232,29 +3538,67 @@ function minutesToTime(
 
 
 // =====================================================
-// TEXTOS
+// DIA DA SEMANA
 // =====================================================
 
-function formatDay(
-  day
-) {
+function formatDay(day) {
 
   const days = {
 
     1: "Segunda-feira",
+
     2: "Terça-feira",
+
     3: "Quarta-feira",
+
     4: "Quinta-feira",
+
     5: "Sexta-feira",
+
     6: "Sábado",
+
     7: "Domingo"
 
   };
 
 
-  return days[
-    Number(day)
-  ] || "";
+  return (
+    days[
+      Number(day)
+    ] || ""
+  );
+}
+
+
+// =====================================================
+// ESCAPAR HTML
+// =====================================================
+
+function escapeHtml(value) {
+
+  return String(
+    value || ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 }
 
 
@@ -3303,8 +3647,10 @@ if (loginForm) {
 
         console.error(error);
 
+
         loginMessage.textContent =
           "E-mail ou senha incorretos.";
+
 
         return;
       }
@@ -3338,6 +3684,7 @@ if (logoutButton) {
 
 
       currentUser = null;
+
       currentProfile = null;
 
 
@@ -3355,7 +3702,9 @@ if (logoutButton) {
 
 
       if (loginForm) {
+
         loginForm.reset();
+
       }
 
     }
@@ -3407,8 +3756,10 @@ if (forgotPasswordButton) {
 
         console.error(error);
 
+
         loginMessage.textContent =
           "Não foi possível enviar o e-mail de recuperação.";
+
 
         return;
       }
@@ -3449,11 +3800,14 @@ async function initializeApp() {
 
 
 // =====================================================
-// AUTH
+// ALTERAÇÃO DE AUTENTICAÇÃO
 // =====================================================
 
 supabaseClient.auth.onAuthStateChange(
-  async (event, session) => {
+  async (
+    event,
+    session
+  ) => {
 
     if (
       event === "SIGNED_IN" &&
