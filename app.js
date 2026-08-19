@@ -884,19 +884,19 @@ function formatPaymentStatus(status) {
     case "paid":
     case "pago":
 
-      return "\U0001f7e2 Pago";
+      return "\uD83D\uDFE2 Pago";
 
 
     case "pending":
     case "pendente":
 
-      return "\U0001f7e1 Pendente";
+      return "\uD83D\uDFE1 Pendente";
 
 
     case "overdue":
     case "atrasado":
 
-      return "\U0001f534 Atrasado";
+      return "\uD83D\uDD34 Atrasado";
 
 
     case "cancelled":
@@ -1464,10 +1464,10 @@ function formatAttendanceStatus(status) {
       return "\u26a0\ufe0f Falta justificada";
 
     case "cancelled":
-      return "\U0001f6ab Cancelada";
+      return "\uD83D\uDEAB Cancelada";
 
     case "makeup":
-      return "\U0001f504 Reposi\xe7\xe3o";
+      return "\uD83D\uDD04 Reposi\xe7\xe3o";
 
     default:
       return status || "N\xe3o registrado";
@@ -1855,14 +1855,14 @@ function formatMakeupStatus(status) {
     case "available":
 
       return {
-        label: "\U0001f7e2 Dispon\xedvel"
+        label: "\uD83D\uDFE2 Dispon\xedvel"
       };
 
 
     case "reserved":
 
       return {
-        label: "\U0001f7e3 Minha reposi\xe7\xe3o"
+        label: "\uD83D\uDFE3 Minha reposi\xe7\xe3o"
       };
 
 
@@ -1876,14 +1876,14 @@ function formatMakeupStatus(status) {
     case "lost":
 
       return {
-        label: "\U0001f534 Perdida"
+        label: "\uD83D\uDD34 Perdida"
       };
 
 
     case "expired":
 
       return {
-        label: "\U0001f7e0 Expirada"
+        label: "\uD83D\uDFE0 Expirada"
       };
 
 
