@@ -1,0 +1,106 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #222;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.topbar {
+  height: 64px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 24px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.topbar button {
+  padding: 8px 16px;
+}
+
+.screen {
+  padding: 30px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+
+  margin: 80px auto;
+
+  background: white;
+  padding: 30px;
+
+  border-radius: 12px;
+
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.login-card h2 {
+  margin-top: 0;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-card input {
+  padding: 12px;
+
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.login-card button {
+  padding: 12px;
+
+  cursor: pointer;
+}
+
+#forgotPasswordButton {
+  margin-top: 15px;
+  background: none;
+  border: none;
+  color: #2563eb;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  margin-bottom: 25px;
+}
+
+.tabs button {
+  padding: 10px 16px;
+
+  border: 1px solid #ccc;
+  border-radius: 6px;
+
+  background: white;
+
+  cursor: pointer;
+}
+
+.tabs button:hover {
+  background: #eee;
+}
