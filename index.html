@@ -1,684 +1,148 @@
-let currentUser = null;
-let currentProfile = null;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Aulas</title>
 
-const loginScreen = document.getElementById("loginScreen");
-const studentScreen = document.getElementById("studentScreen");
-const teacherScreen = document.getElementById("teacherScreen");
+  <link rel="stylesheet" href="style.css">
+</head>
 
-const loginForm = document.getElementById("loginForm");
-const loginMessage = document.getElementById("loginMessage");
-const logoutButton = document.getElementById("logoutButton");
-const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+<body>
 
+  <div id="app">
 
-// =====================================================
-// CARREGAR PERFIL
-// =====================================================
+    <header class="topbar">
+      <h1>Agenda de Aulas</h1>
 
-async function loadProfile(userId) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+      <button id="logoutButton">
+        Sair
+      </button>
+    </header>
 
-  if (error) {
-    console.error(error);
-    return null;
-  }
+    <main>
 
-  return data;
-}
+      <section id="loginScreen" class="screen">
 
+        <div class="login-card">
 
-// =====================================================
-// AGENDA SEMANAL DO ALUNO
-// =====================================================
+          <h2>Entrar</h2>
 
-async function loadStudentWeeklySchedule() {
+          <form id="loginForm">
 
-  if (!currentProfile || currentProfile.role !== "student") {
-    return;
-  }
+            <label for="email">
+              E-mail
+            </label>
 
-  const scheduleBody =
-    document.getElementById("studentScheduleBody");
-
-  if (!scheduleBody) {
-    return;
-  }
-
-  scheduleBody.innerHTML = `
-    <tr>
-      <td colspan="8">Carregando agenda...</td>
-    </tr>
-  `;
-
-  const { data, error } =
-    await supabaseClient.rpc(
-      "get_student_weekly_schedule"
-    );
-
-  if (error) {
-
-    console.error(
-      "Erro ao carregar agenda:",
-      error
-    );
-
-    scheduleBody.innerHTML = `
-      <tr>
-        <td colspan="8">
-          Não foi possível carregar a agenda.
-        </td>
-      </tr>
-    `;
-
-    return;
-  }
-
-  renderStudentWeeklySchedule(data || []);
-}
-
-
-// =====================================================
-// RENDERIZAR AGENDA DO ALUNO
-// =====================================================
-
-function renderStudentWeeklySchedule(schedule) {
-
-  const scheduleBody =
-    document.getElementById("studentScheduleBody");
-
-  if (!scheduleBody) {
-    return;
-  }
-
-  scheduleBody.innerHTML = "";
-
-
-  // ---------------------------------------------------
-  // Descobrir todos os horários existentes
-  // ---------------------------------------------------
-
-  const times = [];
-
-  schedule.forEach(slot => {
-
-    const time =
-      String(slot.start_time).substring(0, 5);
-
-    if (!times.includes(time)) {
-      times.push(time);
-    }
-
-  });
-
-
-  times.sort();
-
-
-  // ---------------------------------------------------
-  // Criar uma linha para cada horário
-  // ---------------------------------------------------
-
-  times.forEach(time => {
-
-    const row =
-      document.createElement("tr");
-
-
-    // Coluna do horário
-
-    const timeCell =
-      document.createElement("td");
-
-    timeCell.textContent = time;
-
-    row.appendChild(timeCell);
-
-
-    // -------------------------------------------------
-    // Segunda até domingo
-    // -------------------------------------------------
-
-    for (let day = 1; day <= 7; day++) {
-
-      const cell =
-        document.createElement("td");
-
-      cell.classList.add("schedule-cell");
-
-
-      const slot =
-        schedule.find(item => {
-
-          const itemTime =
-            String(item.start_time).substring(0, 5);
-
-          return (
-            Number(item.day_of_week) === day &&
-            itemTime === time
-          );
-
-        });
-
-
-      // ------------------------------------------------
-      // Não existe horário cadastrado naquele dia
-      // ------------------------------------------------
-
-      if (!slot) {
-
-        cell.textContent = "—";
-
-        cell.classList.add("unavailable");
-
-      }
-
-      // ------------------------------------------------
-      // Existe horário
-      // ------------------------------------------------
-
-      else {
-
-        const status =
-          normalizeStudentScheduleStatus(
-            slot.status
-          );
-
-        cell.classList.add(
-          status.className
-        );
-
-        cell.textContent =
-          status.label;
-
-      }
-
-
-      row.appendChild(cell);
-
-    }
-
-
-    scheduleBody.appendChild(row);
-
-  });
-
-
-  // ---------------------------------------------------
-  // Nenhum horário cadastrado
-  // ---------------------------------------------------
-
-  if (times.length === 0) {
-
-    scheduleBody.innerHTML = `
-      <tr>
-        <td colspan="8">
-          Nenhum horário cadastrado.
-        </td>
-      </tr>
-    `;
-
-  }
-
-}
-
-
-// =====================================================
-// NORMALIZAR STATUS DA AGENDA
-// =====================================================
-
-function normalizeStudentScheduleStatus(status) {
-
-  switch (status) {
-
-    case "free":
-
-    case "available":
-
-      return {
-        className: "available",
-        label: "Livre"
-      };
-
-
-    case "occupied":
-
-      return {
-        className: "occupied",
-        label: "Ocupado"
-      };
-
-
-    case "unavailable":
-
-      return {
-        className: "unavailable",
-        label: "Indisponível"
-      };
-
-
-    case "my_lesson":
-
-    case "own":
-
-      return {
-        className: "own",
-        label: "Minha aula"
-      };
-
-
-    default:
-
-      return {
-        className: "occupied",
-        label: "Ocupado"
-      };
-
-  }
-
-}
-
-
-// =====================================================
-// MOSTRAR USUÁRIO LOGADO
-// =====================================================
-
-async function showLoggedUser(user) {
-
-  currentUser = user;
-
-  currentProfile =
-    await loadProfile(user.id);
-
-
-  if (!currentProfile) {
-
-    loginMessage.textContent =
-      "Não foi possível carregar seu perfil.";
-
-    return;
-
-  }
-
-
-  loginScreen.classList.add("hidden");
-
-
-  // ===================================================
-  // PROFESSOR
-  // ===================================================
-
-  if (currentProfile.role === "teacher") {
-
-    teacherScreen.classList.remove("hidden");
-
-    studentScreen.classList.add("hidden");
-
-
-    document.getElementById(
-      "teacherContent"
-    ).innerHTML = `
-
-      <h2>
-        Olá, ${currentProfile.name}
-      </h2>
-
-      <p>
-        Área do professor.
-      </p>
-
-    `;
-
-  }
-
-
-  // ===================================================
-  // ALUNO
-  // ===================================================
-
-  else if (currentProfile.role === "student") {
-
-    studentScreen.classList.remove("hidden");
-
-    teacherScreen.classList.add("hidden");
-
-
-    document.getElementById(
-      "studentContent"
-    ).innerHTML = `
-
-      <h2>
-        Olá, ${currentProfile.name}
-      </h2>
-
-      <div class="schedule-section">
-
-        <h3>
-          Agenda semanal
-        </h3>
-
-        <p class="schedule-help">
-          Os horários verdes estão disponíveis
-          para reposição.
-        </p>
-
-
-        <div class="schedule-wrapper">
-
-          <table
-            id="studentScheduleTable"
-            class="schedule-table"
-          >
-
-            <thead>
-
-              <tr>
-
-                <th>
-                  Horário
-                </th>
-
-                <th>
-                  Segunda
-                </th>
-
-                <th>
-                  Terça
-                </th>
-
-                <th>
-                  Quarta
-                </th>
-
-                <th>
-                  Quinta
-                </th>
-
-                <th>
-                  Sexta
-                </th>
-
-                <th>
-                  Sábado
-                </th>
-
-                <th>
-                  Domingo
-                </th>
-
-              </tr>
-
-            </thead>
-
-
-            <tbody
-              id="studentScheduleBody"
+            <input
+              type="email"
+              id="email"
+              required
             >
-            </tbody>
 
-          </table>
+            <label for="password">
+              Senha
+            </label>
 
-        </div>
+            <input
+              type="password"
+              id="password"
+              required
+            >
 
+            <button type="submit">
+              Entrar
+            </button>
 
-        <div class="schedule-legend">
+          </form>
 
-          <span>
-            <span
-              class="legend-box available"
-            ></span>
+          <button id="forgotPasswordButton">
+            Esqueci minha senha
+          </button>
 
-            Livre
-          </span>
-
-
-          <span>
-            <span
-              class="legend-box occupied"
-            ></span>
-
-            Ocupado
-          </span>
-
-
-          <span>
-            <span
-              class="legend-box unavailable"
-            ></span>
-
-            Indisponível
-          </span>
-
-
-          <span>
-            <span
-              class="legend-box own"
-            ></span>
-
-            Minha aula
-          </span>
+          <p id="loginMessage"></p>
 
         </div>
 
-      </div>
+      </section>
 
-    `;
 
+      <section id="studentScreen" class="screen hidden">
 
-    // Carregar agenda
+        <nav class="tabs">
 
-    await loadStudentWeeklySchedule();
+          <button data-tab="studentAgenda">
+            Agenda
+          </button>
 
-  }
+          <button data-tab="studentHistory">
+            Histórico
+          </button>
 
+          <button data-tab="studentMakeups">
+            Reposições
+          </button>
 
-  // ===================================================
-  // USUÁRIO INVÁLIDO
-  // ===================================================
+          <button data-tab="studentFinancial">
+            Mensalidade
+          </button>
 
-  else {
+          <button data-tab="studentRules">
+            Regras
+          </button>
 
-    await supabaseClient.auth.signOut();
+        </nav>
 
-    loginScreen.classList.remove("hidden");
+        <div id="studentContent"></div>
 
-    loginMessage.textContent =
-      "Tipo de usuário inválido.";
+      </section>
 
-  }
 
-}
+      <section id="teacherScreen" class="screen hidden">
 
+        <nav class="tabs">
 
-// =====================================================
-// LOGIN
-// =====================================================
+          <button data-tab="teacherAgenda">
+            Agenda
+          </button>
 
-loginForm.addEventListener(
-  "submit",
-  async (event) => {
+          <button data-tab="teacherStudents">
+            Alunos
+          </button>
 
-    event.preventDefault();
+          <button data-tab="teacherAttendance">
+            Presença/Faltas
+          </button>
 
-    loginMessage.textContent =
-      "Entrando...";
+          <button data-tab="teacherSubjects">
+            Matérias
+          </button>
 
+          <button data-tab="teacherPlanning">
+            Planejamento
+          </button>
 
-    const email =
-      document
-        .getElementById("email")
-        .value
-        .trim();
+          <button data-tab="teacherFinancial">
+            Financeiro
+          </button>
 
+          <button data-tab="teacherRules">
+            Regras
+          </button>
 
-    const password =
-      document
-        .getElementById("password")
-        .value;
+        </nav>
 
+        <div id="teacherContent"></div>
 
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
+      </section>
 
-        email,
-        password
+    </main>
 
-      });
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 
-    if (error) {
-
-      console.error(error);
-
-      loginMessage.textContent =
-        "E-mail ou senha incorretos.";
-
-      return;
-
-    }
-
-
-    loginMessage.textContent = "";
-
-    await showLoggedUser(data.user);
-
-  }
-);
-
-
-// =====================================================
-// LOGOUT
-// =====================================================
-
-logoutButton.addEventListener(
-  "click",
-  async () => {
-
-    await supabaseClient.auth.signOut();
-
-    currentUser = null;
-
-    currentProfile = null;
-
-
-    teacherScreen.classList.add("hidden");
-
-    studentScreen.classList.add("hidden");
-
-    loginScreen.classList.remove("hidden");
-
-
-    loginForm.reset();
-
-  }
-);
-
-
-// =====================================================
-// RECUPERAÇÃO DE SENHA
-// =====================================================
-
-forgotPasswordButton.addEventListener(
-  "click",
-  async () => {
-
-    const email =
-      document
-        .getElementById("email")
-        .value
-        .trim();
-
-
-    if (!email) {
-
-      loginMessage.textContent =
-        "Digite seu e-mail primeiro.";
-
-      return;
-
-    }
-
-
-    const { error } =
-      await supabaseClient.auth
-        .resetPasswordForEmail(
-          email,
-          {
-            redirectTo:
-              window.location.origin
-          }
-        );
-
-
-    if (error) {
-
-      console.error(error);
-
-      loginMessage.textContent =
-        "Não foi possível enviar o e-mail de recuperação.";
-
-      return;
-
-    }
-
-
-    loginMessage.textContent =
-      "E-mail de recuperação enviado.";
-
-  }
-);
-
-
-// =====================================================
-// INICIALIZAR APLICATIVO
-// =====================================================
-
-async function initializeApp() {
-
-  const {
-    data: {
-      session
-    }
-  } =
-    await supabaseClient.auth.getSession();
-
-
-  if (session?.user) {
-
-    await showLoggedUser(session.user);
-
-  }
-
-}
-
-
-// =====================================================
-// OBSERVAR LOGIN
-// =====================================================
-
-supabaseClient.auth.onAuthStateChange(
-  async (event, session) => {
-
-    if (
-      event === "SIGNED_IN" &&
-      session?.user
-    ) {
-
-      await showLoggedUser(
-        session.user
-      );
-
-    }
-
-  }
-);
-
-
-// =====================================================
-// INICIAR
-// =====================================================
-
-initializeApp();
+</body>
+</html>
