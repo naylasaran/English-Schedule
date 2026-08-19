@@ -5,8 +5,9 @@
 let currentUser = null;
 let currentProfile = null;
 
-let selectedScheduleSlot = null;
 let currentStudentSchedule = [];
+let selectedScheduleSlot = null;
+let selectedWeekStart = getMonday(new Date());
 
 
 // =====================================================
@@ -49,7 +50,7 @@ async function loadProfile(userId) {
       .single();
 
   if (error) {
-    console.error(error);
+    console.error("Erro ao carregar perfil:", error);
     return null;
   }
 
@@ -139,7 +140,7 @@ async function showTeacherArea() {
 
 
 // =====================================================
-// NAVEGAÇÃO ALUNO
+// NAVEGAÇÃO DO ALUNO
 // =====================================================
 
 function setStudentPage(page) {
@@ -161,18 +162,76 @@ function setStudentPage(page) {
     });
 
 
+  // ---------------------------------------------------
+  // AGENDA
+  // ---------------------------------------------------
+
   if (page === "agenda") {
 
     content.innerHTML = `
 
       <div class="card schedule-section">
 
-        <h3>Agenda semanal</h3>
+        <h3>
+          Agenda semanal
+        </h3>
 
         <p class="schedule-help">
-          Clique em um horário verde para
-          escolher uma reposição.
+          Escolha a semana e clique em um
+          horário verde para fazer uma reposição.
         </p>
+
+
+        <div
+          style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin:20px 0;
+          "
+        >
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="previousWeekButton"
+          >
+            ← Semana anterior
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="currentWeekButton"
+          >
+            Semana atual
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="nextWeekButton"
+          >
+            Próxima semana →
+          </button>
+
+        </div>
+
+
+        <div
+          id="selectedWeekLabel"
+          style="
+            text-align:center;
+            font-weight:700;
+            font-size:18px;
+            margin-bottom:20px;
+          "
+        ></div>
+
 
         <div class="schedule-wrapper">
 
@@ -181,31 +240,21 @@ function setStudentPage(page) {
             id="studentScheduleTable"
           >
 
-            <thead>
-
-              <tr>
-
-                <th>Horário</th>
-                <th>Segunda</th>
-                <th>Terça</th>
-                <th>Quarta</th>
-                <th>Quinta</th>
-                <th>Sexta</th>
-                <th>Sábado</th>
-                <th>Domingo</th>
-
-              </tr>
+            <thead id="studentScheduleHead">
 
             </thead>
+
 
             <tbody
               id="studentScheduleBody"
             >
 
               <tr>
+
                 <td colspan="8">
                   Carregando agenda...
                 </td>
+
               </tr>
 
             </tbody>
@@ -248,69 +297,165 @@ function setStudentPage(page) {
 
     `;
 
+
+    document
+      .getElementById("previousWeekButton")
+      .addEventListener(
+        "click",
+        () => {
+
+          selectedWeekStart =
+            addDays(
+              selectedWeekStart,
+              -7
+            );
+
+          loadStudentWeeklySchedule();
+
+        }
+      );
+
+
+    document
+      .getElementById("currentWeekButton")
+      .addEventListener(
+        "click",
+        () => {
+
+          selectedWeekStart =
+            getMonday(new Date());
+
+          loadStudentWeeklySchedule();
+
+        }
+      );
+
+
+    document
+      .getElementById("nextWeekButton")
+      .addEventListener(
+        "click",
+        () => {
+
+          selectedWeekStart =
+            addDays(
+              selectedWeekStart,
+              7
+            );
+
+          loadStudentWeeklySchedule();
+
+        }
+      );
+
+
     loadStudentWeeklySchedule();
 
     return;
   }
 
 
+  // ---------------------------------------------------
+  // HISTÓRICO
+  // ---------------------------------------------------
+
   if (page === "history") {
 
     content.innerHTML = `
+
       <div class="card">
-        <h3>Histórico de aulas</h3>
+
+        <h3>
+          Histórico de aulas
+        </h3>
+
         <p>
           Aqui será exibido seu histórico de
           aulas, matérias, conteúdos e presença.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
+
+  // ---------------------------------------------------
+  // REPOSIÇÕES
+  // ---------------------------------------------------
 
   if (page === "makeups") {
 
     content.innerHTML = `
+
       <div class="card">
-        <h3>Minhas reposições</h3>
+
+        <h3>
+          Minhas reposições
+        </h3>
+
         <p>
           Aqui aparecerão suas reposições.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
+
+  // ---------------------------------------------------
+  // MENSALIDADE
+  // ---------------------------------------------------
 
   if (page === "financial") {
 
     content.innerHTML = `
+
       <div class="card">
-        <h3>Minha mensalidade</h3>
+
+        <h3>
+          Minha mensalidade
+        </h3>
+
         <p>
           Aqui aparecerá sua mensalidade
           por mês.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
 
+  // ---------------------------------------------------
+  // REGRAS
+  // ---------------------------------------------------
+
   if (page === "rules") {
 
     content.innerHTML = `
+
       <div class="card">
-        <h3>Regras</h3>
+
+        <h3>
+          Regras
+        </h3>
+
         <p>
           Aqui serão exibidas as regras
           definidas pelo professor.
         </p>
+
       </div>
+
     `;
 
     return;
@@ -319,7 +464,7 @@ function setStudentPage(page) {
 
 
 // =====================================================
-// NAVEGAÇÃO PROFESSOR
+// NAVEGAÇÃO DO PROFESSOR
 // =====================================================
 
 function setTeacherPage(page) {
@@ -344,17 +489,11 @@ function setTeacherPage(page) {
   const titles = {
 
     agenda: "Agenda",
-
     students: "Alunos",
-
     attendance: "Presença / Faltas",
-
     subjects: "Matérias",
-
     planning: "Planejamento",
-
     financial: "Financeiro",
-
     rules: "Regras"
 
   };
@@ -445,7 +584,7 @@ document
 
 
 // =====================================================
-// CARREGAR AGENDA DO ALUNO
+// CARREGAR AGENDA
 // =====================================================
 
 async function loadStudentWeeklySchedule() {
@@ -458,6 +597,35 @@ async function loadStudentWeeklySchedule() {
   if (!body) {
     return;
   }
+
+
+  const label =
+    document.getElementById(
+      "selectedWeekLabel"
+    );
+
+
+  if (label) {
+
+    label.textContent =
+      formatWeekLabel(
+        selectedWeekStart
+      );
+
+  }
+
+
+  body.innerHTML = `
+
+    <tr>
+
+      <td colspan="8">
+        Carregando agenda...
+      </td>
+
+    </tr>
+
+  `;
 
 
   const { data, error } =
@@ -473,12 +641,17 @@ async function loadStudentWeeklySchedule() {
       error
     );
 
+
     body.innerHTML = `
+
       <tr>
+
         <td colspan="8">
           Erro ao carregar a agenda.
         </td>
+
       </tr>
+
     `;
 
     return;
@@ -503,14 +676,51 @@ function renderStudentWeeklySchedule(
   schedule
 ) {
 
+  const head =
+    document.getElementById(
+      "studentScheduleHead"
+    );
+
   const body =
     document.getElementById(
       "studentScheduleBody"
     );
 
-  if (!body) {
+
+  if (!head || !body) {
     return;
   }
+
+
+  // ---------------------------------------------------
+  // CABEÇALHO COM DATAS
+  // ---------------------------------------------------
+
+  head.innerHTML = `
+
+    <tr>
+
+      <th>Horário</th>
+
+      ${getWeekDays()
+        .map(day => `
+
+          <th>
+
+            ${day.name}<br>
+
+            <small>
+              ${formatDate(day.date)}
+            </small>
+
+          </th>
+
+        `)
+        .join("")}
+
+    </tr>
+
+  `;
 
 
   body.innerHTML = "";
@@ -522,10 +732,15 @@ function renderStudentWeeklySchedule(
   schedule.forEach(slot => {
 
     const time =
-      normalizeTime(slot.start_time);
+      normalizeTime(
+        slot.start_time
+      );
+
 
     if (!times.includes(time)) {
+
       times.push(time);
+
     }
 
   });
@@ -543,7 +758,10 @@ function renderStudentWeeklySchedule(
     const timeCell =
       document.createElement("td");
 
-    timeCell.textContent = time;
+
+    timeCell.textContent =
+      time;
+
 
     row.appendChild(timeCell);
 
@@ -556,6 +774,7 @@ function renderStudentWeeklySchedule(
 
       const cell =
         document.createElement("td");
+
 
       cell.classList.add(
         "schedule-cell"
@@ -596,7 +815,8 @@ function renderStudentWeeklySchedule(
 
 
         if (
-          status.className === "available"
+          status.className ===
+          "available"
         ) {
 
           cell.style.cursor =
@@ -635,11 +855,15 @@ function renderStudentWeeklySchedule(
   if (times.length === 0) {
 
     body.innerHTML = `
+
       <tr>
+
         <td colspan="8">
           Nenhum horário cadastrado.
         </td>
+
       </tr>
+
     `;
 
   }
@@ -660,21 +884,12 @@ function findScheduleSlot(
 
     return (
       Number(slot.day_of_week) === day &&
-      normalizeTime(slot.start_time) === time
+      normalizeTime(
+        slot.start_time
+      ) === time
     );
 
   });
-}
-
-
-// =====================================================
-// NORMALIZAR HORÁRIO
-// =====================================================
-
-function normalizeTime(time) {
-
-  return String(time)
-    .substring(0, 5);
 }
 
 
@@ -728,12 +943,13 @@ function normalizeStudentScheduleStatus(
         className: "occupied",
         label: "Ocupado"
       };
+
   }
 }
 
 
 // =====================================================
-// BUSCAR REPOSIÇÕES
+// REPOSIÇÕES DISPONÍVEIS
 // =====================================================
 
 async function loadAvailableMakeups() {
@@ -785,6 +1001,13 @@ async function openMakeupSelection(
   }
 
 
+  const reservationDate =
+    getDateForDay(
+      selectedWeekStart,
+      Number(slot.day_of_week)
+    );
+
+
   area.innerHTML = `
 
     <div class="card">
@@ -794,16 +1017,16 @@ async function openMakeupSelection(
       </h3>
 
       <p>
-        Horário selecionado:
-      </p>
-
-      <p>
 
         <strong>
           ${formatDay(
             slot.day_of_week
           )}
         </strong>
+
+        — ${formatDate(
+          reservationDate
+        )}
 
         às
 
@@ -816,7 +1039,7 @@ async function openMakeupSelection(
       </p>
 
       <p>
-        Carregando reposições...
+        Carregando suas reposições...
       </p>
 
     </div>
@@ -887,6 +1110,7 @@ async function openMakeupSelection(
         Escolher reposição
       </h3>
 
+
       <p>
 
         <strong>
@@ -894,6 +1118,10 @@ async function openMakeupSelection(
             slot.day_of_week
           )}
         </strong>
+
+        — ${formatDate(
+          reservationDate
+        )}
 
         às
 
@@ -913,11 +1141,13 @@ async function openMakeupSelection(
 
       <select
         id="makeupSelect"
-        class="form-group"
         style="
           width:100%;
           padding:11px;
           margin-top:8px;
+          border:1px solid #cfd5dc;
+          border-radius:7px;
+          font-size:15px;
         "
       >
 
@@ -1001,7 +1231,7 @@ async function openMakeupSelection(
 
 
 // =====================================================
-// VERIFICAR REPOSIÇÕES COMPATÍVEIS
+// REPOSIÇÕES COMPATÍVEIS
 // =====================================================
 
 function getCompatibleMakeups(
@@ -1022,10 +1252,7 @@ function getCompatibleMakeups(
       );
 
 
-    // -----------------------------------------------
     // 30 minutos
-    // -----------------------------------------------
-
     if (duration === 30) {
 
       compatible.push(
@@ -1036,10 +1263,7 @@ function getCompatibleMakeups(
     }
 
 
-    // -----------------------------------------------
     // 60 minutos
-    // -----------------------------------------------
-
     if (duration === 60) {
 
       const nextSlot =
@@ -1066,7 +1290,7 @@ function getCompatibleMakeups(
 
 
 // =====================================================
-// VERIFICAR SEGUNDO BLOCO PARA 60 MIN
+// SEGUNDO BLOCO PARA 60 MIN
 // =====================================================
 
 function findNextFreeSlot(
@@ -1109,7 +1333,8 @@ function findNextFreeSlot(
 
 
   if (
-    status.className !== "available"
+    status.className !==
+    "available"
   ) {
 
     return null;
@@ -1118,45 +1343,6 @@ function findNextFreeSlot(
 
 
   return nextSlot;
-}
-
-
-// =====================================================
-// HORÁRIO → MINUTOS
-// =====================================================
-
-function timeToMinutes(time) {
-
-  const parts =
-    normalizeTime(time)
-      .split(":");
-
-
-  return (
-    Number(parts[0]) * 60 +
-    Number(parts[1])
-  );
-}
-
-
-// =====================================================
-// MINUTOS → HORÁRIO
-// =====================================================
-
-function minutesToTime(minutes) {
-
-  const hours =
-    Math.floor(minutes / 60);
-
-  const mins =
-    minutes % 60;
-
-
-  return (
-    String(hours).padStart(2, "0") +
-    ":" +
-    String(mins).padStart(2, "0")
-  );
 }
 
 
@@ -1197,6 +1383,15 @@ function prepareMakeupReservation() {
     ].textContent.trim();
 
 
+  const reservationDate =
+    getDateForDay(
+      selectedWeekStart,
+      Number(
+        selectedScheduleSlot.day_of_week
+      )
+    );
+
+
   const area =
     document.getElementById(
       "makeupSelectionArea"
@@ -1208,57 +1403,102 @@ function prepareMakeupReservation() {
     <div class="card">
 
       <h3>
-        Confirmar escolha
+        Confirmar reserva
       </h3>
 
-      <p>
-        Horário:
-      </p>
 
       <p>
-
-        <strong>
-          ${formatDay(
-            selectedScheduleSlot.day_of_week
-          )}
-        </strong>
-
-        às
-
-        <strong>
-          ${normalizeTime(
-            selectedScheduleSlot.start_time
-          )}
-        </strong>
-
+        <strong>Data:</strong>
+        ${formatDate(
+          reservationDate
+        )}
       </p>
 
 
       <p>
-        Reposição:
-        <strong>
-          ${selectedMakeup}
-        </strong>
+        <strong>Dia:</strong>
+        ${formatDay(
+          selectedScheduleSlot.day_of_week
+        )}
       </p>
 
 
       <p>
-        A reserva real será ativada
-        na próxima etapa.
+        <strong>Horário:</strong>
+        ${normalizeTime(
+          selectedScheduleSlot.start_time
+        )}
       </p>
 
 
-      <button
-        type="button"
-        class="secondary-button"
-        id="backToMakeupSelection"
+      <p>
+        <strong>Reposição:</strong>
+        ${selectedMakeup}
+      </p>
+
+
+      <p>
+        Deseja confirmar esta reserva?
+      </p>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          margin-top:18px;
+        "
       >
-        Voltar
-      </button>
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmRealReservationButton"
+        >
+          Confirmar reserva
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="backToMakeupSelection"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+
+      <p
+        id="reservationMessage"
+        style="
+          margin-top:16px;
+          font-weight:600;
+        "
+      ></p>
 
     </div>
 
   `;
+
+
+  document
+    .getElementById(
+      "confirmRealReservationButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        confirmRealReservation(
+          makeupId,
+          reservationDate,
+          selectedScheduleSlot.start_time
+        );
+
+      }
+    );
 
 
   document
@@ -1275,6 +1515,225 @@ function prepareMakeupReservation() {
 
       }
     );
+}
+
+
+// =====================================================
+// RESERVA REAL NO SUPABASE
+// =====================================================
+
+async function confirmRealReservation(
+  makeupId,
+  reservationDate,
+  startTime
+) {
+
+  const button =
+    document.getElementById(
+      "confirmRealReservationButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "reservationMessage"
+    );
+
+
+  if (!button || !message) {
+    return;
+  }
+
+
+  button.disabled = true;
+
+  button.textContent =
+    "Reservando...";
+
+
+  message.textContent =
+    "";
+
+
+  const dateString =
+    formatDateForDatabase(
+      reservationDate
+    );
+
+
+  const timeString =
+    normalizeTime(
+      startTime
+    );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "reserve_makeup",
+      {
+        p_makeup_id:
+          makeupId,
+
+        p_reservation_date:
+          dateString,
+
+        p_start_time:
+          timeString
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao reservar:",
+      error
+    );
+
+
+    button.disabled = false;
+
+    button.textContent =
+      "Confirmar reserva";
+
+
+    message.textContent =
+      translateReservationError(
+        error.message
+      );
+
+    return;
+  }
+
+
+  console.log(
+    "Reserva criada:",
+    data
+  );
+
+
+  message.innerHTML = `
+    Reserva realizada com sucesso!<br>
+    ${formatDate(reservationDate)}
+    às
+    ${timeString}.
+  `;
+
+
+  message.style.color =
+    "#176b2c";
+
+
+  button.remove();
+
+
+  const backButton =
+    document.getElementById(
+      "backToMakeupSelection"
+    );
+
+
+  if (backButton) {
+
+    backButton.textContent =
+      "Voltar para a agenda";
+
+    backButton.onclick = () => {
+
+      closeMakeupSelection();
+
+      loadStudentWeeklySchedule();
+
+    };
+
+  }
+
+
+  // Atualiza a agenda após a reserva
+  await loadStudentWeeklySchedule();
+}
+
+
+// =====================================================
+// TRADUZIR ERROS DO BANCO
+// =====================================================
+
+function translateReservationError(
+  message
+) {
+
+  const text =
+    String(message || "")
+      .toLowerCase();
+
+
+  if (
+    text.includes(
+      "não está disponível"
+    ) ||
+    text.includes(
+      "nao esta disponivel"
+    )
+  ) {
+
+    return (
+      "Essa reposição não está mais disponível."
+    );
+
+  }
+
+
+  if (
+    text.includes(
+      "acabou de ser ocupado"
+    )
+  ) {
+
+    return (
+      "Esse horário acabou de ser ocupado. Escolha outro horário."
+    );
+
+  }
+
+
+  if (
+    text.includes(
+      "usuário não autorizado"
+    ) ||
+    text.includes(
+      "usuario nao autorizado"
+    )
+  ) {
+
+    return (
+      "Você não tem autorização para fazer esta reserva."
+    );
+
+  }
+
+
+  if (
+    text.includes(
+      "sobreposição"
+    ) ||
+    text.includes(
+      "sobreposicao"
+    )
+  ) {
+
+    return (
+      "Esse horário entra em conflito com outra aula."
+    );
+
+  }
+
+
+  return (
+    "Não foi possível realizar a reserva. Tente novamente."
+  );
 }
 
 
@@ -1297,6 +1756,239 @@ function closeMakeupSelection() {
   if (area) {
     area.innerHTML = "";
   }
+}
+
+
+// =====================================================
+// DATAS DA SEMANA
+// =====================================================
+
+function getWeekDays() {
+
+  const names = [
+
+    "Segunda",
+    "Terça",
+    "Quarta",
+    "Quinta",
+    "Sexta",
+    "Sábado",
+    "Domingo"
+
+  ];
+
+
+  return names.map(
+    (name, index) => ({
+
+      name,
+
+      date:
+        addDays(
+          selectedWeekStart,
+          index
+        )
+
+    })
+  );
+}
+
+
+// =====================================================
+// SEGUNDA-FEIRA DA SEMANA
+// =====================================================
+
+function getMonday(date) {
+
+  const result =
+    new Date(date);
+
+
+  result.setHours(
+    12,
+    0,
+    0,
+    0
+  );
+
+
+  const day =
+    result.getDay();
+
+
+  const difference =
+    day === 0
+      ? -6
+      : 1 - day;
+
+
+  result.setDate(
+    result.getDate() +
+    difference
+  );
+
+
+  return result;
+}
+
+
+// =====================================================
+// ADICIONAR DIAS
+// =====================================================
+
+function addDays(
+  date,
+  amount
+) {
+
+  const result =
+    new Date(date);
+
+
+  result.setDate(
+    result.getDate() +
+    amount
+  );
+
+
+  return result;
+}
+
+
+// =====================================================
+// DATA DE UM DIA DA SEMANA
+// =====================================================
+
+function getDateForDay(
+  weekStart,
+  dayOfWeek
+) {
+
+  return addDays(
+    weekStart,
+    Number(dayOfWeek) - 1
+  );
+}
+
+
+// =====================================================
+// FORMATAR DATA PARA EXIBIÇÃO
+// =====================================================
+
+function formatDate(date) {
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }
+  ).format(date);
+}
+
+
+// =====================================================
+// FORMATAR SEMANA
+// =====================================================
+
+function formatWeekLabel(
+  weekStart
+) {
+
+  const weekEnd =
+    addDays(
+      weekStart,
+      6
+    );
+
+
+  return (
+    formatDate(weekStart) +
+    " → " +
+    formatDate(weekEnd)
+  );
+}
+
+
+// =====================================================
+// DATA PARA O POSTGRES
+// =====================================================
+
+function formatDateForDatabase(
+  date
+) {
+
+  const year =
+    date.getFullYear();
+
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(2, "0");
+
+
+  return (
+    year +
+    "-" +
+    month +
+    "-" +
+    day
+  );
+}
+
+
+// =====================================================
+// HORÁRIO
+// =====================================================
+
+function normalizeTime(time) {
+
+  return String(time)
+    .substring(0, 5);
+}
+
+
+function timeToMinutes(time) {
+
+  const parts =
+    normalizeTime(time)
+      .split(":");
+
+
+  return (
+    Number(parts[0]) * 60 +
+    Number(parts[1])
+  );
+}
+
+
+function minutesToTime(minutes) {
+
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+
+
+  const mins =
+    minutes % 60;
+
+
+  return (
+    String(hours)
+      .padStart(2, "0") +
+    ":" +
+    String(mins)
+      .padStart(2, "0")
+  );
 }
 
 
@@ -1538,6 +2230,7 @@ supabaseClient.auth.onAuthStateChange(
       );
 
     }
+
   }
 );
 
