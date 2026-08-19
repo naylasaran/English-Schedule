@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Aulas</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div id="app">
+
+    <header class="topbar">
+      <h1>Agenda de Aulas</h1>
+
+      <button id="logoutButton">
+        Sair
+      </button>
+    </header>
+
+    <main>
+
+      <section id="loginScreen" class="screen">
+
+        <div class="login-card">
+
+          <h2>Entrar</h2>
+
+          <form id="loginForm">
+
+            <label for="email">
+              E-mail
+            </label>
+
+            <input
+              type="email"
+              id="email"
+              required
+            >
+
+            <label for="password">
+              Senha
+            </label>
+
+            <input
+              type="password"
+              id="password"
+              required
+            >
+
+            <button type="submit">
+              Entrar
+            </button>
+
+          </form>
+
+          <button id="forgotPasswordButton">
+            Esqueci minha senha
+          </button>
+
+          <p id="loginMessage"></p>
+
+        </div>
+
+      </section>
+
+
+      <section id="studentScreen" class="screen hidden">
+
+        <nav class="tabs">
+
+          <button data-tab="studentAgenda">
+            Agenda
+          </button>
+
+          <button data-tab="studentHistory">
+            Histórico
+          </button>
+
+          <button data-tab="studentMakeups">
+            Reposições
+          </button>
+
+          <button data-tab="studentFinancial">
+            Mensalidade
+          </button>
+
+          <button data-tab="studentRules">
+            Regras
+          </button>
+
+        </nav>
+
+        <div id="studentContent"></div>
+
+      </section>
+
+
+      <section id="teacherScreen" class="screen hidden">
+
+        <nav class="tabs">
+
+          <button data-tab="teacherAgenda">
+            Agenda
+          </button>
+
+          <button data-tab="teacherStudents">
+            Alunos
+          </button>
+
+          <button data-tab="teacherAttendance">
+            Presença/Faltas
+          </button>
+
+          <button data-tab="teacherSubjects">
+            Matérias
+          </button>
+
+          <button data-tab="teacherPlanning">
+            Planejamento
+          </button>
+
+          <button data-tab="teacherFinancial">
+            Financeiro
+          </button>
+
+          <button data-tab="teacherRules">
+            Regras
+          </button>
+
+        </nav>
+
+        <div id="teacherContent"></div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
