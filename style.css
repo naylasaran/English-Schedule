@@ -1,163 +1,361 @@
+/* =====================================================
+   CONFIGURAÇÕES GERAIS
+   ===================================================== */
+
 * {
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+  min-height: 100vh;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  background: #f5f6f8;
+  color: #1f2937;
+}
+
+
+/* =====================================================
+   CABEÇALHO
+   ===================================================== */
+
+.site-header {
+  background: #ffffff;
+
+  border-bottom: 1px solid #d9dde3;
+
+  padding: 24px 32px;
+}
+
+.site-header h1 {
+  margin: 0;
+
+  font-size: 32px;
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   ÁREAS / TELAS
+   ===================================================== */
+
+.screen {
+  min-height: calc(100vh - 100px);
 }
 
 .hidden {
   display: none !important;
 }
 
-.topbar {
-  height: 64px;
-  background: white;
-  border-bottom: 1px solid #ddd;
 
+/* =====================================================
+   LOGIN
+   ===================================================== */
+
+#loginScreen {
   display: flex;
+
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 
-  padding: 0 24px;
-}
-
-.topbar h1 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.topbar button {
-  padding: 8px 16px;
-}
-
-.screen {
-  padding: 30px;
+  padding: 40px 20px;
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
 
-  margin: 80px auto;
+  background: #ffffff;
 
-  background: white;
-  padding: 30px;
+  border-radius: 16px;
 
-  border-radius: 12px;
+  padding: 36px;
 
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 .login-card h2 {
   margin-top: 0;
+  margin-bottom: 28px;
+
+  font-size: 30px;
 }
 
-.login-card form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.login-card label {
+  display: block;
+
+  margin-top: 18px;
+  margin-bottom: 8px;
+
+  font-weight: 600;
 }
 
 .login-card input {
-  padding: 12px;
+  width: 100%;
 
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 13px 14px;
+
+  border: 1px solid #cfd5dc;
+  border-radius: 8px;
+
+  font-size: 16px;
+
+  background: #ffffff;
 }
 
-.login-card button {
-  padding: 12px;
+.login-card input:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.primary-button {
+  width: 100%;
+
+  margin-top: 24px;
+
+  padding: 13px 18px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 600;
 
   cursor: pointer;
 }
 
-#forgotPasswordButton {
-  margin-top: 15px;
-  background: none;
-  border: none;
-  color: #2563eb;
+.primary-button:hover {
+  background: #1d4ed8;
 }
 
-.tabs {
+.link-button {
+  display: block;
+
+  margin: 20px auto 0;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+  color: #2563eb;
+
+  font-size: 15px;
+
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.message {
+  min-height: 22px;
+
+  margin-top: 18px;
+
+  text-align: center;
+
+  color: #b91c1c;
+}
+
+
+/* =====================================================
+   NAVEGAÇÃO
+   ===================================================== */
+
+.navigation {
   display: flex;
-  gap: 8px;
+
   flex-wrap: wrap;
 
-  margin-bottom: 25px;
+  gap: 12px;
+
+  padding: 28px 32px;
+
+  background: #f5f6f8;
+
+  border-bottom: 1px solid #e1e4e8;
 }
 
-.tabs button {
-  padding: 10px 16px;
+.nav-button {
+  padding: 13px 22px;
 
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
 
-  background: white;
+  background: #ffffff;
+  color: #1f2937;
+
+  font-size: 16px;
+  font-weight: 600;
 
   cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.tabs button:hover {
-  background: #eee;
+.nav-button:hover {
+  background: #f0f4ff;
+
+  border-color: #9db6ed;
 }
 
-/* =========================================
+.nav-button.active {
+  background: #2563eb;
+  color: #ffffff;
+
+  border-color: #2563eb;
+}
+
+
+/* =====================================================
+   CONTEÚDO DAS PÁGINAS
+   ===================================================== */
+
+.page-container {
+  padding: 10px 32px 50px;
+}
+
+.page-header {
+  margin-top: 10px;
+}
+
+.page-header h2 {
+  margin: 0 0 8px;
+
+  font-size: 30px;
+}
+
+.page-header p {
+  margin: 0;
+
+  color: #555;
+}
+
+.page-content {
+  margin-top: 28px;
+}
+
+
+/* =====================================================
+   CARDS
+   ===================================================== */
+
+.card {
+  background: #ffffff;
+
+  border: 1px solid #e1e5ea;
+
+  border-radius: 12px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+
+/* =====================================================
    AGENDA SEMANAL
-   ========================================= */
+   ===================================================== */
 
 .schedule-section {
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 .schedule-section h3 {
-  margin-bottom: 10px;
+  margin-top: 0;
+  margin-bottom: 8px;
+
+  font-size: 24px;
 }
 
 .schedule-help {
+  margin-top: 0;
   margin-bottom: 20px;
+
   color: #555;
 }
 
 .schedule-wrapper {
   width: 100%;
+
   overflow-x: auto;
+
   margin-top: 20px;
 }
 
 .schedule-table {
   width: 100%;
+
   min-width: 900px;
+
   border-collapse: collapse;
-  background: white;
+
+  background: #ffffff;
 }
 
 .schedule-table th,
 .schedule-table td {
-  border: 1px solid #d9d9d9;
+  border: 1px solid #d9dde3;
+
   padding: 10px;
+
   text-align: center;
 }
 
 .schedule-table th {
-  background: #f3f4f6;
-  font-weight: 600;
+  background: #eef1f5;
+
+  font-weight: 700;
 }
 
 .schedule-table td:first-child {
-  font-weight: 600;
-  background: #fafafa;
+  min-width: 80px;
+
+  font-weight: 700;
+
   white-space: nowrap;
+
+  background: #fafafa;
 }
 
 .schedule-cell {
-  min-width: 100px;
-  height: 48px;
+  min-width: 105px;
+
+  height: 52px;
+
   font-weight: 600;
 }
+
+
+/* =====================================================
+   CORES DA AGENDA
+   ===================================================== */
 
 .schedule-cell.available {
   background: #d9f7df;
@@ -166,7 +364,7 @@ body {
 
 .schedule-cell.occupied {
   background: #e5e7eb;
-  color: #555;
+  color: #555555;
 }
 
 .schedule-cell.unavailable {
@@ -179,43 +377,268 @@ body {
   color: #174ea6;
 }
 
+
+/* =====================================================
+   LEGENDA
+   ===================================================== */
+
 .schedule-legend {
   display: flex;
+
   flex-wrap: wrap;
-  gap: 20px;
-  margin-top: 15px;
+
+  gap: 18px;
+
+  margin-top: 16px;
+
   font-size: 14px;
 }
 
 .schedule-legend > span {
   display: inline-flex;
+
   align-items: center;
-  gap: 6px;
+
+  gap: 7px;
 }
 
 .legend-box {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
+  width: 17px;
+  height: 17px;
+
   display: inline-block;
+
+  border-radius: 4px;
 }
 
 .legend-box.available {
   background: #d9f7df;
+
   border: 1px solid #176b2c;
 }
 
 .legend-box.occupied {
   background: #e5e7eb;
-  border: 1px solid #999;
+
+  border: 1px solid #999999;
 }
 
 .legend-box.unavailable {
   background: #ffdede;
+
   border: 1px solid #9b1c1c;
 }
 
 .legend-box.own {
   background: #dce9ff;
+
   border: 1px solid #174ea6;
+}
+
+
+/* =====================================================
+   BOTÕES DE AÇÃO
+   ===================================================== */
+
+.action-button {
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 7px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #1d4ed8;
+}
+
+.secondary-button {
+  padding: 10px 16px;
+
+  border: 1px solid #cfd5dc;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #333333;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background: #f3f4f6;
+}
+
+
+/* =====================================================
+   TABELAS GERAIS
+   ===================================================== */
+
+.data-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  background: #ffffff;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #d9dde3;
+
+  padding: 11px;
+
+  text-align: left;
+}
+
+.data-table th {
+  background: #eef1f5;
+
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   FORMULÁRIOS
+   ===================================================== */
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+
+  padding: 11px 12px;
+
+  border: 1px solid #cfd5dc;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  font-size: 15px;
+}
+
+.form-group textarea {
+  min-height: 100px;
+
+  resize: vertical;
+}
+
+
+/* =====================================================
+   RODAPÉ
+   ===================================================== */
+
+.site-footer {
+  padding: 25px 32px;
+
+  text-align: right;
+
+  background: #f5f6f8;
+}
+
+.logout-button {
+  padding: 10px 18px;
+
+  border: 1px solid #c7cbd1;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #333333;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #eeeeee;
+}
+
+
+/* =====================================================
+   RESPONSIVIDADE
+   ===================================================== */
+
+@media (max-width: 800px) {
+
+  .site-header {
+    padding: 20px;
+  }
+
+  .site-header h1 {
+    font-size: 26px;
+  }
+
+  .navigation {
+    padding: 18px 20px;
+
+    gap: 8px;
+  }
+
+  .nav-button {
+    padding: 10px 14px;
+
+    font-size: 14px;
+  }
+
+  .page-container {
+    padding: 10px 20px 40px;
+  }
+
+  .login-card {
+    padding: 26px;
+  }
+
+}
+
+@media (max-width: 500px) {
+
+  .navigation {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nav-button {
+    width: 100%;
+  }
+
+  .page-container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .schedule-table {
+    min-width: 800px;
+  }
+
 }
