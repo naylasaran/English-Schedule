@@ -5,6 +5,8 @@
 let currentUser = null;
 let currentProfile = null;
 
+let selectedScheduleSlot = null;
+
 
 // =====================================================
 // ELEMENTOS PRINCIPAIS
@@ -45,17 +47,10 @@ async function loadProfile(userId) {
       .eq("id", userId)
       .single();
 
-
   if (error) {
-
-    console.error(
-      "Erro ao carregar perfil:",
-      error
-    );
-
+    console.error("Erro ao carregar perfil:", error);
     return null;
   }
-
 
   return data;
 }
@@ -68,9 +63,7 @@ async function loadProfile(userId) {
 async function showStudentArea() {
 
   studentScreen.classList.remove("hidden");
-
   teacherScreen.classList.add("hidden");
-
 
   const header =
     document.getElementById("studentHeader");
@@ -80,8 +73,6 @@ async function showStudentArea() {
     <p>Área do aluno.</p>
   `;
 
-
-  // Agenda é a página inicial
   setStudentPage("agenda");
 }
 
@@ -93,9 +84,7 @@ async function showStudentArea() {
 async function showTeacherArea() {
 
   teacherScreen.classList.remove("hidden");
-
   studentScreen.classList.add("hidden");
-
 
   const header =
     document.getElementById("teacherHeader");
@@ -105,8 +94,6 @@ async function showTeacherArea() {
     <p>Área do professor.</p>
   `;
 
-
-  // Agenda é a página inicial
   setTeacherPage("agenda");
 }
 
@@ -119,10 +106,8 @@ async function showLoggedUser(user) {
 
   currentUser = user;
 
-
   currentProfile =
     await loadProfile(user.id);
-
 
   if (!currentProfile) {
 
@@ -132,9 +117,7 @@ async function showLoggedUser(user) {
     return;
   }
 
-
   loginScreen.classList.add("hidden");
-
 
   if (currentProfile.role === "student") {
 
@@ -169,12 +152,10 @@ function setStudentPage(page) {
   const content =
     document.getElementById("studentContent");
 
-
   const buttons =
     document.querySelectorAll(
       "[data-student-page]"
     );
-
 
   buttons.forEach(button => {
 
@@ -201,10 +182,9 @@ function setStudentPage(page) {
         </h3>
 
         <p class="schedule-help">
-          Os horários verdes estão disponíveis
-          para reposição.
+          Clique em um horário verde para
+          escolher uma reposição.
         </p>
-
 
         <div class="schedule-wrapper">
 
@@ -220,23 +200,16 @@ function setStudentPage(page) {
                 <th>Horário</th>
 
                 <th>Segunda</th>
-
                 <th>Terça</th>
-
                 <th>Quarta</th>
-
                 <th>Quinta</th>
-
                 <th>Sexta</th>
-
                 <th>Sábado</th>
-
                 <th>Domingo</th>
 
               </tr>
 
             </thead>
-
 
             <tbody
               id="studentScheduleBody"
@@ -255,7 +228,6 @@ function setStudentPage(page) {
           </table>
 
         </div>
-
 
         <div class="schedule-legend">
 
@@ -283,8 +255,11 @@ function setStudentPage(page) {
 
       </div>
 
-    `;
+      <div
+        id="makeupSelectionArea"
+      ></div>
 
+    `;
 
     loadStudentWeeklySchedule();
 
@@ -310,11 +285,6 @@ function setStudentPage(page) {
           Aqui você poderá consultar seu
           histórico de aulas, matérias,
           conteúdos e presença.
-        </p>
-
-        <p>
-          Esta tela será conectada ao
-          histórico do Supabase na próxima etapa.
         </p>
 
       </div>
@@ -344,10 +314,6 @@ function setStudentPage(page) {
           disponíveis, utilizadas e expiradas.
         </p>
 
-        <p>
-          A reserva será feita pela agenda.
-        </p>
-
       </div>
 
     `;
@@ -373,11 +339,6 @@ function setStudentPage(page) {
         <p>
           Aqui aparecerá o valor da sua
           mensalidade para cada mês.
-        </p>
-
-        <p>
-          Você verá somente seus próprios
-          dados financeiros.
         </p>
 
       </div>
@@ -413,7 +374,6 @@ function setStudentPage(page) {
 
     return;
   }
-
 }
 
 
@@ -426,12 +386,10 @@ function setTeacherPage(page) {
   const content =
     document.getElementById("teacherContent");
 
-
   const buttons =
     document.querySelectorAll(
       "[data-teacher-page]"
     );
-
 
   buttons.forEach(button => {
 
@@ -442,10 +400,6 @@ function setTeacherPage(page) {
 
   });
 
-
-  // ---------------------------------------------------
-  // AGENDA
-  // ---------------------------------------------------
 
   if (page === "agenda") {
 
@@ -462,12 +416,6 @@ function setTeacherPage(page) {
           completa do professor.
         </p>
 
-        <p>
-          O professor poderá visualizar
-          alunos, horários livres,
-          indisponíveis e reposições.
-        </p>
-
       </div>
 
     `;
@@ -475,10 +423,6 @@ function setTeacherPage(page) {
     return;
   }
 
-
-  // ---------------------------------------------------
-  // ALUNOS
-  // ---------------------------------------------------
 
   if (page === "students") {
 
@@ -503,10 +447,6 @@ function setTeacherPage(page) {
   }
 
 
-  // ---------------------------------------------------
-  // PRESENÇA / FALTAS
-  // ---------------------------------------------------
-
   if (page === "attendance") {
 
     content.innerHTML = `
@@ -519,8 +459,7 @@ function setTeacherPage(page) {
 
         <p>
           Aqui o professor poderá registrar
-          presença, falta e demais situações
-          da aula.
+          presença e faltas.
         </p>
 
       </div>
@@ -530,10 +469,6 @@ function setTeacherPage(page) {
     return;
   }
 
-
-  // ---------------------------------------------------
-  // MATÉRIAS
-  // ---------------------------------------------------
 
   if (page === "subjects") {
 
@@ -546,8 +481,8 @@ function setTeacherPage(page) {
         </h3>
 
         <p>
-          Aqui o professor poderá administrar
-          matérias e conteúdos.
+          Aqui serão administradas matérias
+          e conteúdos.
         </p>
 
       </div>
@@ -557,10 +492,6 @@ function setTeacherPage(page) {
     return;
   }
 
-
-  // ---------------------------------------------------
-  // PLANEJAMENTO
-  // ---------------------------------------------------
 
   if (page === "planning") {
 
@@ -573,8 +504,7 @@ function setTeacherPage(page) {
         </h3>
 
         <p>
-          Aqui o professor poderá planejar
-          conteúdos e matérias para aulas futuras.
+          Aqui serão planejadas aulas futuras.
         </p>
 
       </div>
@@ -584,10 +514,6 @@ function setTeacherPage(page) {
     return;
   }
 
-
-  // ---------------------------------------------------
-  // FINANCEIRO
-  // ---------------------------------------------------
 
   if (page === "financial") {
 
@@ -600,8 +526,7 @@ function setTeacherPage(page) {
         </h3>
 
         <p>
-          Aqui o professor poderá controlar
-          mensalidades e pagamentos.
+          Aqui será feito o controle financeiro.
         </p>
 
       </div>
@@ -611,10 +536,6 @@ function setTeacherPage(page) {
     return;
   }
 
-
-  // ---------------------------------------------------
-  // REGRAS
-  // ---------------------------------------------------
 
   if (page === "rules") {
 
@@ -628,7 +549,7 @@ function setTeacherPage(page) {
 
         <p>
           Aqui o professor poderá definir
-          as regras exibidas aos alunos.
+          as regras dos alunos.
         </p>
 
       </div>
@@ -637,7 +558,6 @@ function setTeacherPage(page) {
 
     return;
   }
-
 }
 
 
@@ -653,10 +573,9 @@ document
       "click",
       () => {
 
-        const page =
-          button.dataset.studentPage;
-
-        setStudentPage(page);
+        setStudentPage(
+          button.dataset.studentPage
+        );
 
       }
     );
@@ -676,10 +595,9 @@ document
       "click",
       () => {
 
-        const page =
-          button.dataset.teacherPage;
-
-        setTeacherPage(page);
+        setTeacherPage(
+          button.dataset.teacherPage
+        );
 
       }
     );
@@ -688,7 +606,7 @@ document
 
 
 // =====================================================
-// AGENDA SEMANAL DO ALUNO
+// CARREGAR AGENDA DO ALUNO
 // =====================================================
 
 async function loadStudentWeeklySchedule() {
@@ -698,11 +616,9 @@ async function loadStudentWeeklySchedule() {
       "studentScheduleBody"
     );
 
-
   if (!scheduleBody) {
     return;
   }
-
 
   scheduleBody.innerHTML = `
 
@@ -730,16 +646,12 @@ async function loadStudentWeeklySchedule() {
       error
     );
 
-
     scheduleBody.innerHTML = `
 
       <tr>
 
         <td colspan="8">
-
-          Não foi possível carregar
-          a agenda.
-
+          Não foi possível carregar a agenda.
         </td>
 
       </tr>
@@ -753,12 +665,11 @@ async function loadStudentWeeklySchedule() {
   renderStudentWeeklySchedule(
     data || []
   );
-
 }
 
 
 // =====================================================
-// RENDERIZAR AGENDA DO ALUNO
+// RENDERIZAR AGENDA
 // =====================================================
 
 function renderStudentWeeklySchedule(
@@ -770,18 +681,12 @@ function renderStudentWeeklySchedule(
       "studentScheduleBody"
     );
 
-
   if (!scheduleBody) {
     return;
   }
 
-
   scheduleBody.innerHTML = "";
 
-
-  // ---------------------------------------------------
-  // Horários existentes
-  // ---------------------------------------------------
 
   const times = [];
 
@@ -792,11 +697,8 @@ function renderStudentWeeklySchedule(
       String(slot.start_time)
         .substring(0, 5);
 
-
     if (!times.includes(time)) {
-
       times.push(time);
-
     }
 
   });
@@ -804,10 +706,6 @@ function renderStudentWeeklySchedule(
 
   times.sort();
 
-
-  // ---------------------------------------------------
-  // Criar linhas
-  // ---------------------------------------------------
 
   times.forEach(time => {
 
@@ -818,15 +716,11 @@ function renderStudentWeeklySchedule(
     const timeCell =
       document.createElement("td");
 
-
-    timeCell.textContent =
-      time;
-
+    timeCell.textContent = time;
 
     row.appendChild(timeCell);
 
 
-    // Segunda até domingo
     for (
       let day = 1;
       day <= 7;
@@ -835,7 +729,6 @@ function renderStudentWeeklySchedule(
 
       const cell =
         document.createElement("td");
-
 
       cell.classList.add(
         "schedule-cell"
@@ -849,7 +742,6 @@ function renderStudentWeeklySchedule(
             String(item.start_time)
               .substring(0, 5);
 
-
           return (
             Number(item.day_of_week) === day &&
             itemTime === time
@@ -857,10 +749,6 @@ function renderStudentWeeklySchedule(
 
         });
 
-
-      // ------------------------------------------------
-      // Sem horário cadastrado
-      // ------------------------------------------------
 
       if (!slot) {
 
@@ -871,11 +759,6 @@ function renderStudentWeeklySchedule(
         );
 
       }
-
-
-      // ------------------------------------------------
-      // Horário existente
-      // ------------------------------------------------
 
       else {
 
@@ -893,6 +776,35 @@ function renderStudentWeeklySchedule(
         cell.textContent =
           status.label;
 
+
+        // ---------------------------------------------
+        // HORÁRIO LIVRE
+        // ---------------------------------------------
+
+        if (
+          status.className === "available"
+        ) {
+
+          cell.style.cursor =
+            "pointer";
+
+          cell.title =
+            "Clique para escolher uma reposição";
+
+
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openMakeupSelection(
+                slot
+              );
+
+            }
+          );
+
+        }
+
       }
 
 
@@ -906,10 +818,6 @@ function renderStudentWeeklySchedule(
   });
 
 
-  // ---------------------------------------------------
-  // Nenhum horário
-  // ---------------------------------------------------
-
   if (times.length === 0) {
 
     scheduleBody.innerHTML = `
@@ -917,9 +825,7 @@ function renderStudentWeeklySchedule(
       <tr>
 
         <td colspan="8">
-
           Nenhum horário cadastrado.
-
         </td>
 
       </tr>
@@ -927,7 +833,6 @@ function renderStudentWeeklySchedule(
     `;
 
   }
-
 }
 
 
@@ -983,9 +888,450 @@ function normalizeStudentScheduleStatus(
         className: "occupied",
         label: "Ocupado"
       };
+  }
+}
+
+
+// =====================================================
+// BUSCAR REPOSIÇÕES DO ALUNO
+// =====================================================
+
+async function loadAvailableMakeups() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_makeups"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar reposições:",
+      error
+    );
+
+    return [];
 
   }
 
+
+  return (data || []).filter(
+    makeup =>
+      makeup.status === "available"
+  );
+}
+
+
+// =====================================================
+// ABRIR SELEÇÃO DE REPOSIÇÃO
+// =====================================================
+
+async function openMakeupSelection(
+  slot
+) {
+
+  selectedScheduleSlot = slot;
+
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Escolher reposição
+      </h3>
+
+      <p>
+        Horário selecionado:
+        <strong>
+          ${formatDay(slot.day_of_week)}
+          às
+          ${String(slot.start_time).substring(0, 5)}
+        </strong>
+      </p>
+
+      <p>
+        Carregando suas reposições...
+      </p>
+
+    </div>
+
+  `;
+
+
+  const makeups =
+    await loadAvailableMakeups();
+
+
+  const matchingMakeups =
+    makeups.filter(
+      makeup =>
+        makeup.duration_minutes ===
+        getSlotDuration(slot)
+    );
+
+
+  if (matchingMakeups.length === 0) {
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Nenhuma reposição compatível
+        </h3>
+
+        <p>
+          Você não possui uma reposição de
+          ${getSlotDuration(slot)} minutos
+          disponível para este horário.
+        </p>
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelMakeupSelection"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+    `;
+
+
+    document
+      .getElementById(
+        "cancelMakeupSelection"
+      )
+      .addEventListener(
+        "click",
+        closeMakeupSelection
+      );
+
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Escolher reposição
+      </h3>
+
+      <p>
+        Horário:
+        <strong>
+          ${formatDay(slot.day_of_week)}
+          às
+          ${String(slot.start_time).substring(0, 5)}
+        </strong>
+      </p>
+
+
+      <div>
+
+        <label for="makeupSelect">
+          Escolha uma reposição:
+        </label>
+
+        <select
+          id="makeupSelect"
+          class="makeup-select"
+        >
+
+          <option value="">
+            Selecione...
+          </option>
+
+          ${matchingMakeups
+            .map(makeup => `
+
+              <option value="${makeup.makeup_id}">
+
+                ${makeup.duration_minutes}
+                minutos
+                —
+                ${formatMakeupSource(makeup.source)}
+
+              </option>
+
+            `)
+            .join("")}
+
+        </select>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          margin-top:18px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmMakeupButton"
+        >
+          Continuar
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelMakeupSelection"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "confirmMakeupButton"
+    )
+    .addEventListener(
+      "click",
+      prepareMakeupReservation
+    );
+
+
+  document
+    .getElementById(
+      "cancelMakeupSelection"
+    )
+    .addEventListener(
+      "click",
+      closeMakeupSelection
+    );
+}
+
+
+// =====================================================
+// DURAÇÃO DO HORÁRIO
+// =====================================================
+
+function getSlotDuration(slot) {
+
+  const start =
+    timeToMinutes(
+      slot.start_time
+    );
+
+  const end =
+    timeToMinutes(
+      slot.end_time
+    );
+
+
+  return end - start;
+}
+
+
+// =====================================================
+// CONVERTER HORÁRIO
+// =====================================================
+
+function timeToMinutes(time) {
+
+  const parts =
+    String(time)
+      .substring(0, 5)
+      .split(":");
+
+
+  return (
+    Number(parts[0]) * 60 +
+    Number(parts[1])
+  );
+}
+
+
+// =====================================================
+// PREPARAR RESERVA
+// =====================================================
+
+function prepareMakeupReservation() {
+
+  const select =
+    document.getElementById(
+      "makeupSelect"
+    );
+
+
+  if (!select) {
+    return;
+  }
+
+
+  const makeupId =
+    select.value;
+
+
+  if (!makeupId) {
+
+    alert(
+      "Selecione uma reposição."
+    );
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Confirmar escolha
+      </h3>
+
+      <p>
+        Você selecionou:
+      </p>
+
+      <p>
+        <strong>
+          ${formatDay(
+            selectedScheduleSlot.day_of_week
+          )}
+        </strong>
+        às
+        <strong>
+          ${String(
+            selectedScheduleSlot.start_time
+          ).substring(0, 5)}
+        </strong>
+      </p>
+
+      <p>
+        A reserva será realizada
+        na próxima etapa.
+      </p>
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="backToMakeupSelection"
+      >
+        Voltar
+      </button>
+
+    </div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "backToMakeupSelection"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        openMakeupSelection(
+          selectedScheduleSlot
+        );
+
+      }
+    );
+}
+
+
+// =====================================================
+// FECHAR SELEÇÃO
+// =====================================================
+
+function closeMakeupSelection() {
+
+  selectedScheduleSlot = null;
+
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (area) {
+    area.innerHTML = "";
+  }
+}
+
+
+// =====================================================
+// DIA DA SEMANA
+// =====================================================
+
+function formatDay(day) {
+
+  const days = {
+
+    1: "Segunda-feira",
+    2: "Terça-feira",
+    3: "Quarta-feira",
+    4: "Quinta-feira",
+    5: "Sexta-feira",
+    6: "Sábado",
+    7: "Domingo"
+
+  };
+
+
+  return days[Number(day)] || "";
+}
+
+
+// =====================================================
+// ORIGEM DA REPOSIÇÃO
+// =====================================================
+
+function formatMakeupSource(source) {
+
+  if (source === "absence") {
+    return "falta";
+  }
+
+  if (source === "manual") {
+    return "professor";
+  }
+
+  return source || "reposição";
 }
 
 
@@ -1130,7 +1476,6 @@ forgotPasswordButton.addEventListener(
         "Não foi possível enviar o e-mail de recuperação.";
 
       return;
-
     }
 
 
@@ -1142,7 +1487,7 @@ forgotPasswordButton.addEventListener(
 
 
 // =====================================================
-// INICIALIZAR APLICATIVO
+// INICIALIZAÇÃO
 // =====================================================
 
 async function initializeApp() {
@@ -1163,7 +1508,6 @@ async function initializeApp() {
     );
 
   }
-
 }
 
 
@@ -1184,7 +1528,6 @@ supabaseClient.auth.onAuthStateChange(
       );
 
     }
-
   }
 );
 
