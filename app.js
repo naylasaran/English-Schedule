@@ -162,10 +162,6 @@ function setStudentPage(page) {
     });
 
 
-  // ---------------------------------------------------
-  // AGENDA
-  // ---------------------------------------------------
-
   if (page === "agenda") {
 
     content.innerHTML = `
@@ -180,7 +176,6 @@ function setStudentPage(page) {
           Escolha a semana e clique em um
           horário verde para fazer uma reposição.
         </p>
-
 
         <div
           style="
@@ -201,7 +196,6 @@ function setStudentPage(page) {
             ← Semana anterior
           </button>
 
-
           <button
             type="button"
             class="secondary-button"
@@ -209,7 +203,6 @@ function setStudentPage(page) {
           >
             Semana atual
           </button>
-
 
           <button
             type="button"
@@ -221,7 +214,6 @@ function setStudentPage(page) {
 
         </div>
 
-
         <div
           id="selectedWeekLabel"
           style="
@@ -232,7 +224,6 @@ function setStudentPage(page) {
           "
         ></div>
 
-
         <div class="schedule-wrapper">
 
           <table
@@ -240,21 +231,16 @@ function setStudentPage(page) {
             id="studentScheduleTable"
           >
 
-            <thead id="studentScheduleHead">
-
-            </thead>
-
+            <thead id="studentScheduleHead"></thead>
 
             <tbody
               id="studentScheduleBody"
             >
 
               <tr>
-
                 <td colspan="8">
                   Carregando agenda...
                 </td>
-
               </tr>
 
             </tbody>
@@ -262,7 +248,6 @@ function setStudentPage(page) {
           </table>
 
         </div>
-
 
         <div class="schedule-legend">
 
@@ -290,10 +275,7 @@ function setStudentPage(page) {
 
       </div>
 
-
-      <div
-        id="makeupSelectionArea"
-      ></div>
+      <div id="makeupSelectionArea"></div>
 
     `;
 
@@ -355,107 +337,62 @@ function setStudentPage(page) {
   }
 
 
-  // ---------------------------------------------------
-  // HISTÓRICO
-  // ---------------------------------------------------
-
   if (page === "history") {
 
     content.innerHTML = `
-
       <div class="card">
-
-        <h3>
-          Histórico de aulas
-        </h3>
-
+        <h3>Histórico de aulas</h3>
         <p>
           Aqui será exibido seu histórico de
           aulas, matérias, conteúdos e presença.
         </p>
-
       </div>
-
     `;
 
     return;
   }
 
-
-  // ---------------------------------------------------
-  // REPOSIÇÕES
-  // ---------------------------------------------------
 
   if (page === "makeups") {
 
     content.innerHTML = `
-
       <div class="card">
-
-        <h3>
-          Minhas reposições
-        </h3>
-
+        <h3>Minhas reposições</h3>
         <p>
           Aqui aparecerão suas reposições.
         </p>
-
       </div>
-
     `;
 
     return;
   }
 
-
-  // ---------------------------------------------------
-  // MENSALIDADE
-  // ---------------------------------------------------
 
   if (page === "financial") {
 
     content.innerHTML = `
-
       <div class="card">
-
-        <h3>
-          Minha mensalidade
-        </h3>
-
+        <h3>Minha mensalidade</h3>
         <p>
-          Aqui aparecerá sua mensalidade
-          por mês.
+          Aqui aparecerá sua mensalidade por mês.
         </p>
-
       </div>
-
     `;
 
     return;
   }
 
 
-  // ---------------------------------------------------
-  // REGRAS
-  // ---------------------------------------------------
-
   if (page === "rules") {
 
     content.innerHTML = `
-
       <div class="card">
-
-        <h3>
-          Regras
-        </h3>
-
+        <h3>Regras</h3>
         <p>
           Aqui serão exibidas as regras
           definidas pelo professor.
         </p>
-
       </div>
-
     `;
 
     return;
@@ -584,7 +521,7 @@ document
 
 
 // =====================================================
-// CARREGAR AGENDA
+// CARREGAR AGENDA DO ALUNO
 // =====================================================
 
 async function loadStudentWeeklySchedule() {
@@ -616,21 +553,33 @@ async function loadStudentWeeklySchedule() {
 
 
   body.innerHTML = `
-
     <tr>
-
       <td colspan="8">
         Carregando agenda...
       </td>
-
     </tr>
-
   `;
 
 
-  const { data, error } =
+  // IMPORTANTE:
+  // Agora enviamos ao Supabase a segunda-feira
+  // da semana que o aluno está visualizando.
+
+  const weekStart =
+    formatDateForDatabase(
+      selectedWeekStart
+    );
+
+
+  const {
+    data,
+    error
+  } =
     await supabaseClient.rpc(
-      "get_student_weekly_schedule"
+      "get_student_weekly_schedule",
+      {
+        p_week_start: weekStart
+      }
     );
 
 
@@ -643,15 +592,11 @@ async function loadStudentWeeklySchedule() {
 
 
     body.innerHTML = `
-
       <tr>
-
         <td colspan="8">
           Erro ao carregar a agenda.
         </td>
-
       </tr>
-
     `;
 
     return;
@@ -691,10 +636,6 @@ function renderStudentWeeklySchedule(
     return;
   }
 
-
-  // ---------------------------------------------------
-  // CABEÇALHO COM DATAS
-  // ---------------------------------------------------
 
   head.innerHTML = `
 
@@ -738,9 +679,7 @@ function renderStudentWeeklySchedule(
 
 
     if (!times.includes(time)) {
-
       times.push(time);
-
     }
 
   });
@@ -855,15 +794,11 @@ function renderStudentWeeklySchedule(
   if (times.length === 0) {
 
     body.innerHTML = `
-
       <tr>
-
         <td colspan="8">
           Nenhum horário cadastrado.
         </td>
-
       </tr>
-
     `;
 
   }
@@ -884,9 +819,7 @@ function findScheduleSlot(
 
     return (
       Number(slot.day_of_week) === day &&
-      normalizeTime(
-        slot.start_time
-      ) === time
+      normalizeTime(slot.start_time) === time
     );
 
   });
@@ -894,7 +827,7 @@ function findScheduleSlot(
 
 
 // =====================================================
-// STATUS
+// NORMALIZAR STATUS
 // =====================================================
 
 function normalizeStudentScheduleStatus(
@@ -949,12 +882,15 @@ function normalizeStudentScheduleStatus(
 
 
 // =====================================================
-// REPOSIÇÕES DISPONÍVEIS
+// REPOSIÇÕES
 // =====================================================
 
 async function loadAvailableMakeups() {
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await supabaseClient.rpc(
       "get_my_makeups"
     );
@@ -979,7 +915,7 @@ async function loadAvailableMakeups() {
 
 
 // =====================================================
-// ABRIR SELEÇÃO
+// ABRIR SELEÇÃO DE REPOSIÇÃO
 // =====================================================
 
 async function openMakeupSelection(
@@ -1109,7 +1045,6 @@ async function openMakeupSelection(
       <h3>
         Escolher reposição
       </h3>
-
 
       <p>
 
@@ -1252,7 +1187,6 @@ function getCompatibleMakeups(
       );
 
 
-    // 30 minutos
     if (duration === 30) {
 
       compatible.push(
@@ -1263,7 +1197,6 @@ function getCompatibleMakeups(
     }
 
 
-    // 60 minutos
     if (duration === 60) {
 
       const nextSlot =
@@ -1290,7 +1223,7 @@ function getCompatibleMakeups(
 
 
 // =====================================================
-// SEGUNDO BLOCO PARA 60 MIN
+// VERIFICAR SEGUNDO BLOCO
 // =====================================================
 
 function findNextFreeSlot(
@@ -1303,13 +1236,9 @@ function findNextFreeSlot(
     );
 
 
-  const nextStart =
-    currentStart + 30;
-
-
   const nextTime =
     minutesToTime(
-      nextStart
+      currentStart + 30
     );
 
 
@@ -1406,14 +1335,12 @@ function prepareMakeupReservation() {
         Confirmar reserva
       </h3>
 
-
       <p>
         <strong>Data:</strong>
         ${formatDate(
           reservationDate
         )}
       </p>
-
 
       <p>
         <strong>Dia:</strong>
@@ -1422,7 +1349,6 @@ function prepareMakeupReservation() {
         )}
       </p>
 
-
       <p>
         <strong>Horário:</strong>
         ${normalizeTime(
@@ -1430,17 +1356,14 @@ function prepareMakeupReservation() {
         )}
       </p>
 
-
       <p>
         <strong>Reposição:</strong>
         ${selectedMakeup}
       </p>
 
-
       <p>
         Deseja confirmar esta reserva?
       </p>
-
 
       <div
         style="
@@ -1458,7 +1381,6 @@ function prepareMakeupReservation() {
           Confirmar reserva
         </button>
 
-
         <button
           type="button"
           class="secondary-button"
@@ -1468,7 +1390,6 @@ function prepareMakeupReservation() {
         </button>
 
       </div>
-
 
       <p
         id="reservationMessage"
@@ -1519,7 +1440,7 @@ function prepareMakeupReservation() {
 
 
 // =====================================================
-// RESERVA REAL NO SUPABASE
+// RESERVA REAL
 // =====================================================
 
 async function confirmRealReservation(
@@ -1652,13 +1573,12 @@ async function confirmRealReservation(
   }
 
 
-  // Atualiza a agenda após a reserva
   await loadStudentWeeklySchedule();
 }
 
 
 // =====================================================
-// TRADUZIR ERROS DO BANCO
+// ERROS
 // =====================================================
 
 function translateReservationError(
@@ -1671,12 +1591,8 @@ function translateReservationError(
 
 
   if (
-    text.includes(
-      "não está disponível"
-    ) ||
-    text.includes(
-      "nao esta disponivel"
-    )
+    text.includes("não está disponível") ||
+    text.includes("nao esta disponivel")
   ) {
 
     return (
@@ -1687,9 +1603,7 @@ function translateReservationError(
 
 
   if (
-    text.includes(
-      "acabou de ser ocupado"
-    )
+    text.includes("acabou de ser ocupado")
   ) {
 
     return (
@@ -1700,12 +1614,8 @@ function translateReservationError(
 
 
   if (
-    text.includes(
-      "usuário não autorizado"
-    ) ||
-    text.includes(
-      "usuario nao autorizado"
-    )
+    text.includes("usuário não autorizado") ||
+    text.includes("usuario nao autorizado")
   ) {
 
     return (
@@ -1716,12 +1626,8 @@ function translateReservationError(
 
 
   if (
-    text.includes(
-      "sobreposição"
-    ) ||
-    text.includes(
-      "sobreposicao"
-    )
+    text.includes("sobreposição") ||
+    text.includes("sobreposicao")
   ) {
 
     return (
@@ -1760,42 +1666,7 @@ function closeMakeupSelection() {
 
 
 // =====================================================
-// DATAS DA SEMANA
-// =====================================================
-
-function getWeekDays() {
-
-  const names = [
-
-    "Segunda",
-    "Terça",
-    "Quarta",
-    "Quinta",
-    "Sexta",
-    "Sábado",
-    "Domingo"
-
-  ];
-
-
-  return names.map(
-    (name, index) => ({
-
-      name,
-
-      date:
-        addDays(
-          selectedWeekStart,
-          index
-        )
-
-    })
-  );
-}
-
-
-// =====================================================
-// SEGUNDA-FEIRA DA SEMANA
+// SEMANA
 // =====================================================
 
 function getMonday(date) {
@@ -1832,10 +1703,6 @@ function getMonday(date) {
 }
 
 
-// =====================================================
-// ADICIONAR DIAS
-// =====================================================
-
 function addDays(
   date,
   amount
@@ -1855,10 +1722,6 @@ function addDays(
 }
 
 
-// =====================================================
-// DATA DE UM DIA DA SEMANA
-// =====================================================
-
 function getDateForDay(
   weekStart,
   dayOfWeek
@@ -1871,8 +1734,39 @@ function getDateForDay(
 }
 
 
+function getWeekDays() {
+
+  const names = [
+
+    "Segunda",
+    "Terça",
+    "Quarta",
+    "Quinta",
+    "Sexta",
+    "Sábado",
+    "Domingo"
+
+  ];
+
+
+  return names.map(
+    (name, index) => ({
+
+      name,
+
+      date:
+        addDays(
+          selectedWeekStart,
+          index
+        )
+
+    })
+  );
+}
+
+
 // =====================================================
-// FORMATAR DATA PARA EXIBIÇÃO
+// DATAS
 // =====================================================
 
 function formatDate(date) {
@@ -1887,10 +1781,6 @@ function formatDate(date) {
   ).format(date);
 }
 
-
-// =====================================================
-// FORMATAR SEMANA
-// =====================================================
 
 function formatWeekLabel(
   weekStart
@@ -1910,10 +1800,6 @@ function formatWeekLabel(
   );
 }
 
-
-// =====================================================
-// DATA PARA O POSTGRES
-// =====================================================
 
 function formatDateForDatabase(
   date
@@ -1946,7 +1832,7 @@ function formatDateForDatabase(
 
 
 // =====================================================
-// HORÁRIO
+// HORÁRIOS
 // =====================================================
 
 function normalizeTime(time) {
@@ -1993,7 +1879,7 @@ function minutesToTime(minutes) {
 
 
 // =====================================================
-// DIA DA SEMANA
+// TEXTOS
 // =====================================================
 
 function formatDay(day) {
@@ -2016,10 +1902,6 @@ function formatDay(day) {
   ] || "";
 }
 
-
-// =====================================================
-// ORIGEM DA REPOSIÇÃO
-// =====================================================
 
 function formatMakeupSource(
   source
@@ -2047,7 +1929,6 @@ loginForm.addEventListener(
 
     event.preventDefault();
 
-
     loginMessage.textContent =
       "Entrando...";
 
@@ -2065,20 +1946,20 @@ loginForm.addEventListener(
         .value;
 
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabaseClient.auth
         .signInWithPassword({
-
           email,
           password
-
         });
 
 
     if (error) {
 
       console.error(error);
-
 
       loginMessage.textContent =
         "E-mail ou senha incorretos.";
@@ -2111,7 +1992,6 @@ logoutButton.addEventListener(
 
 
     currentUser = null;
-
     currentProfile = null;
 
 
@@ -2158,7 +2038,9 @@ forgotPasswordButton.addEventListener(
     }
 
 
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient.auth
         .resetPasswordForEmail(
           email,
@@ -2172,7 +2054,6 @@ forgotPasswordButton.addEventListener(
     if (error) {
 
       console.error(error);
-
 
       loginMessage.textContent =
         "Não foi possível enviar o e-mail de recuperação.";
@@ -2214,7 +2095,7 @@ async function initializeApp() {
 
 
 // =====================================================
-// OBSERVAR AUTENTICAÇÃO
+// AUTH
 // =====================================================
 
 supabaseClient.auth.onAuthStateChange(
