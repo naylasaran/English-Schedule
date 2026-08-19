@@ -1972,23 +1972,9 @@ async function cancelStudentMakeup(
   if (!reservationId) {
 
     alert(
-      "N\xe3o foi poss\xedvel identificar a reserva."
+      "Não foi possível identificar a reserva."
     );
 
-    return;
-  }
-
-
-  const confirmed =
-    window.confirm(
-      "Tem certeza que deseja cancelar esta reposi\xe7\xe3o?\n\n" +
-      "O cancelamento seguir\xe1 as regras do sistema. " +
-      "Se esta for a segunda vez que voc\xea cancela esta reposi\xe7\xe3o, " +
-      "ela ser\xe1 perdida."
-    );
-
-
-  if (!confirmed) {
     return;
   }
 
@@ -2005,9 +1991,160 @@ async function cancelStudentMakeup(
     );
 
 
+  // =====================================================
+  // BUSCAR DATA/HORA DA RESERVA
+  // =====================================================
+
+  const {
+    data: reservation,
+    error: reservationError
+  } =
+    await supabaseClient
+      .from("reservations")
+      .select(`
+        id,
+        reservation_date,
+        start_time,
+        status
+      `)
+      .eq(
+        "id",
+        reservationId
+      )
+      .single();
+
+
+  if (reservationError) {
+
+    console.error(
+      "Erro ao consultar reserva:",
+      reservationError
+    );
+
+    if (message) {
+
+      message.textContent =
+        "Não foi possível consultar a reserva.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  // =====================================================
+  // MONTAR DATA/HORA
+  // =====================================================
+
+  const reservationDateTime =
+    new Date(
+      reservation.reservation_date +
+      "T" +
+      normalizeTime(
+        reservation.start_time
+      ) +
+      ":00"
+    );
+
+
+  const now =
+    new Date();
+
+
+  // =====================================================
+  // JÁ COMEÇOU / JÁ PASSOU
+  // =====================================================
+
+  if (
+    reservationDateTime <= now
+  ) {
+
+    alert(
+      "Essa reposição já começou ou já ocorreu e não pode mais ser cancelada."
+    );
+
+    return;
+  }
+
+
+  // =====================================================
+  // CALCULAR ANTECEDÊNCIA
+  // =====================================================
+
+  const minimumHours =
+    2;
+
+
+  const millisecondsUntilClass =
+    reservationDateTime.getTime()
+    - now.getTime();
+
+
+  const hoursUntilClass =
+    millisecondsUntilClass
+    / (
+      1000 *
+      60 *
+      60
+    );
+
+
+  const lateCancellation =
+    hoursUntilClass < minimumHours;
+
+
+  // =====================================================
+  // CONFIRMAÇÃO
+  // =====================================================
+
+  let confirmationText;
+
+
+  if (
+    lateCancellation
+  ) {
+
+    confirmationText =
+      "Tem certeza que deseja cancelar esta reposição?\n\n" +
+      "Faltam menos de 2 horas para a aula.\n\n" +
+      "Essa aula não poderá ser reposta depois.";
+
+  }
+
+  else {
+
+    confirmationText =
+      "Tem certeza que deseja cancelar esta reposição?\n\n" +
+      "No primeiro cancelamento, a reposição volta uma vez. " +
+      "No segundo cancelamento, ela será perdida.";
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      confirmationText
+    );
+
+
+  if (!confirmed) {
+
+    return;
+
+  }
+
+
+  // =====================================================
+  // CANCELAR
+  // =====================================================
+
   if (button) {
 
-    button.disabled = true;
+    button.disabled =
+      true;
 
     button.textContent =
       "Cancelando...";
@@ -2031,7 +2168,7 @@ async function cancelStudentMakeup(
   if (error) {
 
     console.error(
-      "Erro ao cancelar reposi\xe7\xe3o:",
+      "Erro ao cancelar reposição:",
       error
     );
 
@@ -2040,7 +2177,7 @@ async function cancelStudentMakeup(
 
       message.textContent =
         error.message ||
-        "N\xe3o foi poss\xedvel cancelar a reposi\xe7\xe3o.";
+        "Não foi possível cancelar a reposição.";
 
       message.style.color =
         "red";
@@ -2050,27 +2187,41 @@ async function cancelStudentMakeup(
 
     if (button) {
 
-      button.disabled = false;
+      button.disabled =
+        false;
 
       button.textContent =
-        "Cancelar reposi\xe7\xe3o";
+        "Cancelar reposição";
 
     }
+
 
     return;
   }
 
 
-  console.log(
-    "Cancelamento realizado:",
-    data
-  );
-
+  // =====================================================
+  // SUCESSO
+  // =====================================================
 
   if (message) {
 
-    message.textContent =
-      "Reposi\xe7\xe3o cancelada com sucesso.";
+    if (
+      lateCancellation
+    ) {
+
+      message.textContent =
+        "Reposição cancelada. Como o cancelamento foi feito com menos de 2 horas de antecedência, o direito à reposição foi perdido.";
+
+    }
+
+    else {
+
+      message.textContent =
+        "Reposição cancelada com sucesso.";
+
+    }
+
 
     message.style.color =
       "green";
@@ -2078,24 +2229,12 @@ async function cancelStudentMakeup(
   }
 
 
-  /*
-   * Recarrega a tela para refletir:
-   *
-   * primeiro cancelamento:
-   * available + contador 1
-   *
-   * segundo cancelamento:
-   * lost
-   */
+  // =====================================================
+  // ATUALIZAR TELAS
+  // =====================================================
 
   await loadStudentMakeups();
 
-
-  /*
-   * Tamb\xe9m atualiza a agenda.
-   * Assim o hor\xe1rio volta a ficar dispon\xedvel
-   * imediatamente.
-   */
 
   await loadStudentWeeklySchedule();
 
