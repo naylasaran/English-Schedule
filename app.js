@@ -71,7 +71,7 @@ async function loadProfile(userId) {
 
 
 // =====================================================
-// MOSTRAR USU\xc1RIO LOGADO
+// MOSTRAR USUÃRIO LOGADO
 // =====================================================
 
 async function showLoggedUser(user) {
@@ -84,7 +84,7 @@ async function showLoggedUser(user) {
   if (!currentProfile) {
 
     loginMessage.textContent =
-      "N\xe3o foi poss\xedvel carregar seu perfil.";
+      "NÃ£o foi possÃ­vel carregar seu perfil.";
 
     return;
   }
@@ -121,7 +121,7 @@ async function showLoggedUser(user) {
     );
 
     loginMessage.textContent =
-      "Tipo de usu\xe1rio inv\xe1lido.";
+      "Tipo de usuÃ¡rio invÃ¡lido.";
   }
 }
 
@@ -164,7 +164,7 @@ async function loadCurrentStudentId() {
 
 
 // =====================================================
-// \xc1REA DO ALUNO
+// ÃREA DO ALUNO
 // =====================================================
 
 async function showStudentArea() {
@@ -187,8 +187,8 @@ async function showStudentArea() {
   if (header) {
 
     header.innerHTML = `
-      <h2>Ol\xe1, ${escapeHtml(currentProfile.name)}</h2>
-      <p>\xc1rea do aluno.</p>
+      <h2>OlÃ¡, ${escapeHtml(currentProfile.name)}</h2>
+      <p>Ãrea do aluno.</p>
     `;
 
   }
@@ -199,7 +199,7 @@ async function showStudentArea() {
 
 
 // =====================================================
-// \xc1REA DO PROFESSOR
+// ÃREA DO PROFESSOR
 // =====================================================
 
 async function showTeacherArea() {
@@ -222,8 +222,8 @@ async function showTeacherArea() {
   if (header) {
 
     header.innerHTML = `
-      <h2>Ol\xe1, ${escapeHtml(currentProfile.name)}</h2>
-      <p>\xc1rea do professor.</p>
+      <h2>OlÃ¡, ${escapeHtml(currentProfile.name)}</h2>
+      <p>Ãrea do professor.</p>
     `;
 
   }
@@ -234,7 +234,7 @@ async function showTeacherArea() {
 
 
 // =====================================================
-// NAVEGA\xc7\xc3O DO ALUNO
+// NAVEGAÃ‡ÃƒO DO ALUNO
 // =====================================================
 
 function setStudentPage(page) {
@@ -277,8 +277,8 @@ function setStudentPage(page) {
         <h3>Agenda semanal</h3>
 
         <p>
-          Clique em um hor\xe1rio livre para
-          escolher uma reposi\xe7\xe3o.
+          Clique em um horÃ¡rio livre para
+          escolher uma reposiÃ§Ã£o.
         </p>
 
         <div
@@ -296,7 +296,7 @@ function setStudentPage(page) {
             class="secondary-button"
             id="previousWeekButton"
           >
-            \u2190 Semana anterior
+            â† Semana anterior
           </button>
 
           <button
@@ -312,7 +312,7 @@ function setStudentPage(page) {
             class="secondary-button"
             id="nextWeekButton"
           >
-            Pr\xf3xima semana \u2192
+            PrÃ³xima semana â†’
           </button>
 
         </div>
@@ -346,13 +346,38 @@ function setStudentPage(page) {
 
         </div>
 
-        <div class="schedule-legend">
-  <span>&#x1F7E2; Livre</span>
-  <span>&#x1F534; Ocupado</span>
-  <span>&#x26AB; Indisponível</span>
-  <span>&#x1F535; Minha aula</span>
-  <span>&#x1F7E3; Minha reposição</span>
-</div>
+        <div
+          class="schedule-legend"
+          style="
+            margin-top:20px;
+            display:flex;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <span>
+            ðŸŸ¢ Livre
+          </span>
+
+          <span>
+            ðŸ”´ Ocupado
+          </span>
+
+          <span>
+            âš« IndisponÃ­vel
+          </span>
+
+          <span>
+            ðŸ”µ Minha aula
+          </span>
+
+          <span>
+            ðŸŸ£ Minha reposiÃ§Ã£o
+          </span>
+
+        </div>
+
       </div>
 
       <div id="makeupSelectionArea"></div>
@@ -426,7 +451,7 @@ function setStudentPage(page) {
 
 
   // ===================================================
-  // HIST\xd3RICO
+  // HISTÃ“RICO
   // ===================================================
 
   if (page === "history") {
@@ -435,18 +460,18 @@ function setStudentPage(page) {
 
       <div class="card">
 
-        <h3>Hist\xf3rico de aulas</h3>
+        <h3>HistÃ³rico de aulas</h3>
 
         <p>
-          Aqui voc\xea pode acompanhar suas aulas,
-          conte\xfados, presen\xe7a e observa\xe7\xf5es.
+          Aqui vocÃª pode acompanhar suas aulas,
+          conteÃºdos, presenÃ§a e observaÃ§Ãµes.
         </p>
 
         <div
           id="studentHistoryContent"
           style="margin-top:20px;"
         >
-          Carregando hist\xf3rico...
+          Carregando histÃ³rico...
         </div>
 
       </div>
@@ -461,7 +486,7 @@ function setStudentPage(page) {
 
 
   // ===================================================
-  // REPOSI\xc7\xd5ES
+  // REPOSIÃ‡Ã•ES
   // ===================================================
 
   if (page === "makeups") {
@@ -470,11 +495,11 @@ function setStudentPage(page) {
 
       <div class="card">
 
-        <h3>Minhas reposi\xe7\xf5es</h3>
+        <h3>Minhas reposiÃ§Ãµes</h3>
 
         <p>
-          Consulte suas reposi\xe7\xf5es,
-          dura\xe7\xe3o, validade e situa\xe7\xe3o.
+          Consulte suas reposiÃ§Ãµes,
+          duraÃ§Ã£o, validade e situaÃ§Ã£o.
         </p>
 
         <div
@@ -509,7 +534,7 @@ function setStudentPage(page) {
 
         <p>
           Consulte suas mensalidades e
-          hist\xf3rico de pagamentos.
+          histÃ³rico de pagamentos.
         </p>
 
         <div
@@ -621,7 +646,7 @@ async function loadStudentRules() {
       >
 
         <strong>
-          N\xe3o foi poss\xedvel carregar as regras.
+          NÃ£o foi possÃ­vel carregar as regras.
         </strong>
 
         <p>
@@ -660,7 +685,7 @@ async function loadStudentRules() {
         </strong>
 
         <p>
-          As regras aparecer\xe3o aqui
+          As regras aparecerÃ£o aqui
           quando forem definidas pelo professor.
         </p>
 
@@ -732,7 +757,7 @@ async function loadStudentFinancialHistory() {
 
     container.innerHTML = `
       <p>
-        N\xe3o foi poss\xedvel carregar
+        NÃ£o foi possÃ­vel carregar
         suas mensalidades.
       </p>
     `;
@@ -764,7 +789,7 @@ async function loadStudentFinancialHistory() {
 
         <p>
           Quando o professor cadastrar
-          uma mensalidade, ela aparecer\xe1 aqui.
+          uma mensalidade, ela aparecerÃ¡ aqui.
         </p>
 
       </div>
@@ -891,10 +916,10 @@ function renderFinancialCard(item) {
 
 
       <p>
-        <strong>Observa\xe7\xf5es:</strong>
+        <strong>ObservaÃ§Ãµes:</strong>
         ${
           item.notes ||
-          "Nenhuma observa\xe7\xe3o."
+          "Nenhuma observaÃ§Ã£o."
         }
       </p>
 
@@ -905,7 +930,7 @@ function renderFinancialCard(item) {
 
 
 // =====================================================
-// M\xcaS
+// MÃŠS
 // =====================================================
 
 function formatMonth(month) {
@@ -915,7 +940,7 @@ function formatMonth(month) {
     "",
     "Janeiro",
     "Fevereiro",
-    "Mar\xe7o",
+    "MarÃ§o",
     "Abril",
     "Maio",
     "Junho",
@@ -932,7 +957,7 @@ function formatMonth(month) {
   return (
     months[
       Number(month)
-    ] || `M\xeas ${month}`
+    ] || `MÃªs ${month}`
   );
 }
 
@@ -951,7 +976,7 @@ function formatCurrency(amount) {
     Number.isNaN(value)
   ) {
 
-    return "Valor n\xe3o informado";
+    return "Valor nÃ£o informado";
 
   }
 
@@ -979,32 +1004,32 @@ function formatPaymentStatus(status) {
     case "paid":
     case "pago":
 
-      return "\U0001f7e2 Pago";
+      return "ðŸŸ¢ Pago";
 
 
     case "pending":
     case "pendente":
 
-      return "\U0001f7e1 Pendente";
+      return "ðŸŸ¡ Pendente";
 
 
     case "overdue":
     case "atrasado":
 
-      return "\U0001f534 Atrasado";
+      return "ðŸ”´ Atrasado";
 
 
     case "cancelled":
     case "cancelado":
 
-      return "\u26ab Cancelado";
+      return "âš« Cancelado";
 
 
     default:
 
       return (
         status ||
-        "Status n\xe3o informado"
+        "Status nÃ£o informado"
       );
 
   }
@@ -1012,7 +1037,7 @@ function formatPaymentStatus(status) {
 
 
 // =====================================================
-// HIST\xd3RICO
+// HISTÃ“RICO
 // =====================================================
 
 async function loadStudentHistory() {
@@ -1029,7 +1054,7 @@ async function loadStudentHistory() {
 
 
   container.innerHTML = `
-    <p>Carregando hist\xf3rico...</p>
+    <p>Carregando histÃ³rico...</p>
   `;
 
 
@@ -1045,14 +1070,14 @@ async function loadStudentHistory() {
   if (error) {
 
     console.error(
-      "Erro ao carregar hist\xf3rico:",
+      "Erro ao carregar histÃ³rico:",
       error
     );
 
 
     container.innerHTML = `
       <p>
-        N\xe3o foi poss\xedvel carregar seu hist\xf3rico.
+        NÃ£o foi possÃ­vel carregar seu histÃ³rico.
       </p>
     `;
 
@@ -1082,7 +1107,7 @@ async function loadStudentHistory() {
         </strong>
 
         <p>
-          Seu hist\xf3rico aparecer\xe1 aqui
+          Seu histÃ³rico aparecerÃ¡ aqui
           depois que houver aulas registradas.
         </p>
 
@@ -1128,7 +1153,7 @@ async function loadStudentHistory() {
   if (commentsError) {
 
     console.error(
-      "Erro ao carregar coment\xe1rios:",
+      "Erro ao carregar comentÃ¡rios:",
       commentsError
     );
 
@@ -1185,7 +1210,7 @@ async function loadStudentHistory() {
 
 
 // =====================================================
-// CARD DO HIST\xd3RICO
+// CARD DO HISTÃ“RICO
 // =====================================================
 
 function renderHistoryLesson(
@@ -1209,7 +1234,7 @@ function renderHistoryLesson(
             "T12:00:00"
           )
         )
-      : "Data n\xe3o informada";
+      : "Data nÃ£o informada";
 
 
   const start =
@@ -1260,32 +1285,32 @@ function renderHistoryLesson(
 
         <strong>
           ${start}
-          ${end ? " \xe0s " + end : ""}
+          ${end ? " Ã s " + end : ""}
         </strong>
 
       </div>
 
 
       <p>
-        <strong>Mat\xe9ria:</strong>
+        <strong>MatÃ©ria:</strong>
         ${
           lesson.subject_name ||
-          "N\xe3o informada"
+          "NÃ£o informada"
         }
       </p>
 
 
       <p>
-        <strong>Conte\xfado:</strong>
+        <strong>ConteÃºdo:</strong>
         ${
           lesson.content_title ||
-          "N\xe3o informado"
+          "NÃ£o informado"
         }
       </p>
 
 
       <p>
-        <strong>Presen\xe7a:</strong>
+        <strong>PresenÃ§a:</strong>
         ${formatAttendanceStatus(
           lesson.attendance_status
         )}
@@ -1302,13 +1327,13 @@ function renderHistoryLesson(
       >
 
         <strong>
-          Observa\xe7\xf5es do professor
+          ObservaÃ§Ãµes do professor
         </strong>
 
         <p>
           ${
             lesson.teacher_notes ||
-            "Nenhuma observa\xe7\xe3o registrada."
+            "Nenhuma observaÃ§Ã£o registrada."
           }
         </p>
 
@@ -1322,7 +1347,7 @@ function renderHistoryLesson(
       >
 
         <strong>
-          Coment\xe1rios do aluno
+          ComentÃ¡rios do aluno
         </strong>
 
 
@@ -1332,8 +1357,8 @@ function renderHistoryLesson(
             ? `
 
               <p>
-                Voc\xea ainda n\xe3o adicionou
-                um coment\xe1rio nesta aula.
+                VocÃª ainda nÃ£o adicionou
+                um comentÃ¡rio nesta aula.
               </p>
 
             `
@@ -1379,7 +1404,7 @@ function renderHistoryLesson(
 
           <textarea
             id="comment-${lesson.lesson_id}"
-            placeholder="Escreva um coment\xe1rio sobre esta aula..."
+            placeholder="Escreva um comentÃ¡rio sobre esta aula..."
             rows="3"
             style="
               width:100%;
@@ -1398,7 +1423,7 @@ function renderHistoryLesson(
             data-lesson-id="${lesson.lesson_id}"
             style="margin-top:8px;"
           >
-            Adicionar coment\xe1rio
+            Adicionar comentÃ¡rio
           </button>
 
 
@@ -1418,7 +1443,7 @@ function renderHistoryLesson(
 
 
 // =====================================================
-// ADICIONAR COMENT\xc1RIO
+// ADICIONAR COMENTÃRIO
 // =====================================================
 
 async function addLessonComment(
@@ -1457,7 +1482,7 @@ async function addLessonComment(
     if (message) {
 
       message.textContent =
-        "Escreva um coment\xe1rio antes de enviar.";
+        "Escreva um comentÃ¡rio antes de enviar.";
 
       message.style.color =
         "red";
@@ -1493,7 +1518,7 @@ async function addLessonComment(
   if (error) {
 
     console.error(
-      "Erro ao adicionar coment\xe1rio:",
+      "Erro ao adicionar comentÃ¡rio:",
       error
     );
 
@@ -1501,7 +1526,7 @@ async function addLessonComment(
     if (message) {
 
       message.textContent =
-        "N\xe3o foi poss\xedvel adicionar o coment\xe1rio.";
+        "NÃ£o foi possÃ­vel adicionar o comentÃ¡rio.";
 
       message.style.color =
         "red";
@@ -1514,7 +1539,7 @@ async function addLessonComment(
       button.disabled = false;
 
       button.textContent =
-        "Adicionar coment\xe1rio";
+        "Adicionar comentÃ¡rio";
 
     }
 
@@ -1525,7 +1550,7 @@ async function addLessonComment(
   if (message) {
 
     message.textContent =
-      "Coment\xe1rio adicionado com sucesso.";
+      "ComentÃ¡rio adicionado com sucesso.";
 
     message.style.color =
       "green";
@@ -1540,7 +1565,7 @@ async function addLessonComment(
 
 
 // =====================================================
-// PRESEN\xc7A
+// PRESENÃ‡A
 // =====================================================
 
 function formatAttendanceStatus(status) {
@@ -1550,29 +1575,29 @@ function formatAttendanceStatus(status) {
   ) {
 
     case "present":
-      return "\u2705 Presente";
+      return "âœ… Presente";
 
     case "absent":
-      return "\u274c Falta";
+      return "âŒ Falta";
 
     case "justified_absence":
-      return "\u26a0\ufe0f Falta justificada";
+      return "âš ï¸ Falta justificada";
 
     case "cancelled":
-      return "\U0001f6ab Cancelada";
+      return "ðŸš« Cancelada";
 
     case "makeup":
-      return "\U0001f504 Reposi\xe7\xe3o";
+      return "ðŸ”„ ReposiÃ§Ã£o";
 
     default:
-      return status || "N\xe3o registrado";
+      return status || "NÃ£o registrado";
 
   }
 }
 
 
 // =====================================================
-// REPOSI\xc7\xd5ES
+// REPOSIÃ‡Ã•ES
 // =====================================================
 
 async function loadStudentMakeups() {
@@ -1584,7 +1609,7 @@ async function loadStudentMakeups() {
 
   if (!container) return;
 
-  container.innerHTML = `<p>Carregando reposi\xe7\xf5es...</p>`;
+  container.innerHTML = `<p>Carregando reposiÃ§Ãµes...</p>`;
 
   if (!currentStudentId) {
     await loadCurrentStudentId();
@@ -1596,8 +1621,8 @@ async function loadStudentMakeups() {
   } = await supabaseClient.rpc("get_my_makeups");
 
   if (error) {
-    console.error("Erro ao carregar reposi\xe7\xf5es:", error);
-    container.innerHTML = `<p>N\xe3o foi poss\xedvel carregar suas reposi\xe7\xf5es.</p>`;
+    console.error("Erro ao carregar reposiÃ§Ãµes:", error);
+    container.innerHTML = `<p>NÃ£o foi possÃ­vel carregar suas reposiÃ§Ãµes.</p>`;
     return;
   }
 
@@ -1606,8 +1631,8 @@ async function loadStudentMakeups() {
   if (makeups.length === 0) {
     container.innerHTML = `
       <div style="padding:20px;text-align:center;border:1px solid #ddd;border-radius:10px;">
-        <strong>Voc\xea n\xe3o possui reposi\xe7\xf5es cadastradas.</strong>
-        <p>Quando uma falta gerar uma reposi\xe7\xe3o ou o professor atribuir uma, ela aparecer\xe1 aqui.</p>
+        <strong>VocÃª nÃ£o possui reposiÃ§Ãµes cadastradas.</strong>
+        <p>Quando uma falta gerar uma reposiÃ§Ã£o ou o professor atribuir uma, ela aparecerÃ¡ aqui.</p>
       </div>
     `;
     return;
@@ -1638,7 +1663,7 @@ async function loadStudentMakeups() {
       .eq("student_id", currentStudentId);
 
     if (reservationError) {
-      console.warn("N\xe3o foi poss\xedvel consultar as reservas do aluno:", reservationError);
+      console.warn("NÃ£o foi possÃ­vel consultar as reservas do aluno:", reservationError);
     } else {
       reservations = reservationData || [];
     }
@@ -1688,7 +1713,7 @@ function currentStudentIdForQuery() {
   /*
    * IMPORTANTE:
    * reservations.student_id aponta para students.id.
-   * students.id n\xe3o \xe9 necessariamente igual ao auth user id.
+   * students.id nÃ£o Ã© necessariamente igual ao auth user id.
    */
 
   return currentStudentId || null;
@@ -1696,7 +1721,7 @@ function currentStudentIdForQuery() {
 
 
 // =====================================================
-// CARD DE REPOSI\xc7\xc3O
+// CARD DE REPOSIÃ‡ÃƒO
 // =====================================================
 
 function renderMakeupCard(makeup) {
@@ -1707,7 +1732,7 @@ function renderMakeupCard(makeup) {
 
   const expires = makeup.expires_at
     ? formatDateTime(makeup.expires_at)
-    : "N\xe3o informado";
+    : "NÃ£o informado";
 
   const cancellationCount = Number(makeup.cancellation_count || 0);
 
@@ -1722,11 +1747,11 @@ function renderMakeupCard(makeup) {
 
     reservationInfo = `
       <div style="margin-top:15px;padding:14px;border-radius:8px;background:#eef5ff;">
-        <strong>Reposi\xe7\xe3o agendada:</strong>
+        <strong>ReposiÃ§Ã£o agendada:</strong>
         <br>
         ${formatDate(new Date(makeup.reservation_date + "T12:00:00"))}
-        ${makeup.reservation_start_time ? ` \xe0s ${normalizeTime(makeup.reservation_start_time)}` : ""}
-        ${makeup.reservation_end_time ? ` at\xe9 ${normalizeTime(makeup.reservation_end_time)}` : ""}
+        ${makeup.reservation_start_time ? ` Ã s ${normalizeTime(makeup.reservation_start_time)}` : ""}
+        ${makeup.reservation_end_time ? ` atÃ© ${normalizeTime(makeup.reservation_end_time)}` : ""}
       </div>
     `;
   }
@@ -1742,7 +1767,7 @@ function renderMakeupCard(makeup) {
         data-reservation-id="${makeup.reservation_id}"
         style="margin-top:15px;border-color:#c0392b;color:#c0392b;"
       >
-        Cancelar reposi\xe7\xe3o
+        Cancelar reposiÃ§Ã£o
       </button>
 
       <p
@@ -1797,7 +1822,7 @@ function renderMakeupCard(makeup) {
 
 
 // =====================================================
-// CANCELAR REPOSI\xc7\xc3O DO ALUNO
+// CANCELAR REPOSIÃ‡ÃƒO DO ALUNO
 // =====================================================
 
 async function cancelStudentMakeup(
@@ -1807,7 +1832,7 @@ async function cancelStudentMakeup(
   if (!reservationId) {
 
     alert(
-      "N\xe3o foi poss\xedvel identificar a reserva."
+      "NÃ£o foi possÃ­vel identificar a reserva."
     );
 
     return;
@@ -1816,10 +1841,10 @@ async function cancelStudentMakeup(
 
   const confirmed =
     window.confirm(
-      "Tem certeza que deseja cancelar esta reposi\xe7\xe3o?\n\n" +
-      "O cancelamento seguir\xe1 as regras do sistema. " +
-      "Se esta for a segunda vez que voc\xea cancela esta reposi\xe7\xe3o, " +
-      "ela ser\xe1 perdida."
+      "Tem certeza que deseja cancelar esta reposiÃ§Ã£o?\n\n" +
+      "O cancelamento seguirÃ¡ as regras do sistema. " +
+      "Se esta for a segunda vez que vocÃª cancela esta reposiÃ§Ã£o, " +
+      "ela serÃ¡ perdida."
     );
 
 
@@ -1866,7 +1891,7 @@ async function cancelStudentMakeup(
   if (error) {
 
     console.error(
-      "Erro ao cancelar reposi\xe7\xe3o:",
+      "Erro ao cancelar reposiÃ§Ã£o:",
       error
     );
 
@@ -1875,7 +1900,7 @@ async function cancelStudentMakeup(
 
       message.textContent =
         error.message ||
-        "N\xe3o foi poss\xedvel cancelar a reposi\xe7\xe3o.";
+        "NÃ£o foi possÃ­vel cancelar a reposiÃ§Ã£o.";
 
       message.style.color =
         "red";
@@ -1888,7 +1913,7 @@ async function cancelStudentMakeup(
       button.disabled = false;
 
       button.textContent =
-        "Cancelar reposi\xe7\xe3o";
+        "Cancelar reposiÃ§Ã£o";
 
     }
 
@@ -1905,7 +1930,7 @@ async function cancelStudentMakeup(
   if (message) {
 
     message.textContent =
-      "Reposi\xe7\xe3o cancelada com sucesso.";
+      "ReposiÃ§Ã£o cancelada com sucesso.";
 
     message.style.color =
       "green";
@@ -1927,8 +1952,8 @@ async function cancelStudentMakeup(
 
 
   /*
-   * Tamb\xe9m atualiza a agenda.
-   * Assim o hor\xe1rio volta a ficar dispon\xedvel
+   * TambÃ©m atualiza a agenda.
+   * Assim o horÃ¡rio volta a ficar disponÃ­vel
    * imediatamente.
    */
 
@@ -1938,7 +1963,7 @@ async function cancelStudentMakeup(
 
 
 // =====================================================
-// STATUS REPOSI\xc7\xc3O
+// STATUS REPOSIÃ‡ÃƒO
 // =====================================================
 
 function formatMakeupStatus(status) {
@@ -1950,35 +1975,35 @@ function formatMakeupStatus(status) {
     case "available":
 
       return {
-        label: "\U0001f7e2 Dispon\xedvel"
+        label: "ðŸŸ¢ DisponÃ­vel"
       };
 
 
     case "reserved":
 
       return {
-        label: "\U0001f7e3 Minha reposi\xe7\xe3o"
+        label: "ðŸŸ£ Minha reposiÃ§Ã£o"
       };
 
 
     case "used":
 
       return {
-        label: "\u26ab Utilizada"
+        label: "âš« Utilizada"
       };
 
 
     case "lost":
 
       return {
-        label: "\U0001f534 Perdida"
+        label: "ðŸ”´ Perdida"
       };
 
 
     case "expired":
 
       return {
-        label: "\U0001f7e0 Expirada"
+        label: "ðŸŸ  Expirada"
       };
 
 
@@ -1987,7 +2012,7 @@ function formatMakeupStatus(status) {
       return {
         label:
           status ||
-          "Situa\xe7\xe3o desconhecida"
+          "SituaÃ§Ã£o desconhecida"
       };
 
   }
@@ -1995,7 +2020,7 @@ function formatMakeupStatus(status) {
 
 
 // =====================================================
-// ORIGEM REPOSI\xc7\xc3O
+// ORIGEM REPOSIÃ‡ÃƒO
 // =====================================================
 
 function formatMakeupSource(source) {
@@ -2011,7 +2036,7 @@ function formatMakeupSource(source) {
       return "Professor";
 
     default:
-      return source || "N\xe3o informado";
+      return source || "NÃ£o informado";
 
   }
 }
@@ -2095,7 +2120,7 @@ async function loadStudentWeeklySchedule() {
 
     if (reservationError) {
       console.warn(
-        "N\xe3o foi poss\xedvel carregar as reposi\xe7\xf5es da semana:",
+        "NÃ£o foi possÃ­vel carregar as reposiÃ§Ãµes da semana:",
         reservationError
       );
     } else {
@@ -2141,7 +2166,7 @@ function renderStudentWeeklySchedule(
 
     <tr>
 
-      <th>Hor\xe1rio</th>
+      <th>HorÃ¡rio</th>
 
       ${getWeekDays()
         .map(
@@ -2236,7 +2261,7 @@ function renderStudentWeeklySchedule(
 
       if (!slot) {
 
-        cell.textContent = "\u2014";
+        cell.textContent = "â€”";
 
         cell.classList.add(
           "unavailable"
@@ -2267,7 +2292,7 @@ function renderStudentWeeklySchedule(
           ownMakeupReservation
             ? {
                 className: "own-makeup",
-                label: "Minha reposi\xe7\xe3o"
+                label: "Minha reposiÃ§Ã£o"
               }
             : normalizeStudentScheduleStatus(slot.status);
 
@@ -2281,7 +2306,7 @@ function renderStudentWeeklySchedule(
 
 
         // ------------------------------------------------
-        // Minha reposi\xe7\xe3o
+        // Minha reposiÃ§Ã£o
         // ------------------------------------------------
 
         if (
@@ -2296,7 +2321,7 @@ function renderStudentWeeklySchedule(
             "default";
 
           cell.title =
-            "Esta \xe9 a sua reposi\xe7\xe3o.";
+            "Esta Ã© a sua reposiÃ§Ã£o.";
 
         }
 
@@ -2317,13 +2342,13 @@ function renderStudentWeeklySchedule(
             "default";
 
           cell.title =
-            "Esta \xe9 a sua aula.";
+            "Esta Ã© a sua aula.";
 
         }
 
 
         // ------------------------------------------------
-        // Hor\xe1rio livre
+        // HorÃ¡rio livre
         // ------------------------------------------------
 
         else if (
@@ -2335,7 +2360,7 @@ function renderStudentWeeklySchedule(
             "pointer";
 
           cell.title =
-            "Clique para escolher uma reposi\xe7\xe3o.";
+            "Clique para escolher uma reposiÃ§Ã£o.";
 
           cell.addEventListener(
             "click",
@@ -2372,7 +2397,7 @@ function renderStudentWeeklySchedule(
     body.innerHTML = `
       <tr>
         <td colspan="8">
-          Nenhum hor\xe1rio cadastrado.
+          Nenhum horÃ¡rio cadastrado.
         </td>
       </tr>
     `;
@@ -2382,7 +2407,7 @@ function renderStudentWeeklySchedule(
 
 
 // =====================================================
-// ENCONTRAR HOR\xc1RIO
+// ENCONTRAR HORÃRIO
 // =====================================================
 
 function findScheduleSlot(
@@ -2438,7 +2463,7 @@ function normalizeStudentScheduleStatus(
 
       return {
         className: "unavailable",
-        label: "Indispon\xedvel"
+        label: "IndisponÃ­vel"
       };
 
 
@@ -2447,7 +2472,7 @@ function normalizeStudentScheduleStatus(
 
       return {
         className: "own-makeup",
-        label: "Minha reposi\xe7\xe3o"
+        label: "Minha reposiÃ§Ã£o"
       };
 
 
@@ -2473,7 +2498,7 @@ function normalizeStudentScheduleStatus(
 
 
 // =====================================================
-// SELECIONAR REPOSI\xc7\xc3O
+// SELECIONAR REPOSIÃ‡ÃƒO
 // =====================================================
 
 async function openMakeupSelection(
@@ -2524,12 +2549,12 @@ async function openMakeupSelection(
       <div class="card">
 
         <h3>
-          Nenhuma reposi\xe7\xe3o compat\xedvel
+          Nenhuma reposiÃ§Ã£o compatÃ­vel
         </h3>
 
         <p>
-          Voc\xea n\xe3o possui uma reposi\xe7\xe3o
-          compat\xedvel com este hor\xe1rio.
+          VocÃª nÃ£o possui uma reposiÃ§Ã£o
+          compatÃ­vel com este horÃ¡rio.
         </p>
 
         <button
@@ -2564,7 +2589,7 @@ async function openMakeupSelection(
     <div class="card">
 
       <h3>
-        Escolher reposi\xe7\xe3o
+        Escolher reposiÃ§Ã£o
       </h3>
 
       <p>
@@ -2573,11 +2598,11 @@ async function openMakeupSelection(
           slot.day_of_week
         )}
 
-        \u2014 ${formatDate(
+        â€” ${formatDate(
           reservationDate
         )}
 
-        \xe0s
+        Ã s
 
         ${normalizeTime(
           slot.start_time
@@ -2587,7 +2612,7 @@ async function openMakeupSelection(
 
 
       <label>
-        Reposi\xe7\xe3o:
+        ReposiÃ§Ã£o:
       </label>
 
 
@@ -2602,7 +2627,7 @@ async function openMakeupSelection(
       >
 
         <option value="">
-          Selecione uma reposi\xe7\xe3o
+          Selecione uma reposiÃ§Ã£o
         </option>
 
         ${compatibleMakeups
@@ -2614,7 +2639,7 @@ async function openMakeupSelection(
               >
 
                 ${makeup.duration_minutes}
-                minutos \u2014
+                minutos â€”
                 ${formatMakeupSource(
                   makeup.source
                 )}
@@ -2681,7 +2706,7 @@ async function openMakeupSelection(
 
 
 // =====================================================
-// REPOSI\xc7\xd5ES DISPON\xcdVEIS
+// REPOSIÃ‡Ã•ES DISPONÃVEIS
 // =====================================================
 
 async function getAvailableMakeups() {
@@ -2702,7 +2727,7 @@ async function getAvailableMakeups() {
   if (error) {
 
     console.error(
-      "Erro ao carregar reposi\xe7\xf5es:",
+      "Erro ao carregar reposiÃ§Ãµes:",
       error
     );
 
@@ -2723,7 +2748,7 @@ async function getAvailableMakeups() {
 
 
 // =====================================================
-// REPOSI\xc7\xd5ES COMPAT\xcdVEIS
+// REPOSIÃ‡Ã•ES COMPATÃVEIS
 // =====================================================
 
 function getCompatibleMakeups(
@@ -2784,7 +2809,7 @@ function getCompatibleMakeups(
 
 
 // =====================================================
-// HOR\xc1RIO SEGUINTE
+// HORÃRIO SEGUINTE
 // =====================================================
 
 function findNextFreeSlot(
@@ -2862,7 +2887,7 @@ function prepareMakeupReservation() {
   if (!makeupId) {
 
     alert(
-      "Selecione uma reposi\xe7\xe3o."
+      "Selecione uma reposiÃ§Ã£o."
     );
 
     return;
@@ -2906,14 +2931,14 @@ function prepareMakeupReservation() {
       </p>
 
       <p>
-        <strong>Hor\xe1rio:</strong>
+        <strong>HorÃ¡rio:</strong>
         ${normalizeTime(
           selectedScheduleSlot.start_time
         )}
       </p>
 
       <p>
-        <strong>Reposi\xe7\xe3o:</strong>
+        <strong>ReposiÃ§Ã£o:</strong>
         ${escapeHtml(makeup)}
       </p>
 
@@ -2979,7 +3004,7 @@ function prepareMakeupReservation() {
 
 
 // =====================================================
-// RESERVAR REPOSI\xc7\xc3O
+// RESERVAR REPOSIÃ‡ÃƒO
 // =====================================================
 
 async function confirmRealReservation(
@@ -3049,7 +3074,7 @@ async function confirmRealReservation(
 
     message.textContent =
       error.message ||
-      "N\xe3o foi poss\xedvel realizar a reserva.";
+      "NÃ£o foi possÃ­vel realizar a reserva.";
 
     message.style.color =
       "red";
@@ -3067,7 +3092,7 @@ async function confirmRealReservation(
     ${formatDate(
       reservationDate
     )}
-    \xe0s
+    Ã s
     ${normalizeTime(
       startTime
     )}
@@ -3122,7 +3147,7 @@ function closeMakeupSelection() {
 
 
 // =====================================================
-// NAVEGA\xc7\xc3O DO PROFESSOR
+// NAVEGAÃ‡ÃƒO DO PROFESSOR
 // =====================================================
 
 function setTeacherPage(page) {
@@ -3165,7 +3190,7 @@ function setTeacherPage(page) {
         <h3>Regras</h3>
 
         <p>
-          Defina as regras que ser\xe3o
+          Defina as regras que serÃ£o
           visualizadas pelos seus alunos.
         </p>
 
@@ -3213,7 +3238,7 @@ function setTeacherPage(page) {
 
 
   // ===================================================
-  // DEMAIS P\xc1GINAS DO PROFESSOR
+  // DEMAIS PÃGINAS DO PROFESSOR
   // ===================================================
 
   const titles = {
@@ -3223,10 +3248,10 @@ function setTeacherPage(page) {
     students: "Alunos",
 
     attendance:
-      "Presen\xe7a / Faltas",
+      "PresenÃ§a / Faltas",
 
     subjects:
-      "Mat\xe9rias",
+      "MatÃ©rias",
 
     planning:
       "Planejamento",
@@ -3244,13 +3269,13 @@ function setTeacherPage(page) {
       <h3>
         ${
           titles[page] ||
-          "P\xe1gina"
+          "PÃ¡gina"
         }
       </h3>
 
       <p>
-        Esta \xe1rea ser\xe1 implementada
-        nas pr\xf3ximas etapas.
+        Esta Ã¡rea serÃ¡ implementada
+        nas prÃ³ximas etapas.
       </p>
 
     </div>
@@ -3309,7 +3334,7 @@ async function loadTeacherRules() {
     if (message) {
 
       message.textContent =
-        "N\xe3o foi poss\xedvel identificar o professor.";
+        "NÃ£o foi possÃ­vel identificar o professor.";
 
       message.style.color =
         "red";
@@ -3355,7 +3380,7 @@ async function loadTeacherRules() {
     if (message) {
 
       message.textContent =
-        "N\xe3o foi poss\xedvel carregar as regras.";
+        "NÃ£o foi possÃ­vel carregar as regras.";
 
       message.style.color =
         "red";
@@ -3466,7 +3491,7 @@ async function saveTeacherRules() {
 
       message.textContent =
         error.message ||
-        "N\xe3o foi poss\xedvel salvar as regras.";
+        "NÃ£o foi possÃ­vel salvar as regras.";
 
       message.style.color =
         "red";
@@ -3511,7 +3536,7 @@ async function saveTeacherRules() {
 
 
 // =====================================================
-// BOT\xd5ES DE NAVEGA\xc7\xc3O
+// BOTÃ•ES DE NAVEGAÃ‡ÃƒO
 // =====================================================
 
 document
@@ -3628,11 +3653,11 @@ function getWeekDays() {
   const names = [
 
     "Segunda",
-    "Ter\xe7a",
+    "TerÃ§a",
     "Quarta",
     "Quinta",
     "Sexta",
-    "S\xe1bado",
+    "SÃ¡bado",
     "Domingo"
 
   ];
@@ -3706,7 +3731,7 @@ function formatWeekLabel(
 
   return (
     formatDate(weekStart) +
-    " \u2192 " +
+    " â†’ " +
     formatDate(weekEnd)
   );
 }
@@ -3749,7 +3774,7 @@ function formatDateForDatabase(
 
 
 // =====================================================
-// HOR\xc1RIOS
+// HORÃRIOS
 // =====================================================
 
 function normalizeTime(time) {
@@ -3813,7 +3838,7 @@ function formatDay(day) {
 
     1: "Segunda-feira",
 
-    2: "Ter\xe7a-feira",
+    2: "TerÃ§a-feira",
 
     3: "Quarta-feira",
 
@@ -3821,7 +3846,7 @@ function formatDay(day) {
 
     5: "Sexta-feira",
 
-    6: "S\xe1bado",
+    6: "SÃ¡bado",
 
     7: "Domingo"
 
@@ -3982,7 +4007,7 @@ if (logoutButton) {
 
 
 // =====================================================
-// RECUPERA\xc7\xc3O DE SENHA
+// RECUPERAÃ‡ÃƒO DE SENHA
 // =====================================================
 
 if (forgotPasswordButton) {
@@ -4026,7 +4051,7 @@ if (forgotPasswordButton) {
 
 
         loginMessage.textContent =
-          "N\xe3o foi poss\xedvel enviar o e-mail de recupera\xe7\xe3o.";
+          "NÃ£o foi possÃ­vel enviar o e-mail de recuperaÃ§Ã£o.";
 
 
         return;
@@ -4034,7 +4059,7 @@ if (forgotPasswordButton) {
 
 
       loginMessage.textContent =
-        "E-mail de recupera\xe7\xe3o enviado.";
+        "E-mail de recuperaÃ§Ã£o enviado.";
 
     }
   );
@@ -4043,7 +4068,7 @@ if (forgotPasswordButton) {
 
 
 // =====================================================
-// INICIALIZA\xc7\xc3O
+// INICIALIZAÃ‡ÃƒO
 // =====================================================
 
 async function initializeApp() {
@@ -4068,7 +4093,7 @@ async function initializeApp() {
 
 
 // =====================================================
-// ALTERA\xc7\xc3O DE AUTENTICA\xc7\xc3O
+// ALTERAÃ‡ÃƒO DE AUTENTICAÃ‡ÃƒO
 // =====================================================
 
 supabaseClient.auth.onAuthStateChange(
