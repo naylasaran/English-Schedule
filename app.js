@@ -346,6 +346,22 @@ function setStudentPage(page) {
 
         </div>
 
+         <!-- =================================================
+             SELEÇÃO DE REPOSIÇÃO
+             ================================================= -->
+
+        <div
+          id="makeupSelectionArea"
+          style="
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <!-- =================================================
+             LEGENDA
+             ================================================= -->
+
         <div class="schedule-legend">
           <span>\uD83D\uDFE2 Livre</span>
           <span>\uD83D\uDD34 Ocupado</span>
@@ -2847,6 +2863,10 @@ function getCompatibleMakeups(
       );
 
 
+    // ================================================
+    // REPOSIÇÃO DE 30 MINUTOS
+    // ================================================
+
     if (
       duration === 30
     ) {
@@ -2856,8 +2876,13 @@ function getCompatibleMakeups(
       );
 
       continue;
+
     }
 
+
+    // ================================================
+    // REPOSIÇÃO DE 60 MINUTOS
+    // ================================================
 
     if (
       duration === 60
@@ -2869,7 +2894,15 @@ function getCompatibleMakeups(
         );
 
 
-      if (nextSlot) {
+      /*
+       * Para uma reposição de 60 minutos,
+       * o bloco atual e o próximo bloco de
+       * 30 minutos precisam estar livres.
+       */
+
+      if (
+        nextSlot
+      ) {
 
         result.push(
           makeup
