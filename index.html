@@ -1,148 +1,315 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>Agenda de Aulas</title>
 
-  <link rel="stylesheet" href="style.css">
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <script
+    src="config.js"
+  ></script>
 </head>
+
 
 <body>
 
-  <div id="app">
+  <!-- =====================================================
+       CABEÇALHO
+       ===================================================== -->
 
-    <header class="topbar">
-      <h1>Agenda de Aulas</h1>
+  <header class="site-header">
 
-      <button id="logoutButton">
-        Sair
-      </button>
-    </header>
+    <h1>
+      Agenda de Aulas
+    </h1>
 
-    <main>
+  </header>
 
-      <section id="loginScreen" class="screen">
 
-        <div class="login-card">
+  <!-- =====================================================
+       LOGIN
+       ===================================================== -->
 
-          <h2>Entrar</h2>
+  <main>
 
-          <form id="loginForm">
+    <section
+      id="loginScreen"
+      class="screen"
+    >
 
-            <label for="email">
-              E-mail
-            </label>
+      <div class="login-card">
 
-            <input
-              type="email"
-              id="email"
-              required
-            >
+        <h2>
+          Entrar
+        </h2>
 
-            <label for="password">
-              Senha
-            </label>
+        <form id="loginForm">
 
-            <input
-              type="password"
-              id="password"
-              required
-            >
+          <label for="email">
+            E-mail
+          </label>
 
-            <button type="submit">
-              Entrar
-            </button>
+          <input
+            type="email"
+            id="email"
+            autocomplete="email"
+            required
+          >
 
-          </form>
 
-          <button id="forgotPasswordButton">
-            Esqueci minha senha
+          <label for="password">
+            Senha
+          </label>
+
+          <input
+            type="password"
+            id="password"
+            autocomplete="current-password"
+            required
+          >
+
+
+          <button
+            type="submit"
+            class="primary-button"
+          >
+            Entrar
           </button>
 
-          <p id="loginMessage"></p>
+        </form>
 
+
+        <button
+          type="button"
+          id="forgotPasswordButton"
+          class="link-button"
+        >
+          Esqueci minha senha
+        </button>
+
+
+        <p
+          id="loginMessage"
+          class="message"
+        ></p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         ÁREA DO ALUNO
+         =================================================== -->
+
+    <section
+      id="studentScreen"
+      class="screen hidden"
+    >
+
+      <nav
+        id="studentNavigation"
+        class="navigation"
+      >
+
+        <button
+          type="button"
+          class="nav-button active"
+          data-student-page="agenda"
+        >
+          Agenda
+        </button>
+
+        <button
+          type="button"
+          class="nav-button"
+          data-student-page="history"
+        >
+          Histórico
+        </button>
+
+        <button
+          type="button"
+          class="nav-button"
+          data-student-page="makeups"
+        >
+          Reposições
+        </button>
+
+        <button
+          type="button"
+          class="nav-button"
+          data-student-page="financial"
+        >
+          Mensalidade
+        </button>
+
+        <button
+          type="button"
+          class="nav-button"
+          data-student-page="rules"
+        >
+          Regras
+        </button>
+
+      </nav>
+
+
+      <div class="page-container">
+
+        <div
+          id="studentHeader"
+          class="page-header"
+        >
         </div>
 
-      </section>
+
+        <div
+          id="studentContent"
+          class="page-content"
+        >
+        </div>
+
+      </div>
+
+    </section>
 
 
-      <section id="studentScreen" class="screen hidden">
+    <!-- ===================================================
+         ÁREA DO PROFESSOR
+         =================================================== -->
 
-        <nav class="tabs">
+    <section
+      id="teacherScreen"
+      class="screen hidden"
+    >
 
-          <button data-tab="studentAgenda">
-            Agenda
-          </button>
+      <nav
+        id="teacherNavigation"
+        class="navigation"
+      >
 
-          <button data-tab="studentHistory">
-            Histórico
-          </button>
+        <button
+          type="button"
+          class="nav-button active"
+          data-teacher-page="agenda"
+        >
+          Agenda
+        </button>
 
-          <button data-tab="studentMakeups">
-            Reposições
-          </button>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="students"
+        >
+          Alunos
+        </button>
 
-          <button data-tab="studentFinancial">
-            Mensalidade
-          </button>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="attendance"
+        >
+          Presença/Faltas
+        </button>
 
-          <button data-tab="studentRules">
-            Regras
-          </button>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="subjects"
+        >
+          Matérias
+        </button>
 
-        </nav>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="planning"
+        >
+          Planejamento
+        </button>
 
-        <div id="studentContent"></div>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="financial"
+        >
+          Financeiro
+        </button>
 
-      </section>
+        <button
+          type="button"
+          class="nav-button"
+          data-teacher-page="rules"
+        >
+          Regras
+        </button>
+
+      </nav>
 
 
-      <section id="teacherScreen" class="screen hidden">
+      <div class="page-container">
 
-        <nav class="tabs">
+        <div
+          id="teacherHeader"
+          class="page-header"
+        >
+        </div>
 
-          <button data-tab="teacherAgenda">
-            Agenda
-          </button>
 
-          <button data-tab="teacherStudents">
-            Alunos
-          </button>
+        <div
+          id="teacherContent"
+          class="page-content"
+        >
+        </div>
 
-          <button data-tab="teacherAttendance">
-            Presença/Faltas
-          </button>
+      </div>
 
-          <button data-tab="teacherSubjects">
-            Matérias
-          </button>
+    </section>
 
-          <button data-tab="teacherPlanning">
-            Planejamento
-          </button>
+  </main>
 
-          <button data-tab="teacherFinancial">
-            Financeiro
-          </button>
 
-          <button data-tab="teacherRules">
-            Regras
-          </button>
+  <!-- =====================================================
+       RODAPÉ
+       ===================================================== -->
 
-        </nav>
+  <footer class="site-footer">
 
-        <div id="teacherContent"></div>
+    <button
+      type="button"
+      id="logoutButton"
+      class="logout-button"
+    >
+      Sair
+    </button>
 
-      </section>
+  </footer>
 
-    </main>
 
-  </div>
+  <!-- =====================================================
+       JAVASCRIPT DO SITE
+       ===================================================== -->
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script
+    src="app.js"
+  ></script>
 
 </body>
+
 </html>
