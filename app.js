@@ -359,7 +359,55 @@ function setStudentPage(page) {
     `;
 
 
-    loadStudentWeeklySchedule();
+    // NavegaÃ§Ã£o entre semanas da agenda.
+    // Os botÃµes alteram selectedWeekStart e recarregam
+    // a agenda usando o novo p_week_start.
+    const previousWeekButton =
+      document.getElementById("previousWeekButton");
+
+    const currentWeekButton =
+      document.getElementById("currentWeekButton");
+
+    const nextWeekButton =
+      document.getElementById("nextWeekButton");
+
+
+    if (previousWeekButton) {
+      previousWeekButton.onclick = async () => {
+        selectedWeekStart = addDays(
+          selectedWeekStart,
+          -7
+        );
+
+        await loadStudentWeeklySchedule();
+      };
+    }
+
+
+    if (currentWeekButton) {
+      currentWeekButton.onclick = async () => {
+        selectedWeekStart = getMonday(
+          new Date()
+        );
+
+        await loadStudentWeeklySchedule();
+      };
+    }
+
+
+    if (nextWeekButton) {
+      nextWeekButton.onclick = async () => {
+        selectedWeekStart = addDays(
+          selectedWeekStart,
+          7
+        );
+
+        await loadStudentWeeklySchedule();
+      };
+    }
+
+
+    await loadStudentWeeklySchedule();
 
     return;
   }
