@@ -308,7 +308,12 @@ function setStudentPage(page) {
 
         <div
           class="schedule-legend"
-          style="margin-top:20px;"
+          style="
+            margin-top:20px;
+            display:flex;
+            gap:15px;
+            flex-wrap:wrap;
+          "
         >
 
           <span>
@@ -325,6 +330,10 @@ function setStudentPage(page) {
 
           <span>
             🔵 Minha aula
+          </span>
+
+          <span>
+            🟣 Minha reposição
           </span>
 
         </div>
@@ -1631,6 +1640,112 @@ async function loadStudentMakeups() {
   }
 
 
+  // ---------------------------------------------------
+  // Buscar as reservas do próprio aluno.
+  // Isso permite colocar o botão de cancelamento
+  // somente na reposição que está realmente reservada.
+  // ---------------------------------------------------
+
+  const makeupIds =
+    makeups.map(
+      makeup =>
+        makeup.makeup_id ||
+        makeup.id
+    ).filter(Boolean);
+
+
+  let reservations = [];
+
+
+  if (makeupIds.length > 0) {
+
+    const {
+      data: reservationData,
+      error: reservationError
+    } =
+      await supabaseClient
+        .from("reservations")
+        .select(`
+          id,
+          makeup_id,
+          reservation_date,
+          start_time,
+          end_time,
+          status
+        `)
+        .in(
+          "makeup_id",
+          makeupIds
+        )
+        .eq(
+          "student_id",
+          currentStudentIdForQuery()
+        )
+        .eq(
+          "status",
+          "active"
+        );
+
+
+    if (reservationError) {
+
+      console.warn(
+        "Não foi possível consultar as reservas do aluno:",
+        reservationError
+      );
+
+    }
+    else {
+
+      reservations =
+        reservationData || [];
+
+    }
+
+  }
+
+
+  const enrichedMakeups =
+    makeups.map(
+      makeup => {
+
+        const makeupId =
+          makeup.makeup_id ||
+          makeup.id;
+
+
+        const reservation =
+          reservations.find(
+            item =>
+              item.makeup_id ===
+              makeupId
+          );
+
+
+        return {
+          ...makeup,
+          reservation_id:
+            makeup.reservation_id ||
+            reservation?.id ||
+            null,
+          reservation_date:
+            makeup.reservation_date ||
+            reservation?.reservation_date ||
+            null,
+          reservation_start_time:
+            makeup.reservation_start_time ||
+            reservation?.start_time ||
+            null,
+          reservation_end_time:
+            makeup.reservation_end_time ||
+            reservation?.end_time ||
+            null
+        };
+
+      }
+    );
+
+
   container.innerHTML = `
 
     <div
@@ -1640,7 +1755,7 @@ async function loadStudentMakeups() {
       "
     >
 
-      ${makeups
+      ${enrichedMakeups
         .map(
           makeup =>
             renderMakeupCard(
@@ -1652,6 +1767,41 @@ async function loadStudentMakeups() {
     </div>
 
   `;
+
+
+  document
+    .querySelectorAll(
+      ".cancel-makeup-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          cancelStudentMakeup(
+            button.dataset.reservationId
+          );
+
+        }
+      );
+
+    });
+}
+
+
+// =====================================================
+// ID DO ALUNO ATUAL
+// =====================================================
+
+function currentStudentIdForQuery() {
+
+  /*
+   * Em todo o sistema o auth user e o profile
+   * usam o mesmo id.
+   */
+
+  return currentUser?.id || null;
 }
 
 
@@ -1689,6 +1839,97 @@ function renderMakeupCard(makeup) {
     Number(
       makeup.cancellation_count || 0
     );
+
+
+  const isReserved =
+    String(
+      makeup.status || ""
+    ).toLowerCase() ===
+    "reserved";
+
+
+  const reservationId =
+    makeup.reservation_id;
+
+
+  let reservationInfo = "";
+
+
+  if (
+    isReserved &&
+    makeup.reservation_date
+  ) {
+
+    reservationInfo = `
+
+      <div
+        style="
+          margin-top:15px;
+          padding:12px;
+          border-radius:8px;
+          background:#eef5ff;
+        "
+      >
+
+        <strong>
+          Reserva:
+        </strong>
+
+        <br>
+
+        ${formatDate(
+          new Date(
+            makeup.reservation_date +
+            "T12:00:00"
+          )
+        )}
+
+        ${
+          makeup.reservation_start_time
+            ? ` às ${normalizeTime(
+                makeup.reservation_start_time
+              )}`
+            : ""
+        }
+
+      </div>
+
+    `;
+
+  }
+
+
+  let cancelButton = "";
+
+
+  if (
+    isReserved &&
+    reservationId
+  ) {
+
+    cancelButton = `
+
+      <button
+        type="button"
+        class="secondary-button cancel-makeup-button"
+        data-reservation-id="${reservationId}"
+        style="
+          margin-top:15px;
+          border-color:#c0392b;
+          color:#c0392b;
+        "
+      >
+        Cancelar reposição
+      </button>
+
+      <p
+        id="cancel-makeup-message-${reservationId}"
+        style="margin-top:8px;"
+      ></p>
+
+    `;
+
+  }
 
 
   return `
@@ -1747,11 +1988,156 @@ function renderMakeupCard(makeup) {
           ${cancellationCount}
         </p>
 
+        ${reservationInfo}
+
+        ${cancelButton}
+
       </div>
 
     </div>
 
   `;
+}
+
+
+// =====================================================
+// CANCELAR REPOSIÇÃO DO ALUNO
+// =====================================================
+
+async function cancelStudentMakeup(
+  reservationId
+) {
+
+  if (!reservationId) {
+
+    alert(
+      "Não foi possível identificar a reserva."
+    );
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      "Tem certeza que deseja cancelar esta reposição?\n\n" +
+      "O cancelamento seguirá as regras do sistema. " +
+      "Se esta for a segunda vez que você cancela esta reposição, " +
+      "ela será perdida."
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const button =
+    document.querySelector(
+      `.cancel-makeup-button[data-reservation-id="${reservationId}"]`
+    );
+
+
+  const message =
+    document.getElementById(
+      `cancel-makeup-message-${reservationId}`
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      "Cancelando...";
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "cancel_reservation",
+      {
+        p_reservation_id:
+          reservationId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cancelar reposição:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível cancelar a reposição.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent =
+        "Cancelar reposição";
+
+    }
+
+    return;
+  }
+
+
+  console.log(
+    "Cancelamento realizado:",
+    data
+  );
+
+
+  if (message) {
+
+    message.textContent =
+      "Reposição cancelada com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  /*
+   * Recarrega a tela para refletir:
+   *
+   * primeiro cancelamento:
+   * available + contador 1
+   *
+   * segundo cancelamento:
+   * lost
+   */
+
+  await loadStudentMakeups();
+
+
+  /*
+   * Também atualiza a agenda.
+   * Assim o horário volta a ficar disponível
+   * imediatamente.
+   */
+
+  await loadStudentWeeklySchedule();
+
 }
 
 
@@ -1775,7 +2161,7 @@ function formatMakeupStatus(status) {
     case "reserved":
 
       return {
-        label: "🔵 Reservada"
+        label: "🟣 Minha reposição"
       };
 
 
@@ -2075,7 +2461,53 @@ function renderStudentWeeklySchedule(
           status.label;
 
 
+        // ------------------------------------------------
+        // Minha reposição
+        // ------------------------------------------------
+
         if (
+          status.className ===
+          "own-makeup"
+        ) {
+
+          cell.style.fontWeight =
+            "bold";
+
+          cell.style.cursor =
+            "default";
+
+          cell.title =
+            "Esta é a sua reposição.";
+
+        }
+
+
+        // ------------------------------------------------
+        // Minha aula
+        // ------------------------------------------------
+
+        else if (
+          status.className ===
+          "own"
+        ) {
+
+          cell.style.fontWeight =
+            "bold";
+
+          cell.style.cursor =
+            "default";
+
+          cell.title =
+            "Esta é a sua aula.";
+
+        }
+
+
+        // ------------------------------------------------
+        // Horário livre
+        // ------------------------------------------------
+
+        else if (
           status.className ===
           "available"
         ) {
@@ -2083,6 +2515,8 @@ function renderStudentWeeklySchedule(
           cell.style.cursor =
             "pointer";
 
+          cell.title =
+            "Clique para escolher uma reposição.";
 
           cell.addEventListener(
             "click",
@@ -2160,7 +2594,9 @@ function normalizeStudentScheduleStatus(
   status
 ) {
 
-  switch (status) {
+  switch (
+    String(status || "").toLowerCase()
+  ) {
 
     case "free":
     case "available":
@@ -2187,6 +2623,16 @@ function normalizeStudentScheduleStatus(
       };
 
 
+    case "own_makeup":
+    case "my_makeup":
+
+      return {
+        className: "own-makeup",
+        label: "Minha reposição"
+      };
+
+
+    case "own_lesson":
     case "my_lesson":
     case "own":
 
@@ -2345,7 +2791,7 @@ async function openMakeupSelection(
             makeup => `
 
               <option
-                value="${makeup.makeup_id}"
+                value="${makeup.makeup_id || makeup.id}"
               >
 
                 ${makeup.duration_minutes}
@@ -3010,9 +3456,6 @@ async function loadTeacherRules() {
   input.value =
     "Carregando regras...";
 
-
-  // Primeiro descobrimos o professor logado
-  // usando a função de segurança já existente.
 
   const {
     data: teacherId,
