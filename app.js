@@ -1791,18 +1791,70 @@ function renderMakeupCard(makeup) {
     `;
   }
 
-  let cancelButton = "";
+let cancelButton = "";
 
-  if (isReserved && makeup.reservation_id) {
+
+if (
+  isReserved &&
+  makeup.reservation_id &&
+  makeup.reservation_date &&
+  makeup.reservation_start_time
+) {
+
+  const reservationDate =
+    new Date(
+      makeup.reservation_date +
+      "T12:00:00"
+    );
+
+
+  const reservationDateTime =
+    combineDateAndTime(
+      reservationDate,
+      makeup.reservation_start_time
+    );
+
+
+  const minimumCancellationHours =
+    2;
+
+
+  const cancellationLimit =
+    new Date(
+      reservationDateTime.getTime() -
+      (
+        minimumCancellationHours *
+        60 *
+        60 *
+        1000
+      )
+    );
+
+
+  const now =
+    new Date();
+
+
+  // =================================================
+  // AINDA PODE CANCELAR
+  // =================================================
+
+  if (
+    now < cancellationLimit
+  ) {
 
     cancelButton = `
       <button
         type="button"
         class="secondary-button cancel-makeup-button"
         data-reservation-id="${makeup.reservation_id}"
-        style="margin-top:15px;border-color:#c0392b;color:#c0392b;"
+        style="
+          margin-top:15px;
+          border-color:#c0392b;
+          color:#c0392b;
+        "
       >
-        Cancelar reposi\xe7\xe3o
+        Cancelar reposição
       </button>
 
       <p
@@ -1810,7 +1862,60 @@ function renderMakeupCard(makeup) {
         style="margin-top:8px;"
       ></p>
     `;
+
   }
+
+
+  // =================================================
+  // PRAZO DE CANCELAMENTO ENCERRADO
+  // =================================================
+
+  else if (
+    reservationDateTime > now
+  ) {
+
+    cancelButton = `
+      <div
+        style="
+          margin-top:15px;
+          padding:12px;
+          border-radius:8px;
+          background:#fff3cd;
+          color:#856404;
+        "
+      >
+        Prazo de cancelamento encerrado.
+        O cancelamento precisa ser feito com
+        pelo menos 2 horas de antecedência.
+      </div>
+    `;
+
+  }
+
+
+  // =================================================
+  // REPOSIÇÃO JÁ PASSOU
+  // =================================================
+
+  else {
+
+    cancelButton = `
+      <div
+        style="
+          margin-top:15px;
+          padding:12px;
+          border-radius:8px;
+          background:#eeeeee;
+          color:#666666;
+        "
+      >
+        Esta reposição já ocorreu.
+      </div>
+    `;
+
+  }
+
+}
 
   return `
     <div style="border:1px solid #ddd;border-radius:12px;padding:18px;background:white;">
