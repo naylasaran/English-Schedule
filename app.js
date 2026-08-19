@@ -2445,30 +2445,77 @@ function renderStudentWeeklySchedule(
         // Hor\u00E1rio livre
         // ------------------------------------------------
 
-        else if (
-          status.className ===
-          "available"
-        ) {
+else if (
+  status.className ===
+  "available"
+) {
 
-          cell.style.cursor =
-            "pointer";
+  const slotDateTime =
+    combineDateAndTime(
+      slotDate,
+      slot.start_time
+    );
 
-          cell.title =
-            "Clique para escolher uma reposi\u00E7\u00E3o.";
 
-          cell.addEventListener(
-            "click",
-            () => {
+  const now =
+    new Date();
 
-              openMakeupSelection(
-                slot
-              );
 
-            }
-          );
+  // =================================================
+  // HORÁRIO JÁ PASSOU
+  // =================================================
 
-        }
+  if (
+    slotDateTime <= now
+  ) {
 
+    cell.textContent =
+      "Encerrado";
+
+    cell.style.cursor =
+      "not-allowed";
+
+    cell.style.opacity =
+      "0.55";
+
+    cell.style.backgroundColor =
+      "#eeeeee";
+
+    cell.style.color =
+      "#777777";
+
+    cell.title =
+      "Este horário já passou.";
+
+  }
+
+
+  // =================================================
+  // HORÁRIO FUTURO
+  // =================================================
+
+  else {
+
+    cell.style.cursor =
+      "pointer";
+
+    cell.title =
+      "Clique para escolher uma reposição.";
+
+    cell.addEventListener(
+      "click",
+      () => {
+
+        openMakeupSelection(
+          slot
+        );
+
+      }
+    );
+
+  }
+
+}
       }
 
 
@@ -2622,6 +2669,23 @@ async function openMakeupSelection(
       )
     );
 
+    const reservationDateTime =
+    combineDateAndTime(
+      reservationDate,
+      slot.start_time
+    );
+
+
+  if (
+    reservationDateTime <= new Date()
+  ) {
+
+    alert(
+      "Não é possível marcar uma reposição em um horário que já passou."
+    );
+
+    return;
+  }
 
   const makeups =
     await getAvailableMakeups();
@@ -3883,6 +3947,34 @@ function formatDateForDatabase(
   );
 }
 
+// =====================================================
+// JUNTAR DATA + HORÁRIO
+// =====================================================
+
+function combineDateAndTime(
+  date,
+  time
+) {
+
+  const result =
+    new Date(date);
+
+
+  const parts =
+    normalizeTime(time)
+      .split(":");
+
+
+  result.setHours(
+    Number(parts[0]),
+    Number(parts[1]),
+    0,
+    0
+  );
+
+
+  return result;
+}
 
 // =====================================================
 // HOR\xc1RIOS
