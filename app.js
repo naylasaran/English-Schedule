@@ -376,6 +376,331 @@ function setStudentPage(page) {
   return;
 }
 
+// =====================================================
+// FINANCEIRO DO ALUNO
+// =====================================================
+
+async function loadStudentFinancialHistory() {
+
+  const container =
+    document.getElementById(
+      "studentFinancialContent"
+    );
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML = `
+    <p>Carregando mensalidades...</p>
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_financial_history"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar financeiro:",
+      error
+    );
+
+    container.innerHTML = `
+      <p>
+        Não foi possível carregar
+        suas mensalidades.
+      </p>
+    `;
+
+    return;
+  }
+
+
+  const financial =
+    data || [];
+
+
+  if (financial.length === 0) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+
+        <strong>
+          Nenhuma mensalidade cadastrada.
+        </strong>
+
+        <p>
+          Quando o professor cadastrar
+          uma mensalidade, ela aparecerá aqui.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+
+  // Mais recente primeiro
+  financial.sort(
+    (a, b) => {
+
+      const dateA =
+        Number(a.year) * 100 +
+        Number(a.month);
+
+      const dateB =
+        Number(b.year) * 100 +
+        Number(b.month);
+
+      return dateB - dateA;
+
+    }
+  );
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:15px;
+      "
+    >
+
+      ${financial
+        .map(
+          item =>
+            renderFinancialCard(item)
+        )
+        .join("")}
+
+    </div>
+
+  `;
+}
+
+
+// =====================================================
+// CARD FINANCEIRO
+// =====================================================
+
+function renderFinancialCard(
+  item
+) {
+
+  const month =
+    formatMonth(
+      item.month
+    );
+
+
+  const amount =
+    formatCurrency(
+      item.amount
+    );
+
+
+  const status =
+    formatPaymentStatus(
+      item.payment_status
+    );
+
+
+  return `
+
+    <div
+      style="
+        border:1px solid #ddd;
+        border-radius:12px;
+        padding:20px;
+        background:white;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:15px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <h4
+          style="
+            margin:0;
+            font-size:20px;
+          "
+        >
+          ${month}/${item.year}
+        </h4>
+
+        <span
+          style="
+            font-weight:bold;
+          "
+        >
+          ${status}
+        </span>
+
+      </div>
+
+
+      <p
+        style="
+          font-size:24px;
+          font-weight:bold;
+          margin:15px 0;
+        "
+      >
+        ${amount}
+      </p>
+
+
+      <p>
+        <strong>Observações:</strong>
+        ${
+          item.notes ||
+          "Nenhuma observação."
+        }
+      </p>
+
+    </div>
+
+  `;
+}
+
+
+// =====================================================
+// MÊS
+// =====================================================
+
+function formatMonth(
+  month
+) {
+
+  const months = [
+
+    "",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+
+  ];
+
+
+  return (
+    months[
+      Number(month)
+    ] || `Mês ${month}`
+  );
+}
+
+
+// =====================================================
+// VALOR
+// =====================================================
+
+function formatCurrency(
+  amount
+) {
+
+  const value =
+    Number(amount);
+
+
+  if (
+    Number.isNaN(value)
+  ) {
+
+    return "Valor não informado";
+
+  }
+
+
+  return new Intl.NumberFormat(
+    "pt-BR",
+    {
+      style: "currency",
+      currency: "BRL"
+    }
+  ).format(value);
+}
+
+
+// =====================================================
+// STATUS DO PAGAMENTO
+// =====================================================
+
+function formatPaymentStatus(
+  status
+) {
+
+  switch (
+    String(status || "").toLowerCase()
+  ) {
+
+    case "paid":
+    case "pago":
+
+      return "🟢 Pago";
+
+
+    case "pending":
+    case "pendente":
+
+      return "🟡 Pendente";
+
+
+    case "overdue":
+    case "atrasado":
+
+      return "🔴 Atrasado";
+
+
+    case "cancelled":
+    case "cancelado":
+
+      return "⚫ Cancelado";
+
+
+    default:
+
+      return (
+        status ||
+        "Status não informado"
+      );
+
+  }
+}  
 
   // ===================================================
   // REPOSIÇÕES
@@ -1013,50 +1338,33 @@ function escapeHtml(
   // MENSALIDADE
   // ===================================================
 
-  if (page === "financial") {
+if (page === "financial") {
 
-    content.innerHTML = `
+  content.innerHTML = `
 
-      <div class="card">
+    <div class="card">
 
-        <h3>Minha mensalidade</h3>
+      <h3>Minha mensalidade</h3>
 
-        <p>
-          Aqui serão exibidos seus
-          pagamentos e mensalidades.
-        </p>
+      <p>
+        Consulte suas mensalidades e
+        histórico de pagamentos.
+      </p>
 
+      <div
+        id="studentFinancialContent"
+        style="margin-top:20px;"
+      >
+        Carregando...
       </div>
 
-    `;
+    </div>
 
-    return;
-  }
+  `;
 
+  loadStudentFinancialHistory();
 
-  // ===================================================
-  // REGRAS
-  // ===================================================
-
-  if (page === "rules") {
-
-    content.innerHTML = `
-
-      <div class="card">
-
-        <h3>Regras</h3>
-
-        <p>
-          Aqui serão exibidas as regras
-          definidas pelo professor.
-        </p>
-
-      </div>
-
-    `;
-
-    return;
-  }
+  return;
 }
 
 
