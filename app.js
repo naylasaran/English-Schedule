@@ -346,38 +346,13 @@ function setStudentPage(page) {
 
         </div>
 
-        <div
-          class="schedule-legend"
-          style="
-            margin-top:20px;
-            display:flex;
-            gap:15px;
-            flex-wrap:wrap;
-          "
-        >
-
-          <span>
-            \U0001f7e2 Livre
-          </span>
-
-          <span>
-            \U0001f534 Ocupado
-          </span>
-
-          <span>
-            \u26ab Indispon\xedvel
-          </span>
-
-          <span>
-            \U0001f535 Minha aula
-          </span>
-
-          <span>
-            \U0001f7e3 Minha reposi\xe7\xe3o
-          </span>
-
-        </div>
-
+        <div class="schedule-legend">
+  <span>&#x1F7E2; Livre</span>
+  <span>&#x1F534; Ocupado</span>
+  <span>&#x26AB; Indisponível</span>
+  <span>&#x1F535; Minha aula</span>
+  <span>&#x1F7E3; Minha reposição</span>
+</div>
       </div>
 
       <div id="makeupSelectionArea"></div>
