@@ -108,12 +108,17 @@ async function showStudentArea() {
   studentScreen.classList.remove("hidden");
   teacherScreen.classList.add("hidden");
 
-  document.getElementById(
-    "studentHeader"
-  ).innerHTML = `
-    <h2>Olá, ${currentProfile.name}</h2>
-    <p>Área do aluno.</p>
-  `;
+  const header =
+    document.getElementById("studentHeader");
+
+  if (header) {
+
+    header.innerHTML = `
+      <h2>Olá, ${currentProfile.name}</h2>
+      <p>Área do aluno.</p>
+    `;
+
+  }
 
   setStudentPage("agenda");
 }
@@ -128,12 +133,17 @@ async function showTeacherArea() {
   teacherScreen.classList.remove("hidden");
   studentScreen.classList.add("hidden");
 
-  document.getElementById(
-    "teacherHeader"
-  ).innerHTML = `
-    <h2>Olá, ${currentProfile.name}</h2>
-    <p>Área do professor.</p>
-  `;
+  const header =
+    document.getElementById("teacherHeader");
+
+  if (header) {
+
+    header.innerHTML = `
+      <h2>Olá, ${currentProfile.name}</h2>
+      <p>Área do professor.</p>
+    `;
+
+  }
 
   setTeacherPage("agenda");
 }
@@ -146,9 +156,11 @@ async function showTeacherArea() {
 function setStudentPage(page) {
 
   const content =
-    document.getElementById(
-      "studentContent"
-    );
+    document.getElementById("studentContent");
+
+  if (!content) {
+    return;
+  }
 
   document
     .querySelectorAll("[data-student-page]")
@@ -162,27 +174,28 @@ function setStudentPage(page) {
     });
 
 
+  // ===================================================
+  // AGENDA
+  // ===================================================
+
   if (page === "agenda") {
 
     content.innerHTML = `
 
-      <div class="card schedule-section">
+      <div class="card">
 
-        <h3>
-          Agenda semanal
-        </h3>
+        <h3>Agenda semanal</h3>
 
-        <p class="schedule-help">
-          Escolha a semana e clique em um
-          horário verde para fazer uma reposição.
+        <p>
+          Clique em um horário livre para
+          escolher uma reposição.
         </p>
 
         <div
           style="
             display:flex;
-            align-items:center;
             justify-content:center;
-            gap:12px;
+            gap:10px;
             flex-wrap:wrap;
             margin:20px 0;
           "
@@ -218,24 +231,18 @@ function setStudentPage(page) {
           id="selectedWeekLabel"
           style="
             text-align:center;
-            font-weight:700;
-            font-size:18px;
+            font-weight:bold;
             margin-bottom:20px;
           "
         ></div>
 
         <div class="schedule-wrapper">
 
-          <table
-            class="schedule-table"
-            id="studentScheduleTable"
-          >
+          <table class="schedule-table">
 
             <thead id="studentScheduleHead"></thead>
 
-            <tbody
-              id="studentScheduleBody"
-            >
+            <tbody id="studentScheduleBody">
 
               <tr>
                 <td colspan="8">
@@ -249,26 +256,25 @@ function setStudentPage(page) {
 
         </div>
 
-        <div class="schedule-legend">
+        <div
+          class="schedule-legend"
+          style="margin-top:20px;"
+        >
 
           <span>
-            <span class="legend-box available"></span>
-            Livre
+            🟢 Livre
           </span>
 
           <span>
-            <span class="legend-box occupied"></span>
-            Ocupado
+            🔴 Ocupado
           </span>
 
           <span>
-            <span class="legend-box unavailable"></span>
-            Indisponível
+            ⚫ Indisponível
           </span>
 
           <span>
-            <span class="legend-box own"></span>
-            Minha aula
+            🔵 Minha aula
           </span>
 
         </div>
@@ -337,62 +343,110 @@ function setStudentPage(page) {
   }
 
 
+  // ===================================================
+  // HISTÓRICO
+  // ===================================================
+
   if (page === "history") {
 
     content.innerHTML = `
+
       <div class="card">
+
         <h3>Histórico de aulas</h3>
+
         <p>
-          Aqui será exibido seu histórico de
-          aulas, matérias, conteúdos e presença.
+          Em breve serão exibidos aqui
+          seu histórico, matérias,
+          conteúdos e presença.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
+
+  // ===================================================
+  // REPOSIÇÕES
+  // ===================================================
 
   if (page === "makeups") {
 
     content.innerHTML = `
+
       <div class="card">
+
         <h3>Minhas reposições</h3>
+
         <p>
-          Aqui aparecerão suas reposições.
+          Consulte suas reposições,
+          duração, validade e situação.
         </p>
+
+        <div
+          id="makeupsContent"
+          style="margin-top:20px;"
+        >
+          Carregando...
+        </div>
+
       </div>
+
     `;
+
+    loadStudentMakeups();
 
     return;
   }
 
+
+  // ===================================================
+  // MENSALIDADE
+  // ===================================================
 
   if (page === "financial") {
 
     content.innerHTML = `
+
       <div class="card">
+
         <h3>Minha mensalidade</h3>
+
         <p>
-          Aqui aparecerá sua mensalidade por mês.
+          Aqui serão exibidos seus
+          pagamentos e mensalidades.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
 
+  // ===================================================
+  // REGRAS
+  // ===================================================
+
   if (page === "rules") {
 
     content.innerHTML = `
+
       <div class="card">
+
         <h3>Regras</h3>
+
         <p>
           Aqui serão exibidas as regras
           definidas pelo professor.
         </p>
+
       </div>
+
     `;
 
     return;
@@ -401,78 +455,103 @@ function setStudentPage(page) {
 
 
 // =====================================================
-// NAVEGAÇÃO DO PROFESSOR
+// REPOSIÇÕES DO ALUNO
 // =====================================================
 
-function setTeacherPage(page) {
+async function loadStudentMakeups() {
 
-  const content =
+  const container =
     document.getElementById(
-      "teacherContent"
+      "makeupsContent"
     );
 
-  document
-    .querySelectorAll("[data-teacher-page]")
-    .forEach(button => {
-
-      button.classList.toggle(
-        "active",
-        button.dataset.teacherPage === page
-      );
-
-    });
+  if (!container) {
+    return;
+  }
 
 
-  const titles = {
-
-    agenda: "Agenda",
-    students: "Alunos",
-    attendance: "Presença / Faltas",
-    subjects: "Matérias",
-    planning: "Planejamento",
-    financial: "Financeiro",
-    rules: "Regras"
-
-  };
+  container.innerHTML = `
+    <p>Carregando reposições...</p>
+  `;
 
 
-  const descriptions = {
-
-    agenda:
-      "Aqui ficará a agenda semanal completa do professor.",
-
-    students:
-      "Aqui serão exibidos os alunos vinculados ao professor.",
-
-    attendance:
-      "Aqui o professor poderá registrar presença e faltas.",
-
-    subjects:
-      "Aqui serão administradas matérias e conteúdos.",
-
-    planning:
-      "Aqui serão planejadas aulas futuras.",
-
-    financial:
-      "Aqui será feito o controle financeiro.",
-
-    rules:
-      "Aqui o professor poderá definir as regras dos alunos."
-
-  };
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_makeups"
+    );
 
 
-  content.innerHTML = `
+  if (error) {
 
-    <div class="card">
+    console.error(
+      "Erro ao carregar reposições:",
+      error
+    );
 
-      <h3>
-        ${titles[page] || "Página"}
-      </h3>
 
+    container.innerHTML = `
       <p>
-        ${descriptions[page] || ""}
+        Não foi possível carregar suas reposições.
       </p>
+    `;
+
+    return;
+  }
+
+
+  const makeups =
+    data || [];
+
+
+  if (makeups.length === 0) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+
+        <strong>
+          Você não possui reposições cadastradas.
+        </strong>
+
+        <p>
+          Quando uma falta gerar uma reposição
+          ou o professor atribuir uma,
+          ela aparecerá aqui.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:15px;
+      "
+    >
+
+      ${makeups
+        .map(
+          makeup =>
+            renderMakeupCard(makeup)
+        )
+        .join("")}
 
     </div>
 
@@ -481,47 +560,194 @@ function setTeacherPage(page) {
 
 
 // =====================================================
-// BOTÕES DE NAVEGAÇÃO
+// CARD DE REPOSIÇÃO
 // =====================================================
 
-document
-  .querySelectorAll("[data-student-page]")
-  .forEach(button => {
+function renderMakeupCard(
+  makeup
+) {
 
-    button.addEventListener(
-      "click",
-      () => {
+  const duration =
+    makeup.duration_minutes || 0;
 
-        setStudentPage(
-          button.dataset.studentPage
-        );
 
-      }
+  const source =
+    formatMakeupSource(
+      makeup.source
     );
 
-  });
 
-
-document
-  .querySelectorAll("[data-teacher-page]")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        setTeacherPage(
-          button.dataset.teacherPage
-        );
-
-      }
+  const status =
+    formatMakeupStatus(
+      makeup.status
     );
 
-  });
+
+  const expires =
+    makeup.expires_at
+      ? formatDateTime(
+          makeup.expires_at
+        )
+      : "Não informado";
+
+
+  const cancellationCount =
+    Number(
+      makeup.cancellation_count || 0
+    );
+
+
+  return `
+
+    <div
+      style="
+        border:1px solid #ddd;
+        border-radius:12px;
+        padding:18px;
+        background:white;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <h4
+          style="
+            margin:0;
+            font-size:20px;
+          "
+        >
+          ${duration} minutos
+        </h4>
+
+        <span
+          style="
+            font-weight:bold;
+          "
+        >
+          ${status.label}
+        </span>
+
+      </div>
+
+
+      <div style="margin-top:12px;">
+
+        <p>
+          <strong>Origem:</strong>
+          ${source}
+        </p>
+
+        <p>
+          <strong>Validade:</strong>
+          ${expires}
+        </p>
+
+        <p>
+          <strong>Cancelamentos do aluno:</strong>
+          ${cancellationCount}
+        </p>
+
+      </div>
+
+    </div>
+
+  `;
+}
 
 
 // =====================================================
-// CARREGAR AGENDA DO ALUNO
+// STATUS DA REPOSIÇÃO
+// =====================================================
+
+function formatMakeupStatus(
+  status
+) {
+
+  switch (
+    String(status || "").toLowerCase()
+  ) {
+
+    case "available":
+
+      return {
+        label: "🟢 Disponível"
+      };
+
+
+    case "reserved":
+
+      return {
+        label: "🔵 Reservada"
+      };
+
+
+    case "used":
+
+      return {
+        label: "⚫ Utilizada"
+      };
+
+
+    case "lost":
+
+      return {
+        label: "🔴 Perdida"
+      };
+
+
+    case "expired":
+
+      return {
+        label: "🟠 Expirada"
+      };
+
+
+    default:
+
+      return {
+        label:
+          status || "Situação desconhecida"
+      };
+
+  }
+}
+
+
+// =====================================================
+// ORIGEM DA REPOSIÇÃO
+// =====================================================
+
+function formatMakeupSource(
+  source
+) {
+
+  switch (
+    String(source || "").toLowerCase()
+  ) {
+
+    case "absence":
+      return "Falta";
+
+    case "manual":
+      return "Professor";
+
+    default:
+      return source || "Não informado";
+
+  }
+}
+
+
+// =====================================================
+// AGENDA DO ALUNO
 // =====================================================
 
 async function loadStudentWeeklySchedule() {
@@ -561,10 +787,6 @@ async function loadStudentWeeklySchedule() {
   `;
 
 
-  // IMPORTANTE:
-  // Agora enviamos ao Supabase a segunda-feira
-  // da semana que o aluno está visualizando.
-
   const weekStart =
     formatDateForDatabase(
       selectedWeekStart
@@ -578,7 +800,8 @@ async function loadStudentWeeklySchedule() {
     await supabaseClient.rpc(
       "get_student_weekly_schedule",
       {
-        p_week_start: weekStart
+        p_week_start:
+          weekStart
       }
     );
 
@@ -679,7 +902,9 @@ function renderStudentWeeklySchedule(
 
 
     if (!times.includes(time)) {
+
       times.push(time);
+
     }
 
   });
@@ -702,7 +927,9 @@ function renderStudentWeeklySchedule(
       time;
 
 
-    row.appendChild(timeCell);
+    row.appendChild(
+      timeCell
+    );
 
 
     for (
@@ -761,9 +988,6 @@ function renderStudentWeeklySchedule(
           cell.style.cursor =
             "pointer";
 
-          cell.title =
-            "Clique para escolher uma reposição";
-
 
           cell.addEventListener(
             "click",
@@ -781,12 +1005,16 @@ function renderStudentWeeklySchedule(
       }
 
 
-      row.appendChild(cell);
+      row.appendChild(
+        cell
+      );
 
     }
 
 
-    body.appendChild(row);
+    body.appendChild(
+      row
+    );
 
   });
 
@@ -806,7 +1034,7 @@ function renderStudentWeeklySchedule(
 
 
 // =====================================================
-// ENCONTRAR BLOCO
+// ENCONTRAR HORÁRIO
 // =====================================================
 
 function findScheduleSlot(
@@ -815,19 +1043,22 @@ function findScheduleSlot(
   time
 ) {
 
-  return schedule.find(slot => {
+  return schedule.find(
+    slot =>
 
-    return (
-      Number(slot.day_of_week) === day &&
-      normalizeTime(slot.start_time) === time
-    );
+      Number(
+        slot.day_of_week
+      ) === day &&
 
-  });
+      normalizeTime(
+        slot.start_time
+      ) === time
+  );
 }
 
 
 // =====================================================
-// NORMALIZAR STATUS
+// STATUS DA AGENDA
 // =====================================================
 
 function normalizeStudentScheduleStatus(
@@ -882,40 +1113,7 @@ function normalizeStudentScheduleStatus(
 
 
 // =====================================================
-// REPOSIÇÕES
-// =====================================================
-
-async function loadAvailableMakeups() {
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.rpc(
-      "get_my_makeups"
-    );
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao carregar reposições:",
-      error
-    );
-
-    return [];
-  }
-
-
-  return (data || []).filter(
-    makeup =>
-      makeup.status === "available"
-  );
-}
-
-
-// =====================================================
-// ABRIR SELEÇÃO DE REPOSIÇÃO
+// SELEÇÃO DE REPOSIÇÃO
 // =====================================================
 
 async function openMakeupSelection(
@@ -940,51 +1138,14 @@ async function openMakeupSelection(
   const reservationDate =
     getDateForDay(
       selectedWeekStart,
-      Number(slot.day_of_week)
+      Number(
+        slot.day_of_week
+      )
     );
 
 
-  area.innerHTML = `
-
-    <div class="card">
-
-      <h3>
-        Escolher reposição
-      </h3>
-
-      <p>
-
-        <strong>
-          ${formatDay(
-            slot.day_of_week
-          )}
-        </strong>
-
-        — ${formatDate(
-          reservationDate
-        )}
-
-        às
-
-        <strong>
-          ${normalizeTime(
-            slot.start_time
-          )}
-        </strong>
-
-      </p>
-
-      <p>
-        Carregando suas reposições...
-      </p>
-
-    </div>
-
-  `;
-
-
   const makeups =
-    await loadAvailableMakeups();
+    await getAvailableMakeups();
 
 
   const compatibleMakeups =
@@ -1007,14 +1168,14 @@ async function openMakeupSelection(
         </h3>
 
         <p>
-          Não há uma reposição que possa
-          ser utilizada neste horário.
+          Você não possui uma reposição
+          compatível com este horário.
         </p>
 
         <button
           type="button"
           class="secondary-button"
-          id="closeMakeupSelection"
+          id="closeMakeupButton"
         >
           Fechar
         </button>
@@ -1026,7 +1187,7 @@ async function openMakeupSelection(
 
     document
       .getElementById(
-        "closeMakeupSelection"
+        "closeMakeupButton"
       )
       .addEventListener(
         "click",
@@ -1048,11 +1209,9 @@ async function openMakeupSelection(
 
       <p>
 
-        <strong>
-          ${formatDay(
-            slot.day_of_week
-          )}
-        </strong>
+        ${formatDay(
+          slot.day_of_week
+        )}
 
         — ${formatDate(
           reservationDate
@@ -1060,17 +1219,15 @@ async function openMakeupSelection(
 
         às
 
-        <strong>
-          ${normalizeTime(
-            slot.start_time
-          )}
-        </strong>
+        ${normalizeTime(
+          slot.start_time
+        )}
 
       </p>
 
 
-      <label for="makeupSelect">
-        Escolha uma reposição:
+      <label>
+        Reposição:
       </label>
 
 
@@ -1078,35 +1235,34 @@ async function openMakeupSelection(
         id="makeupSelect"
         style="
           width:100%;
-          padding:11px;
+          padding:10px;
           margin-top:8px;
-          border:1px solid #cfd5dc;
           border-radius:7px;
-          font-size:15px;
         "
       >
 
         <option value="">
-          Selecione...
+          Selecione uma reposição
         </option>
 
         ${compatibleMakeups
-          .map(makeup => `
+          .map(
+            makeup => `
 
-            <option
-              value="${makeup.makeup_id}"
-            >
+              <option
+                value="${makeup.makeup_id}"
+              >
 
-              ${makeup.duration_minutes}
-              minutos
-              —
-              ${formatMakeupSource(
-                makeup.source
-              )}
+                ${makeup.duration_minutes}
+                minutos —
+                ${formatMakeupSource(
+                  makeup.source
+                )}
 
-            </option>
+              </option>
 
-          `)
+            `
+          )
           .join("")}
 
       </select>
@@ -1127,7 +1283,6 @@ async function openMakeupSelection(
         >
           Continuar
         </button>
-
 
         <button
           type="button"
@@ -1166,6 +1321,44 @@ async function openMakeupSelection(
 
 
 // =====================================================
+// BUSCAR REPOSIÇÕES DISPONÍVEIS
+// =====================================================
+
+async function getAvailableMakeups() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_makeups"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar reposições:",
+      error
+    );
+
+    return [];
+  }
+
+
+  return (
+    data || []
+  ).filter(
+    makeup =>
+      String(
+        makeup.status
+      ).toLowerCase() ===
+      "available"
+  );
+}
+
+
+// =====================================================
 // REPOSIÇÕES COMPATÍVEIS
 // =====================================================
 
@@ -1174,7 +1367,7 @@ function getCompatibleMakeups(
   makeups
 ) {
 
-  const compatible = [];
+  const result = [];
 
 
   for (
@@ -1187,9 +1380,12 @@ function getCompatibleMakeups(
       );
 
 
-    if (duration === 30) {
+    // 30 minutos
+    if (
+      duration === 30
+    ) {
 
-      compatible.push(
+      result.push(
         makeup
       );
 
@@ -1197,7 +1393,10 @@ function getCompatibleMakeups(
     }
 
 
-    if (duration === 60) {
+    // 60 minutos
+    if (
+      duration === 60
+    ) {
 
       const nextSlot =
         findNextFreeSlot(
@@ -1207,7 +1406,7 @@ function getCompatibleMakeups(
 
       if (nextSlot) {
 
-        compatible.push(
+        result.push(
           makeup
         );
 
@@ -1218,12 +1417,12 @@ function getCompatibleMakeups(
   }
 
 
-  return compatible;
+  return result;
 }
 
 
 // =====================================================
-// VERIFICAR SEGUNDO BLOCO
+// VERIFICAR BLOCO SEGUINTE
 // =====================================================
 
 function findNextFreeSlot(
@@ -1245,7 +1444,9 @@ function findNextFreeSlot(
   const nextSlot =
     findScheduleSlot(
       currentStudentSchedule,
-      Number(slot.day_of_week),
+      Number(
+        slot.day_of_week
+      ),
       nextTime
     );
 
@@ -1306,12 +1507,6 @@ function prepareMakeupReservation() {
   }
 
 
-  const selectedMakeup =
-    select.options[
-      select.selectedIndex
-    ].textContent.trim();
-
-
   const reservationDate =
     getDateForDay(
       selectedWeekStart,
@@ -1319,6 +1514,12 @@ function prepareMakeupReservation() {
         selectedScheduleSlot.day_of_week
       )
     );
+
+
+  const makeup =
+    select.options[
+      select.selectedIndex
+    ].textContent.trim();
 
 
   const area =
@@ -1343,13 +1544,6 @@ function prepareMakeupReservation() {
       </p>
 
       <p>
-        <strong>Dia:</strong>
-        ${formatDay(
-          selectedScheduleSlot.day_of_week
-        )}
-      </p>
-
-      <p>
         <strong>Horário:</strong>
         ${normalizeTime(
           selectedScheduleSlot.start_time
@@ -1358,45 +1552,28 @@ function prepareMakeupReservation() {
 
       <p>
         <strong>Reposição:</strong>
-        ${selectedMakeup}
+        ${makeup}
       </p>
 
-      <p>
-        Deseja confirmar esta reserva?
-      </p>
-
-      <div
-        style="
-          display:flex;
-          gap:10px;
-          margin-top:18px;
-        "
+      <button
+        type="button"
+        class="action-button"
+        id="confirmReservationButton"
       >
+        Confirmar reserva
+      </button>
 
-        <button
-          type="button"
-          class="action-button"
-          id="confirmRealReservationButton"
-        >
-          Confirmar reserva
-        </button>
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="backToMakeupSelection"
-        >
-          Voltar
-        </button>
-
-      </div>
+      <button
+        type="button"
+        class="secondary-button"
+        id="backMakeupButton"
+      >
+        Voltar
+      </button>
 
       <p
         id="reservationMessage"
-        style="
-          margin-top:16px;
-          font-weight:600;
-        "
+        style="margin-top:15px;"
       ></p>
 
     </div>
@@ -1406,7 +1583,7 @@ function prepareMakeupReservation() {
 
   document
     .getElementById(
-      "confirmRealReservationButton"
+      "confirmReservationButton"
     )
     .addEventListener(
       "click",
@@ -1424,7 +1601,7 @@ function prepareMakeupReservation() {
 
   document
     .getElementById(
-      "backToMakeupSelection"
+      "backMakeupButton"
     )
     .addEventListener(
       "click",
@@ -1451,9 +1628,8 @@ async function confirmRealReservation(
 
   const button =
     document.getElementById(
-      "confirmRealReservationButton"
+      "confirmReservationButton"
     );
-
 
   const message =
     document.getElementById(
@@ -1461,31 +1637,10 @@ async function confirmRealReservation(
     );
 
 
-  if (!button || !message) {
-    return;
-  }
-
-
   button.disabled = true;
 
   button.textContent =
     "Reservando...";
-
-
-  message.textContent =
-    "";
-
-
-  const dateString =
-    formatDateForDatabase(
-      reservationDate
-    );
-
-
-  const timeString =
-    normalizeTime(
-      startTime
-    );
 
 
   const {
@@ -1499,10 +1654,14 @@ async function confirmRealReservation(
           makeupId,
 
         p_reservation_date:
-          dateString,
+          formatDateForDatabase(
+            reservationDate
+          ),
 
         p_start_time:
-          timeString
+          normalizeTime(
+            startTime
+          )
       }
     );
 
@@ -1510,7 +1669,7 @@ async function confirmRealReservation(
   if (error) {
 
     console.error(
-      "Erro ao reservar:",
+      "Erro na reserva:",
       error
     );
 
@@ -1522,124 +1681,49 @@ async function confirmRealReservation(
 
 
     message.textContent =
-      translateReservationError(
-        error.message
-      );
+      "Não foi possível realizar a reserva.";
+
 
     return;
   }
 
 
-  console.log(
-    "Reserva criada:",
-    data
-  );
-
-
   message.innerHTML = `
-    Reserva realizada com sucesso!<br>
-    ${formatDate(reservationDate)}
+    <strong>
+      Reserva realizada com sucesso!
+    </strong>
+    <br>
+    ${formatDate(
+      reservationDate
+    )}
     às
-    ${timeString}.
+    ${normalizeTime(
+      startTime
+    )}
   `;
 
 
   message.style.color =
-    "#176b2c";
+    "green";
 
 
   button.remove();
 
 
-  const backButton =
-    document.getElementById(
-      "backToMakeupSelection"
-    );
-
-
-  if (backButton) {
-
-    backButton.textContent =
-      "Voltar para a agenda";
-
-    backButton.onclick = () => {
-
-      closeMakeupSelection();
-
-      loadStudentWeeklySchedule();
-
-    };
-
-  }
-
-
   await loadStudentWeeklySchedule();
-}
 
 
-// =====================================================
-// ERROS
-// =====================================================
-
-function translateReservationError(
-  message
-) {
-
-  const text =
-    String(message || "")
-      .toLowerCase();
-
-
-  if (
-    text.includes("não está disponível") ||
-    text.includes("nao esta disponivel")
-  ) {
-
-    return (
-      "Essa reposição não está mais disponível."
-    );
-
-  }
-
-
-  if (
-    text.includes("acabou de ser ocupado")
-  ) {
-
-    return (
-      "Esse horário acabou de ser ocupado. Escolha outro horário."
-    );
-
-  }
-
-
-  if (
-    text.includes("usuário não autorizado") ||
-    text.includes("usuario nao autorizado")
-  ) {
-
-    return (
-      "Você não tem autorização para fazer esta reserva."
-    );
-
-  }
-
-
-  if (
-    text.includes("sobreposição") ||
-    text.includes("sobreposicao")
-  ) {
-
-    return (
-      "Esse horário entra em conflito com outra aula."
-    );
-
-  }
-
-
-  return (
-    "Não foi possível realizar a reserva. Tente novamente."
+  await new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        800
+      )
   );
+
+
+  closeMakeupSelection();
+
 }
 
 
@@ -1666,7 +1750,114 @@ function closeMakeupSelection() {
 
 
 // =====================================================
-// SEMANA
+// NAVEGAÇÃO PROFESSOR
+// =====================================================
+
+function setTeacherPage(page) {
+
+  const content =
+    document.getElementById(
+      "teacherContent"
+    );
+
+
+  if (!content) {
+    return;
+  }
+
+
+  document
+    .querySelectorAll(
+      "[data-teacher-page]"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.teacherPage === page
+      );
+
+    });
+
+
+  const titles = {
+
+    agenda: "Agenda",
+    students: "Alunos",
+    attendance: "Presença / Faltas",
+    subjects: "Matérias",
+    planning: "Planejamento",
+    financial: "Financeiro",
+    rules: "Regras"
+
+  };
+
+
+  content.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        ${titles[page] || "Página"}
+      </h3>
+
+      <p>
+        Esta área será implementada
+        nas próximas etapas.
+      </p>
+
+    </div>
+
+  `;
+}
+
+
+// =====================================================
+// BOTÕES DE NAVEGAÇÃO
+// =====================================================
+
+document
+  .querySelectorAll(
+    "[data-student-page]"
+  )
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        setStudentPage(
+          button.dataset.studentPage
+        );
+
+      }
+    );
+
+  });
+
+
+document
+  .querySelectorAll(
+    "[data-teacher-page]"
+  )
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        setTeacherPage(
+          button.dataset.teacherPage
+        );
+
+      }
+    );
+
+  });
+
+
+// =====================================================
+// SEMANAS
 // =====================================================
 
 function getMonday(date) {
@@ -1772,11 +1963,35 @@ function getWeekDays() {
 function formatDate(date) {
 
   return new Intl.DateTimeFormat(
+    "pt-BR"
+  ).format(date);
+}
+
+
+function formatDateTime(
+  value
+) {
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return String(value);
+
+  }
+
+
+  return new Intl.DateTimeFormat(
     "pt-BR",
     {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
+      dateStyle: "short",
+      timeStyle: "short"
     }
   ).format(date);
 }
@@ -1835,14 +2050,19 @@ function formatDateForDatabase(
 // HORÁRIOS
 // =====================================================
 
-function normalizeTime(time) {
+function normalizeTime(
+  time
+) {
 
-  return String(time)
-    .substring(0, 5);
+  return String(
+    time
+  ).substring(0, 5);
 }
 
 
-function timeToMinutes(time) {
+function timeToMinutes(
+  time
+) {
 
   const parts =
     normalizeTime(time)
@@ -1856,7 +2076,9 @@ function timeToMinutes(time) {
 }
 
 
-function minutesToTime(minutes) {
+function minutesToTime(
+  minutes
+) {
 
   const hours =
     Math.floor(
@@ -1869,11 +2091,9 @@ function minutesToTime(minutes) {
 
 
   return (
-    String(hours)
-      .padStart(2, "0") +
+    String(hours).padStart(2, "0") +
     ":" +
-    String(mins)
-      .padStart(2, "0")
+    String(mins).padStart(2, "0")
   );
 }
 
@@ -1882,7 +2102,9 @@ function minutesToTime(minutes) {
 // TEXTOS
 // =====================================================
 
-function formatDay(day) {
+function formatDay(
+  day
+) {
 
   const days = {
 
@@ -1903,22 +2125,6 @@ function formatDay(day) {
 }
 
 
-function formatMakeupSource(
-  source
-) {
-
-  if (source === "absence") {
-    return "falta";
-  }
-
-  if (source === "manual") {
-    return "professor";
-  }
-
-  return source || "reposição";
-}
-
-
 // =====================================================
 // LOGIN
 // =====================================================
@@ -1928,6 +2134,7 @@ loginForm.addEventListener(
   async event => {
 
     event.preventDefault();
+
 
     loginMessage.textContent =
       "Entrando...";
