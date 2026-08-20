@@ -5484,10 +5484,70 @@ function renderTeacherWeeklySchedule(
           // HORÁRIOS QUE O PROFESSOR PODE EDITAR
           // ===========================================
 
+          const todayForEdit =
+            new Date();
+
+
+          todayForEdit.setHours(
+            0,
+            0,
+            0,
+            0
+          );
+
+
+          const cellDateForEdit =
+            new Date(
+              day.date
+            );
+
+
+          cellDateForEdit.setHours(
+            0,
+            0,
+            0,
+            0
+          );
+
+
+          const isPastDate =
+            cellDateForEdit <
+            todayForEdit;
+
+
+          const isEditableStatus =
+            (
+              status.type === "free" ||
+              status.type === "lesson" ||
+              status.type === "unavailable"
+            );
+
+
+          // ===========================================
+          // PASSADO = SOMENTE CONSULTA
+          // ===========================================
+
           if (
-            status.type === "free" ||
-            status.type === "lesson" ||
-            status.type === "unavailable"
+            isEditableStatus &&
+            isPastDate
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Semanas anteriores são somente para consulta.";
+
+          }
+
+
+          // ===========================================
+          // HOJE / FUTURO = PODE EDITAR A AGENDA FIXA
+          // ===========================================
+
+          else if (
+            isEditableStatus
           ) {
 
             cell.style.cursor =
@@ -5514,8 +5574,7 @@ function renderTeacherWeeklySchedule(
 
 
           else if (
-            status.type ===
-            "makeup"
+            status.type === "makeup"
           ) {
 
             cell.style.cursor =
@@ -5529,8 +5588,7 @@ function renderTeacherWeeklySchedule(
 
 
           else if (
-            status.type ===
-            "cancelled"
+            status.type === "cancelled"
           ) {
 
             cell.style.cursor =
@@ -5541,44 +5599,6 @@ function renderTeacherWeeklySchedule(
               "Esta ocorrência foi cancelada.";
 
           }
-
-
-          row.appendChild(
-            cell
-          );
-
-        }
-      );
-
-
-      body.appendChild(
-        row
-      );
-
-    }
-  );
-
-
-  if (
-    sortedTimes.length === 0
-  ) {
-
-    body.innerHTML = `
-
-      <tr>
-
-        <td colspan="8">
-          Nenhum horário cadastrado.
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-}
-
 
 // =====================================================
 // STATUS DA AGENDA DO PROFESSOR
@@ -5669,6 +5689,49 @@ async function openTeacherScheduleEditor(
       "Área de edição da agenda do professor não encontrada."
     );
 
+   // ===================================================
+  // NÃO PERMITIR ALTERAÇÃO RETROATIVA
+  // ===================================================
+
+  const today =
+    new Date();
+
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  const selectedDate =
+    new Date(
+      date
+    );
+
+
+  selectedDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  if (
+    selectedDate <
+    today
+  ) {
+
+    alert(
+      "Semanas anteriores são somente para consulta. " +
+      "Alterações na agenda fixa não podem modificar o passado."
+    );
+
+    return;
+  }  
+    
     return;
   }
 
@@ -5749,8 +5812,19 @@ async function openTeacherScheduleEditor(
           background:#fff3cd;
         "
       >
-        Esta alteração modifica a agenda fixa
-        e será aplicada às próximas semanas.
+        <strong>
+          Alteração da agenda fixa
+        </strong>
+
+        <br><br>
+
+        A mudança entra em vigor hoje e vale
+        para as próximas ocorrências deste horário.
+
+        <br>
+
+        Semanas e dias anteriores permanecerão
+        registrados como estavam.
       </p>
 
 
