@@ -2314,8 +2314,11 @@ function formatMakeupSource(source) {
     case "manual":
       return "Professor";
 
+    case "student_cancellation":
+      return "Cancelamento de aula";
+
     default:
-      return source || "N\xe3o informado";
+      return source || "Não informado";
 
   }
 }
@@ -2669,21 +2672,34 @@ function renderStudentWeeklySchedule(
         // Minha aula
         // ------------------------------------------------
 
-        else if (
-          status.className ===
-          "own"
-        ) {
+else if (
+  status.className ===
+  "own"
+) {
 
-          cell.style.fontWeight =
-            "bold";
+  cell.style.fontWeight =
+    "bold";
 
-          cell.style.cursor =
-            "default";
+  cell.style.cursor =
+    "pointer";
 
-          cell.title =
-            "Esta \u00E9 a sua aula.";
+  cell.title =
+    "Clique para cancelar esta aula.";
 
-        }
+
+  cell.addEventListener(
+    "click",
+    () => {
+
+      openLessonCancellation(
+        slot,
+        slotDate
+      );
+
+    }
+  );
+
+}
 
         // ------------------------------------------------
         // Hor\u00E1rio livre
@@ -2923,6 +2939,261 @@ function normalizeStudentScheduleStatus(
   }
 }
 
+// =====================================================
+// CANCELAR AULA NORMAL PELO ALUNO
+// =====================================================
+
+async function openLessonCancellation(
+  slot,
+  slotDate
+) {
+
+  const lessonDateDb =
+    formatDateForDatabase(
+      slotDate
+    );
+
+
+  // ===================================================
+  // IDENTIFICAR A AULA REAL
+  // ===================================================
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_lesson_for_slot",
+      {
+        p_lesson_date:
+          lessonDateDb,
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          )
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao identificar aula:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Não foi possível identificar esta aula."
+    );
+
+    return;
+  }
+
+
+  const lesson =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if (!lesson) {
+
+    alert(
+      "Não foi possível identificar esta aula."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // DATA/HORA REAL DA AULA
+  // ===================================================
+
+  const lessonDateTime =
+    new Date(
+      lesson.lesson_date +
+      "T" +
+      normalizeTime(
+        lesson.start_time
+      ) +
+      ":00"
+    );
+
+
+  const now =
+    new Date();
+
+
+  // ===================================================
+  // AULA JÁ COMEÇOU
+  // ===================================================
+
+  if (
+    lessonDateTime <= now
+  ) {
+
+    alert(
+      "Essa aula já começou ou já ocorreu e não pode mais ser cancelada."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // ANTECEDÊNCIA
+  // ===================================================
+
+  const minimumHours =
+    Number(
+      lesson.minimum_cancellation_hours ||
+      2
+    );
+
+
+  const hoursUntilLesson =
+    (
+      lessonDateTime.getTime()
+      - now.getTime()
+    )
+    /
+    (
+      1000 *
+      60 *
+      60
+    );
+
+
+  const lateCancellation =
+    hoursUntilLesson <
+    minimumHours;
+
+
+  // ===================================================
+  // MENSAGEM DE CONFIRMAÇÃO
+  // ===================================================
+
+  let confirmationMessage;
+
+
+  if (
+    lateCancellation
+  ) {
+
+    confirmationMessage =
+      "Tem certeza que deseja cancelar esta aula?\n\n" +
+      "Faltam menos de " +
+      minimumHours +
+      " horas para o início.\n\n" +
+      "Essa aula não poderá ser reposta depois.";
+
+  }
+
+  else {
+
+    confirmationMessage =
+      "Tem certeza que deseja cancelar esta aula?\n\n" +
+      "Uma reposição será liberada para você.";
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      confirmationMessage
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  // ===================================================
+  // CANCELAR NO BANCO
+  // ===================================================
+
+  const {
+    data: cancellationResult,
+    error: cancellationError
+  } =
+    await supabaseClient.rpc(
+      "cancel_lesson_by_student",
+      {
+        p_lesson_date:
+          lessonDateDb,
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          )
+      }
+    );
+
+
+  if (cancellationError) {
+
+    console.error(
+      "Erro ao cancelar aula:",
+      cancellationError
+    );
+
+    alert(
+      cancellationError.message ||
+      "Não foi possível cancelar esta aula."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // RESULTADO
+  // ===================================================
+
+  if (
+    cancellationResult ===
+    "cancelled_with_makeup"
+  ) {
+
+    alert(
+      "Aula cancelada com sucesso.\n\n" +
+      "Uma reposição foi liberada para você."
+    );
+
+  }
+
+  else if (
+    cancellationResult ===
+    "cancelled_without_makeup"
+  ) {
+
+    alert(
+      "Aula cancelada.\n\n" +
+      "Como o cancelamento foi feito sem a antecedência mínima, esta aula não poderá ser reposta."
+    );
+
+  }
+
+  else {
+
+    alert(
+      "Aula cancelada com sucesso."
+    );
+
+  }
+
+
+  // ===================================================
+  // ATUALIZAR AGENDA
+  // ===================================================
+
+  await loadStudentWeeklySchedule();
+
+}
 
 // =====================================================
 // SELECIONAR REPOSI\xc7\xc3O
