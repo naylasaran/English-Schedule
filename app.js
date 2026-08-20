@@ -4636,6 +4636,59 @@ function setTeacherPage(page) {
     return;
   }
 
+  // ===================================================
+  // AGENDA DO PROFESSOR
+  // ===================================================
+
+  if (page === "agenda") {
+
+    content.innerHTML = `
+
+      <!-- ==========================================
+           CANCELAMENTOS / ADIAMENTOS
+           ========================================== -->
+
+      <div
+        id="teacherCancellationNotices"
+        style="margin-bottom:20px;"
+      >
+        Carregando cancelamentos...
+      </div>
+
+
+      <!-- ==========================================
+           AGENDA
+           ========================================== -->
+
+      <div class="card">
+
+        <h3>
+          Agenda
+        </h3>
+
+        <p>
+          A agenda completa do professor
+          será exibida aqui.
+        </p>
+
+      </div>
+
+    `;
+
+
+    loadTeacherCancellationMessages()
+      .catch(error => {
+
+        console.error(
+          "Erro ao carregar cancelamentos:",
+          error
+        );
+
+      });
+
+
+    return;
+  }
 
   // ===================================================
   // DEMAIS P\xc1GINAS DO PROFESSOR
@@ -4681,6 +4734,389 @@ function setTeacherPage(page) {
     </div>
 
   `;
+}
+
+// =====================================================
+// CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
+// =====================================================
+
+async function loadTeacherCancellationMessages() {
+
+  const container =
+    document.getElementById(
+      "teacherCancellationNotices"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_student_cancellations"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar cancelamentos dos alunos:",
+      error
+    );
+
+
+    container.innerHTML = `
+
+      <div class="card">
+
+        <strong>
+          Não foi possível carregar
+          os cancelamentos dos alunos.
+        </strong>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const cancellations =
+    data || [];
+
+
+  // ===================================================
+  // NENHUM CANCELAMENTO
+  // ===================================================
+
+  if (
+    cancellations.length === 0
+  ) {
+
+    container.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Cancelamentos / adiamentos
+        </h3>
+
+        <p>
+          Nenhum cancelamento recente
+          feito por alunos.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  // ===================================================
+  // MOSTRAR CANCELAMENTOS
+  // ===================================================
+
+  container.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #f0ad4e;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          gap:10px;
+          margin-bottom:18px;
+        "
+      >
+
+        <span
+          style="
+            font-size:24px;
+          "
+        >
+          📩
+        </span>
+
+
+        <h3
+          style="
+            margin:0;
+          "
+        >
+          Cancelamentos / adiamentos
+        </h3>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:15px;
+        "
+      >
+
+        ${cancellations
+          .map(
+            cancellation =>
+              renderTeacherCancellationCard(
+                cancellation
+              )
+          )
+          .join("")}
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// CARD DE CANCELAMENTO PARA O PROFESSOR
+// =====================================================
+
+function renderTeacherCancellationCard(
+  cancellation
+) {
+
+  const lessonDate =
+    cancellation.lesson_date
+
+      ? formatDate(
+          new Date(
+            cancellation.lesson_date +
+            "T12:00:00"
+          )
+        )
+
+      : "Data não informada";
+
+
+  const start =
+    cancellation.start_time
+      ? normalizeTime(
+          cancellation.start_time
+        )
+      : "";
+
+
+  const end =
+    cancellation.end_time
+      ? normalizeTime(
+          cancellation.end_time
+        )
+      : "";
+
+
+  const studentMessage =
+    String(
+      cancellation.cancellation_message ||
+      ""
+    ).trim();
+
+
+  const generatedMakeup =
+    cancellation.generated_makeup === true;
+
+
+  return `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#fffdf5;
+      "
+    >
+
+      <!-- ========================================
+           ALUNO
+           ======================================== -->
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:15px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong
+          style="
+            font-size:18px;
+          "
+        >
+          ${escapeHtml(
+            cancellation.student_name ||
+            "Aluno"
+          )}
+        </strong>
+
+
+        <span>
+          ${lessonDate}
+        </span>
+
+      </div>
+
+
+      <!-- ========================================
+           AULA
+           ======================================== -->
+
+      <p
+        style="
+          margin-top:12px;
+        "
+      >
+
+        <strong>
+          Aula:
+        </strong>
+
+        ${lessonDate}
+
+        ${
+          start
+            ? `, ${start}`
+            : ""
+        }
+
+        ${
+          end
+            ? ` às ${end}`
+            : ""
+        }
+
+      </p>
+
+
+      <!-- ========================================
+           REPOSIÇÃO
+           ======================================== -->
+
+      <p>
+
+        <strong>
+          Gerou reposição:
+        </strong>
+
+        ${
+          generatedMakeup
+            ? "✅ Sim"
+            : "❌ Não"
+        }
+
+      </p>
+
+
+      <!-- ========================================
+           MENSAGEM DO ALUNO
+           ======================================== -->
+
+      <div
+        style="
+          margin-top:15px;
+          padding:15px;
+          border-radius:8px;
+          background:#eef5ff;
+        "
+      >
+
+        <strong>
+          Mensagem do aluno
+        </strong>
+
+
+        ${
+          studentMessage
+
+            ? `
+
+              <p
+                style="
+                  margin-bottom:0;
+                  white-space:pre-wrap;
+                "
+              >
+                ${escapeHtml(
+                  studentMessage
+                )}
+              </p>
+
+            `
+
+            : `
+
+              <p
+                style="
+                  margin-bottom:0;
+                  color:#666;
+                "
+              >
+                O aluno não deixou uma mensagem.
+              </p>
+
+            `
+        }
+
+      </div>
+
+
+      <!-- ========================================
+           DETALHES
+           ======================================== -->
+
+      ${
+        cancellation.cancellation_notes
+
+          ? `
+
+            <p
+              style="
+                margin-top:15px;
+                margin-bottom:0;
+                font-size:13px;
+                color:#666;
+              "
+            >
+
+              ${escapeHtml(
+                cancellation.cancellation_notes
+              )}
+
+            </p>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
 }
 
 
