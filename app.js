@@ -268,14 +268,25 @@ function setStudentPage(page) {
   // AGENDA
   // ===================================================
 
-  if (page === "agenda") {
+content.innerHTML = `
 
-    content.innerHTML = `
+      <!-- ==========================================
+           AVISOS
+           ========================================== -->
+
+      <div
+        id="studentNoticesArea"
+        style="margin-bottom:20px;"
+      ></div>
+
+
+      <!-- ==========================================
+           AGENDA
+           ========================================== -->
 
       <div class="card">
 
         <h3>Agenda semanal</h3>
-
         <p>
           Clique em um hor\xe1rio livre para
           escolher uma reposi\xe7\xe3o.
@@ -450,15 +461,27 @@ function setStudentPage(page) {
 
     // A agenda nÃ£o pode impedir o login caso haja
     // algum erro isolado ao carregar os horÃ¡rios.
-    loadStudentWeeklySchedule()
-      .catch(error => {
+    
+loadStudentNotices()
+  .catch(error => {
 
-        console.error(
-          "Erro ao carregar agenda:",
-          error
-        );
+    console.error(
+      "Erro ao carregar avisos:",
+      error
+    );
 
-      });
+  });
+
+
+loadStudentWeeklySchedule()
+  .catch(error => {
+
+    console.error(
+      "Erro ao carregar agenda:",
+      error
+    );
+
+  });
 
 
     return;
@@ -630,6 +653,213 @@ function setStudentPage(page) {
 
 }
 
+// =====================================================
+// AVISOS DO ALUNO
+// =====================================================
+
+async function loadStudentNotices() {
+
+  const container =
+    document.getElementById(
+      "studentNoticesArea"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_notices"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar avisos:",
+      error
+    );
+
+    container.innerHTML = "";
+
+    return;
+  }
+
+
+  const notices =
+    data || [];
+
+
+  // ===================================================
+  // SEM AVISOS
+  // ===================================================
+
+  if (
+    notices.length === 0
+  ) {
+
+    container.innerHTML = "";
+
+    return;
+  }
+
+
+  // ===================================================
+  // MOSTRAR AVISOS
+  // ===================================================
+
+  container.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #f0ad4e;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          align-items:center;
+          gap:10px;
+          margin-bottom:15px;
+        "
+      >
+
+        <span
+          style="
+            font-size:24px;
+          "
+        >
+          📢
+        </span>
+
+        <h3
+          style="
+            margin:0;
+          "
+        >
+          Avisos
+        </h3>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:12px;
+        "
+      >
+
+        ${notices
+          .map(
+            notice =>
+              renderStudentNotice(
+                notice
+              )
+          )
+          .join("")}
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+// =====================================================
+// CARD DE AVISO
+// =====================================================
+
+function renderStudentNotice(
+  notice
+) {
+
+  let validityInfo = "";
+
+
+  if (
+    notice.expires_at
+  ) {
+
+    validityInfo = `
+
+      <div
+        style="
+          margin-top:10px;
+          font-size:13px;
+          color:#666;
+        "
+      >
+
+        Aviso válido até:
+
+        ${formatDateTime(
+          notice.expires_at
+        )}
+
+      </div>
+
+    `;
+
+  }
+
+
+  return `
+
+    <div
+      style="
+        padding:15px;
+        border:1px solid #e2e2e2;
+        border-radius:10px;
+        background:#fffdf5;
+      "
+    >
+
+      <strong
+        style="
+          display:block;
+          margin-bottom:8px;
+          font-size:17px;
+        "
+      >
+
+        ${escapeHtml(
+          notice.title
+        )}
+
+      </strong>
+
+
+      <div
+        style="
+          white-space:pre-wrap;
+          line-height:1.5;
+        "
+      >
+
+        ${escapeHtml(
+          notice.message
+        )}
+
+      </div>
+
+
+      ${validityInfo}
+
+    </div>
+
+  `;
+
+}
 
 // =====================================================
 // REGRAS DO ALUNO
