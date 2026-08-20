@@ -5498,6 +5498,513 @@ function renderTeacherWeeklySchedule(days) {
 
       }
 
+   // =====================================================
+// REAGENDAR UMA ÚNICA AULA
+// =====================================================
+
+function openTeacherLessonMove(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const today =
+    new Date();
+
+
+  const todayDatabase =
+    formatDateForDatabase(
+      today
+    );
+
+
+  const currentDateDatabase =
+    formatDateForDatabase(
+      date
+    );
+
+
+  const studentName =
+    String(
+      slot.student_name ||
+      "Aluno"
+    );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #6f42c1;
+      "
+    >
+
+      <h3>
+        Reagendar somente esta aula
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+
+        ${escapeHtml(
+          studentName
+        )}
+      </p>
+
+
+      <div
+        style="
+          padding:15px;
+          background:#fff3cd;
+          border-radius:8px;
+          margin-top:15px;
+        "
+      >
+
+        <strong>
+          Aula atual
+        </strong>
+
+        <br><br>
+
+        ${formatDate(date)}
+
+        às
+
+        ${normalizeTime(
+          slot.start_time
+        )}
+
+      </div>
+
+
+      <p
+        style="
+          margin-top:15px;
+          color:#555;
+        "
+      >
+        Esta alteração será feita somente
+        para esta ocorrência.
+
+        A agenda fixa continuará igual.
+      </p>
+
+
+      <!-- ==========================================
+           NOVA DATA
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:20px;
+        "
+      >
+
+        <label
+          for="teacherMoveDate"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Nova data
+        </label>
+
+
+        <input
+          type="date"
+          id="teacherMoveDate"
+          min="${todayDatabase}"
+          value="${currentDateDatabase}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <!-- ==========================================
+           NOVO HORÁRIO
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherMoveTime"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Novo horário
+        </label>
+
+
+        <input
+          type="time"
+          id="teacherMoveTime"
+          step="1800"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          Use horários terminados em :00 ou :30.
+          O sistema verificará automaticamente se
+          todos os blocos necessários estão livres.
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmTeacherLessonMoveButton"
+        >
+          Confirmar reagendamento
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="backTeacherLessonMoveButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherLessonMoveMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "confirmTeacherLessonMoveButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        confirmTeacherLessonMove(
+          date,
+          slot
+        );
+
+      }
+    );
+
+
+  document
+    .getElementById(
+      "backTeacherLessonMoveButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        openTeacherScheduleEditor(
+          date,
+          slot
+        );
+
+      }
+    );
+
+}
+
+
+// =====================================================
+// CONFIRMAR REAGENDAMENTO
+// =====================================================
+
+async function confirmTeacherLessonMove(
+  originalDate,
+  slot
+) {
+
+  const dateInput =
+    document.getElementById(
+      "teacherMoveDate"
+    );
+
+
+  const timeInput =
+    document.getElementById(
+      "teacherMoveTime"
+    );
+
+
+  const button =
+    document.getElementById(
+      "confirmTeacherLessonMoveButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherLessonMoveMessage"
+    );
+
+
+  if (
+    !dateInput ||
+    !timeInput
+  ) {
+    return;
+  }
+
+
+  const newDate =
+    dateInput.value;
+
+
+  const newTime =
+    timeInput.value;
+
+
+  if (!newDate) {
+
+    message.textContent =
+      "Escolha a nova data.";
+
+    message.style.color =
+      "red";
+
+    return;
+  }
+
+
+  if (!newTime) {
+
+    message.textContent =
+      "Escolha o novo horário.";
+
+    message.style.color =
+      "red";
+
+    return;
+  }
+
+
+  const minute =
+    Number(
+      newTime.split(":")[1]
+    );
+
+
+  if (
+    minute !== 0 &&
+    minute !== 30
+  ) {
+
+    message.textContent =
+      "O horário precisa terminar em :00 ou :30.";
+
+    message.style.color =
+      "red";
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+
+      "Confirmar reagendamento?\n\n" +
+
+      formatDate(
+        originalDate
+      ) +
+
+      " às " +
+
+      normalizeTime(
+        slot.start_time
+      ) +
+
+      "\n\n→\n\n" +
+
+      formatDate(
+        new Date(
+          newDate +
+          "T12:00:00"
+        )
+      ) +
+
+      " às " +
+
+      newTime
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Reagendando...";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "move_lesson_occurrence",
+      {
+
+        p_from_date:
+          formatDateForDatabase(
+            originalDate
+          ),
+
+        p_from_start:
+          normalizeTime(
+            slot.start_time
+          ),
+
+        p_to_date:
+          newDate,
+
+        p_to_start:
+          newTime
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao reagendar aula:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível reagendar a aula.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Confirmar reagendamento";
+
+    }
+
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    "Aula reagendada com sucesso.\n\n" +
+    "A agenda fixa não foi alterada e " +
+    "o aluno recebeu um aviso."
+  );
+
+}     
 
       else if (
         status.type === "makeup"
@@ -6072,6 +6579,67 @@ async function openTeacherScheduleEditor(
       "closeTeacherSlotEditorButton"
     );
 
+
+  // ===================================================
+  // BOTÃO REAGENDAR SOMENTE ESTA AULA
+  // ===================================================
+
+  if (
+    currentStatus === "lesson" &&
+    closeButton &&
+    closeButton.parentElement
+  ) {
+
+    const moveButton =
+      document.createElement(
+        "button"
+      );
+
+
+    moveButton.type =
+      "button";
+
+
+    moveButton.className =
+      "secondary-button";
+
+
+    moveButton.textContent =
+      "Reagendar somente esta aula";
+
+
+    moveButton.style.borderColor =
+      "#6f42c1";
+
+
+    moveButton.style.color =
+      "#6f42c1";
+
+
+    closeButton.parentElement.insertBefore(
+      moveButton,
+      closeButton
+    );
+
+
+    moveButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherLessonMove(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
+  // ===================================================
+  // FECHAR
+  // ===================================================
 
   if (
     closeButton
