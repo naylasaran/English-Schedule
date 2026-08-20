@@ -1916,6 +1916,69 @@ function renderMakeupCard(makeup) {
 
   let reservationInfo = "";
 
+  // ===================================================
+  // AULA DE ORIGEM DA REPOSIÇÃO
+  // ===================================================
+
+  let sourceLessonInfo = "";
+
+
+  if (
+    makeup.source_lesson_date
+  ) {
+
+    const sourceDate =
+      formatDate(
+        new Date(
+          makeup.source_lesson_date +
+          "T12:00:00"
+        )
+      );
+
+
+    const sourceStart =
+      makeup.source_lesson_start_time
+        ? normalizeTime(
+            makeup.source_lesson_start_time
+          )
+        : "";
+
+
+    const sourceEnd =
+      makeup.source_lesson_end_time
+        ? normalizeTime(
+            makeup.source_lesson_end_time
+          )
+        : "";
+
+
+    sourceLessonInfo = `
+
+      <p>
+        <strong>
+          Aula de origem:
+        </strong>
+
+        ${sourceDate}
+
+        ${
+          sourceStart
+            ? `, ${sourceStart}`
+            : ""
+        }
+
+        ${
+          sourceEnd
+            ? ` às ${sourceEnd}`
+            : ""
+        }
+
+      </p>
+
+    `;
+
+  }
+  
   if (isReserved && makeup.reservation_date) {
 
     reservationInfo = `
@@ -2076,6 +2139,10 @@ if (
           <strong>Origem:</strong>
           ${source}
         </p>
+
+
+        ${sourceLessonInfo}
+
 
         <p>
           <strong>Validade:</strong>
