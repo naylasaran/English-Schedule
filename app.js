@@ -659,7 +659,7 @@ async function loadStudentNotices() {
     error
   } =
     await supabaseClient.rpc(
-      "get_my_notices"
+      "get_my_unread_notices"
     );
 
 
@@ -738,6 +738,26 @@ async function loadStudentNotices() {
 
   `;
 
+
+  document
+    .querySelectorAll(
+      ".mark-student-notice-read-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          markStudentNoticeAsRead(
+            button.dataset.noticeId
+          );
+
+        }
+      );
+
+    });
+
 }
 
 
@@ -777,6 +797,7 @@ function renderStudentNotice(
   return `
 
     <div
+      id="student-notice-${notice.notice_id}"
       style="
         padding:15px;
         border:1px solid #e2e2e2;
@@ -810,9 +831,95 @@ function renderStudentNotice(
 
       ${validityInfo}
 
+      <button
+        type="button"
+        class="secondary-button mark-student-notice-read-button"
+        data-notice-id="${notice.notice_id}"
+        style="
+          margin-top:12px;
+        "
+      >
+        \u2713 Marcar como lido
+      </button>
+
     </div>
 
   `;
+
+}
+
+
+// =====================================================
+// MARCAR AVISO DO ALUNO COMO LIDO
+// =====================================================
+
+async function markStudentNoticeAsRead(
+  noticeId
+) {
+
+  if (!noticeId) {
+    return;
+  }
+
+
+  const button =
+    document.querySelector(
+      `.mark-student-notice-read-button[data-notice-id="${noticeId}"]`
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Marcando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "mark_student_notice_read",
+      {
+        p_notice_id:
+          noticeId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao marcar aviso como lido:",
+      error
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "\u2713 Marcar como lido";
+
+    }
+
+
+    alert(
+      error.message ||
+      "N\u00E3o foi poss\u00EDvel marcar o aviso como lido."
+    );
+
+    return;
+  }
+
+
+  await loadStudentNotices();
 
 }
 
