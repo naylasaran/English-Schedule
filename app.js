@@ -5119,29 +5119,19 @@ async function loadTeacherWeeklySchedule() {
 // RENDERIZAR AGENDA DO PROFESSOR
 // =====================================================
 
-function renderTeacherWeeklySchedule(
-  days
-) {
+function renderTeacherWeeklySchedule(days) {
 
   const head =
-    document.getElementById(
-      "teacherScheduleHead"
-    );
-
+    document.getElementById("teacherScheduleHead");
 
   const body =
-    document.getElementById(
-      "teacherScheduleBody"
-    );
-
+    document.getElementById("teacherScheduleBody");
 
   if (!head || !body) {
     return;
   }
 
-
   const dayNames = [
-
     "Segunda",
     "Terça",
     "Quarta",
@@ -5149,456 +5139,426 @@ function renderTeacherWeeklySchedule(
     "Sexta",
     "Sábado",
     "Domingo"
-
   ];
 
-
   head.innerHTML = `
-
     <tr>
+      <th>Horário</th>
 
-      <th>
-        Horário
-      </th>
-
-      ${days
-        .map(
-          (day, index) => `
-
-            <th>
-
-              ${dayNames[index]}
-
-              <br>
-
-              <small>
-                ${formatDate(
-                  day.date
-                )}
-              </small>
-
-            </th>
-
-          `
-        )
-        .join("")}
+      ${days.map(
+        (day, index) => `
+          <th>
+            ${dayNames[index]}
+            <br>
+            <small>
+              ${formatDate(day.date)}
+            </small>
+          </th>
+        `
+      ).join("")}
 
     </tr>
-
   `;
-
 
   const times =
     new Set();
 
-
   days.forEach(day => {
 
-    day.schedule.forEach(
-      slot => {
+    day.schedule.forEach(slot => {
 
-        times.add(
-          normalizeTime(
-            slot.start_time
-          )
-        );
+      times.add(
+        normalizeTime(
+          slot.start_time
+        )
+      );
 
-      }
-    );
+    });
 
   });
-
 
   const sortedTimes =
     Array
       .from(times)
       .sort();
 
-
   body.innerHTML = "";
 
+  sortedTimes.forEach(time => {
 
-  sortedTimes.forEach(
-    time => {
+    const row =
+      document.createElement("tr");
 
-      const row =
-        document.createElement(
-          "tr"
+    const timeCell =
+      document.createElement("td");
+
+    timeCell.textContent =
+      time;
+
+    row.appendChild(
+      timeCell
+    );
+
+    days.forEach(day => {
+
+      const cell =
+        document.createElement("td");
+
+      cell.classList.add(
+        "schedule-cell"
+      );
+
+      const slot =
+        day.schedule.find(
+          item =>
+            normalizeTime(
+              item.start_time
+            ) === time
+        );
+
+      if (!slot) {
+
+        cell.textContent =
+          "—";
+
+        cell.style.backgroundColor =
+          "#eeeeee";
+
+        cell.style.color =
+          "#777777";
+
+        row.appendChild(
+          cell
+        );
+
+        return;
+      }
+
+      const status =
+        normalizeTeacherScheduleStatus(
+          slot.status
+        );
+
+      const studentName =
+        String(
+          slot.student_name || ""
+        ).trim();
+
+
+      // ===========================================
+      // LIVRE
+      // ===========================================
+
+      if (
+        status.type ===
+        "free"
+      ) {
+
+        cell.textContent =
+          "Livre";
+
+        cell.style.backgroundColor =
+          "#dff5e3";
+
+        cell.style.color =
+          "#246b37";
+
+      }
+
+
+      // ===========================================
+      // AULA
+      // ===========================================
+
+      else if (
+        status.type ===
+        "lesson"
+      ) {
+
+        cell.innerHTML = `
+
+          <strong>
+            ${escapeHtml(
+              studentName ||
+              "Aula"
+            )}
+          </strong>
+
+          <br>
+
+          <small>
+            Aula
+          </small>
+
+        `;
+
+        cell.style.backgroundColor =
+          "#dcecff";
+
+        cell.style.color =
+          "#245a9a";
+
+      }
+
+
+      // ===========================================
+      // REPOSIÇÃO
+      // ===========================================
+
+      else if (
+        status.type ===
+        "makeup"
+      ) {
+
+        cell.innerHTML = `
+
+          <strong>
+            ${escapeHtml(
+              studentName ||
+              "Aluno"
+            )}
+          </strong>
+
+          <br>
+
+          <small>
+            Reposição
+          </small>
+
+        `;
+
+        cell.style.backgroundColor =
+          "#eadcf8";
+
+        cell.style.color =
+          "#6f42c1";
+
+      }
+
+
+      // ===========================================
+      // CANCELADA
+      // ===========================================
+
+      else if (
+        status.type ===
+        "cancelled"
+      ) {
+
+        cell.innerHTML = `
+
+          <strong>
+            ${escapeHtml(
+              studentName ||
+              "Aluno"
+            )}
+          </strong>
+
+          <br>
+
+          <small>
+            Cancelada
+          </small>
+
+        `;
+
+        cell.style.backgroundColor =
+          "#fff3cd";
+
+        cell.style.color =
+          "#856404";
+
+      }
+
+
+      // ===========================================
+      // INDISPONÍVEL
+      // ===========================================
+
+      else if (
+        status.type ===
+        "unavailable"
+      ) {
+
+        cell.textContent =
+          "Indisponível";
+
+        cell.style.backgroundColor =
+          "#333333";
+
+        cell.style.color =
+          "#ffffff";
+
+      }
+
+
+      // ===========================================
+      // OUTRA RESERVA
+      // ===========================================
+
+      else {
+
+        cell.innerHTML = `
+
+          <strong>
+            ${escapeHtml(
+              studentName ||
+              "Reservado"
+            )}
+          </strong>
+
+          <br>
+
+          <small>
+            Reserva
+          </small>
+
+        `;
+
+      }
+
+
+      // ===========================================
+      // EDIÇÃO DA AGENDA FIXA
+      // ===========================================
+
+      const todayForEdit =
+        new Date();
+
+      todayForEdit.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      const cellDateForEdit =
+        new Date(
+          day.date
+        );
+
+      cellDateForEdit.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      const isPastDate =
+        cellDateForEdit <
+        todayForEdit;
+
+      const isEditableStatus =
+        (
+          status.type === "free" ||
+          status.type === "lesson" ||
+          status.type === "unavailable"
         );
 
 
-      const timeCell =
-        document.createElement(
-          "td"
+      // PASSADO = SOMENTE CONSULTA
+
+      if (
+        isEditableStatus &&
+        isPastDate
+      ) {
+
+        cell.style.cursor =
+          "default";
+
+        cell.title =
+          "Semanas anteriores são somente para consulta.";
+
+      }
+
+
+      // HOJE/FUTURO = EDITÁVEL
+
+      else if (
+        isEditableStatus
+      ) {
+
+        cell.style.cursor =
+          "pointer";
+
+        cell.title =
+          "Clique para editar este horário fixo.";
+
+        cell.addEventListener(
+          "click",
+          () => {
+
+            openTeacherScheduleEditor(
+              day.date,
+              slot
+            );
+
+          }
         );
 
+      }
 
-      timeCell.textContent =
-        time;
+
+      else if (
+        status.type === "makeup"
+      ) {
+
+        cell.style.cursor =
+          "default";
+
+        cell.title =
+          "Esta é uma reposição agendada.";
+
+      }
+
+
+      else if (
+        status.type === "cancelled"
+      ) {
+
+        cell.style.cursor =
+          "default";
+
+        cell.title =
+          "Esta ocorrência foi cancelada.";
+
+      }
 
 
       row.appendChild(
-        timeCell
+        cell
       );
 
+    });
 
-      days.forEach(
-        day => {
 
-          const cell =
-            document.createElement(
-              "td"
-            );
+    body.appendChild(
+      row
+    );
 
+  });
 
-          cell.classList.add(
-            "schedule-cell"
-          );
 
+  if (
+    sortedTimes.length === 0
+  ) {
 
-          const slot =
-            day.schedule.find(
-              item =>
+    body.innerHTML = `
 
-                normalizeTime(
-                  item.start_time
-                ) === time
-            );
+      <tr>
 
+        <td colspan="8">
+          Nenhum horário cadastrado.
+        </td>
 
-          // ===========================================
-          // HORÁRIO NÃO EXISTE NESSE DIA
-          // ===========================================
+      </tr>
 
-          if (!slot) {
+    `;
 
-            cell.textContent =
-              "—";
+  }
 
-            cell.style.backgroundColor =
-              "#eeeeee";
+}
 
-            cell.style.color =
-              "#777777";
-
-
-            row.appendChild(
-              cell
-            );
-
-
-            return;
-          }
-
-
-          const status =
-            normalizeTeacherScheduleStatus(
-              slot.status
-            );
-
-
-          const studentName =
-            String(
-              slot.student_name ||
-              ""
-            ).trim();
-
-
-          // ===========================================
-          // LIVRE
-          // ===========================================
-
-          if (
-            status.type ===
-            "free"
-          ) {
-
-            cell.textContent =
-              "Livre";
-
-            cell.style.backgroundColor =
-              "#dff5e3";
-
-            cell.style.color =
-              "#246b37";
-
-          }
-
-
-          // ===========================================
-          // AULA
-          // ===========================================
-
-          else if (
-            status.type ===
-            "lesson"
-          ) {
-
-            cell.innerHTML = `
-
-              <strong>
-                ${escapeHtml(
-                  studentName ||
-                  "Aula"
-                )}
-              </strong>
-
-              <br>
-
-              <small>
-                Aula
-              </small>
-
-            `;
-
-
-            cell.style.backgroundColor =
-              "#dcecff";
-
-            cell.style.color =
-              "#245a9a";
-
-          }
-
-
-          // ===========================================
-          // REPOSIÇÃO
-          // ===========================================
-
-          else if (
-            status.type ===
-            "makeup"
-          ) {
-
-            cell.innerHTML = `
-
-              <strong>
-                ${escapeHtml(
-                  studentName ||
-                  "Aluno"
-                )}
-              </strong>
-
-              <br>
-
-              <small>
-                Reposição
-              </small>
-
-            `;
-
-
-            cell.style.backgroundColor =
-              "#eadcf8";
-
-            cell.style.color =
-              "#6f42c1";
-
-          }
-
-
-          // ===========================================
-          // CANCELADA
-          // ===========================================
-
-          else if (
-            status.type ===
-            "cancelled"
-          ) {
-
-            cell.innerHTML = `
-
-              <strong>
-                ${escapeHtml(
-                  studentName ||
-                  "Aluno"
-                )}
-              </strong>
-
-              <br>
-
-              <small>
-                Cancelada
-              </small>
-
-            `;
-
-
-            cell.style.backgroundColor =
-              "#fff3cd";
-
-            cell.style.color =
-              "#856404";
-
-          }
-
-
-          // ===========================================
-          // INDISPONÍVEL
-          // ===========================================
-
-          else if (
-            status.type ===
-            "unavailable"
-          ) {
-
-            cell.textContent =
-              "Indisponível";
-
-            cell.style.backgroundColor =
-              "#333333";
-
-            cell.style.color =
-              "#ffffff";
-
-          }
-
-
-          // ===========================================
-          // OUTRA RESERVA
-          // ===========================================
-
-          else {
-
-            cell.innerHTML = `
-
-              <strong>
-                ${escapeHtml(
-                  studentName ||
-                  "Reservado"
-                )}
-              </strong>
-
-              <br>
-
-              <small>
-                Reserva
-              </small>
-
-            `;
-
-          }
-
-
-          // ===========================================
-          // HORÁRIOS QUE O PROFESSOR PODE EDITAR
-          // ===========================================
-
-          const todayForEdit =
-            new Date();
-
-
-          todayForEdit.setHours(
-            0,
-            0,
-            0,
-            0
-          );
-
-
-          const cellDateForEdit =
-            new Date(
-              day.date
-            );
-
-
-          cellDateForEdit.setHours(
-            0,
-            0,
-            0,
-            0
-          );
-
-
-          const isPastDate =
-            cellDateForEdit <
-            todayForEdit;
-
-
-          const isEditableStatus =
-            (
-              status.type === "free" ||
-              status.type === "lesson" ||
-              status.type === "unavailable"
-            );
-
-
-          // ===========================================
-          // PASSADO = SOMENTE CONSULTA
-          // ===========================================
-
-          if (
-            isEditableStatus &&
-            isPastDate
-          ) {
-
-            cell.style.cursor =
-              "default";
-
-
-            cell.title =
-              "Semanas anteriores são somente para consulta.";
-
-          }
-
-
-          // ===========================================
-          // HOJE / FUTURO = PODE EDITAR A AGENDA FIXA
-          // ===========================================
-
-          else if (
-            isEditableStatus
-          ) {
-
-            cell.style.cursor =
-              "pointer";
-
-
-            cell.title =
-              "Clique para editar este horário fixo.";
-
-
-            cell.addEventListener(
-              "click",
-              () => {
-
-                openTeacherScheduleEditor(
-                  day.date,
-                  slot
-                );
-
-              }
-            );
-
-          }
-
-
-          else if (
-            status.type === "makeup"
-          ) {
-
-            cell.style.cursor =
-              "default";
-
-
-            cell.title =
-              "Esta é uma reposição agendada.";
-
-          }
-
-
-          else if (
-            status.type === "cancelled"
-          ) {
-
-            cell.style.cursor =
-              "default";
-
-
-            cell.title =
-              "Esta ocorrência foi cancelada.";
-
-          }
 
 // =====================================================
 // STATUS DA AGENDA DO PROFESSOR
@@ -5689,13 +5649,16 @@ async function openTeacherScheduleEditor(
       "Área de edição da agenda do professor não encontrada."
     );
 
-   // ===================================================
+    return;
+  }
+
+
+  // ===================================================
   // NÃO PERMITIR ALTERAÇÃO RETROATIVA
   // ===================================================
 
   const today =
     new Date();
-
 
   today.setHours(
     0,
@@ -5709,7 +5672,6 @@ async function openTeacherScheduleEditor(
     new Date(
       date
     );
-
 
   selectedDate.setHours(
     0,
@@ -5729,9 +5691,6 @@ async function openTeacherScheduleEditor(
       "Alterações na agenda fixa não podem modificar o passado."
     );
 
-    return;
-  }  
-    
     return;
   }
 
@@ -5812,6 +5771,7 @@ async function openTeacherScheduleEditor(
           background:#fff3cd;
         "
       >
+
         <strong>
           Alteração da agenda fixa
         </strong>
@@ -5825,6 +5785,7 @@ async function openTeacherScheduleEditor(
 
         Semanas e dias anteriores permanecerão
         registrados como estavam.
+
       </p>
 
 
@@ -5936,10 +5897,10 @@ async function openTeacherScheduleEditor(
 
                 <option
                   value="${student.student_id}"
+
                   ${
                     student.student_id ===
                     slot.student_id
-
                       ? "selected"
                       : ""
                   }
@@ -6054,7 +6015,9 @@ async function openTeacherScheduleEditor(
         : "none";
 
 
-    if (studentSelect) {
+    if (
+      studentSelect
+    ) {
 
       studentSelect.disabled =
         !isLesson;
@@ -6067,7 +6030,9 @@ async function openTeacherScheduleEditor(
   updateStudentVisibility();
 
 
-  if (statusSelect) {
+  if (
+    statusSelect
+  ) {
 
     statusSelect.addEventListener(
       "change",
@@ -6083,7 +6048,9 @@ async function openTeacherScheduleEditor(
     );
 
 
-  if (saveButton) {
+  if (
+    saveButton
+  ) {
 
     saveButton.addEventListener(
       "click",
@@ -6106,7 +6073,9 @@ async function openTeacherScheduleEditor(
     );
 
 
-  if (closeButton) {
+  if (
+    closeButton
+  ) {
 
     closeButton.addEventListener(
       "click",
@@ -6182,7 +6151,9 @@ async function saveTeacherWeeklySlot(
     !studentId
   ) {
 
-    if (message) {
+    if (
+      message
+    ) {
 
       message.textContent =
         "Selecione um aluno para a aula.";
@@ -6197,7 +6168,9 @@ async function saveTeacherWeeklySlot(
   }
 
 
-  if (button) {
+  if (
+    button
+  ) {
 
     button.disabled =
       true;
@@ -6208,7 +6181,9 @@ async function saveTeacherWeeklySlot(
   }
 
 
-  if (message) {
+  if (
+    message
+  ) {
 
     message.textContent =
       "";
@@ -6243,7 +6218,9 @@ async function saveTeacherWeeklySlot(
     );
 
 
-  if (error) {
+  if (
+    error
+  ) {
 
     console.error(
       "Erro ao salvar horário:",
@@ -6251,7 +6228,9 @@ async function saveTeacherWeeklySlot(
     );
 
 
-    if (message) {
+    if (
+      message
+    ) {
 
       message.textContent =
         error.message ||
@@ -6263,7 +6242,9 @@ async function saveTeacherWeeklySlot(
     }
 
 
-    if (button) {
+    if (
+      button
+    ) {
 
       button.disabled =
         false;
@@ -6287,7 +6268,9 @@ async function saveTeacherWeeklySlot(
     );
 
 
-  if (area) {
+  if (
+    area
+  ) {
 
     area.innerHTML =
       "";
