@@ -6358,10 +6358,10 @@ function openTeacherLessonMove(
           color:#555;
         "
       >
-        Esta altera\u00E7\u00E3o ser\u00E1 feita somente
-        para esta ocorr\u00EAncia.
+        Esta altera\u00E7\u00E3o vale somente para
+        esta ocorr\u00EAncia.
 
-        A agenda fixa continuar\u00E1 igual.
+        A agenda fixa das outras semanas continuar\u00E1 igual.
       </p>
 
 
@@ -6405,7 +6405,7 @@ function openTeacherLessonMove(
 
 
       <!-- ==========================================
-           NOVO HOR\u00C1RIO
+           NOVO HORARIO
            ========================================== -->
 
       <div
@@ -6456,7 +6456,70 @@ function openTeacherLessonMove(
 
 
       <!-- ==========================================
-           DESTINO DO HORARIO ANTIGO
+           JUSTIFICATIVA
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherMoveReason"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Justificativa do reagendamento
+          <span
+            style="
+              font-weight:normal;
+              color:#666;
+            "
+          >
+            (opcional)
+          </span>
+        </label>
+
+
+        <textarea
+          id="teacherMoveReason"
+          maxlength="1000"
+          rows="4"
+          placeholder="Ex.: Tenho um compromisso nesse hor\u00E1rio e precisei transferir esta aula."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+            font-size:15px;
+          "
+        ></textarea>
+
+
+        <div
+          id="teacherMoveReasonCounter"
+          style="
+            margin-top:5px;
+            text-align:right;
+            font-size:12px;
+            color:#666;
+          "
+        >
+          0 / 1000
+        </div>
+
+      </div>
+
+
+      <!-- ==========================================
+           HORARIO ANTIGO
            ========================================== -->
 
       <div
@@ -6473,7 +6536,7 @@ function openTeacherLessonMove(
             margin-bottom:8px;
           "
         >
-          O que fazer com o horario antigo?
+          O que fazer com o hor\u00E1rio antigo nesta data?
         </label>
 
         <select
@@ -6486,13 +6549,15 @@ function openTeacherLessonMove(
             border-radius:8px;
           "
         >
+
           <option value="unavailable" selected>
-            Deixar indisponivel
+            Indispon\u00EDvel somente nesta data
           </option>
 
           <option value="free">
-            Deixar livre para outro aluno / reposicao
+            Livre somente nesta data
           </option>
+
         </select>
 
         <p
@@ -6502,8 +6567,11 @@ function openTeacherLessonMove(
             color:#666;
           "
         >
-          Por padrao, o horario antigo fica indisponivel.
-          Escolha Livre somente se quiser reutilizar esse horario.
+          Esta escolha vale somente para
+          ${formatDate(date)}.
+
+          Nas semanas seguintes, o hor\u00E1rio fixo
+          volta ao normal automaticamente.
         </p>
 
       </div>
@@ -6550,6 +6618,37 @@ function openTeacherLessonMove(
   `;
 
 
+  const reasonInput =
+    document.getElementById(
+      "teacherMoveReason"
+    );
+
+
+  const reasonCounter =
+    document.getElementById(
+      "teacherMoveReasonCounter"
+    );
+
+
+  if (
+    reasonInput &&
+    reasonCounter
+  ) {
+
+    reasonInput.addEventListener(
+      "input",
+      () => {
+
+        reasonCounter.textContent =
+          reasonInput.value.length +
+          " / 1000";
+
+      }
+    );
+
+  }
+
+
   document
     .getElementById(
       "confirmTeacherLessonMoveButton"
@@ -6586,6 +6685,7 @@ function openTeacherLessonMove(
 }
 
 
+
 // =====================================================
 // CONFIRMAR REAGENDAMENTO
 // =====================================================
@@ -6604,6 +6704,12 @@ async function confirmTeacherLessonMove(
   const timeInput =
     document.getElementById(
       "teacherMoveTime"
+    );
+
+
+  const reasonInput =
+    document.getElementById(
+      "teacherMoveReason"
     );
 
 
@@ -6642,6 +6748,12 @@ async function confirmTeacherLessonMove(
     timeInput.value;
 
 
+  const reason =
+    reasonInput
+      ? reasonInput.value.trim()
+      : "";
+
+
   const oldSlotStatus =
     oldSlotStatusSelect.value === "free"
       ? "free"
@@ -6650,8 +6762,8 @@ async function confirmTeacherLessonMove(
 
   const oldSlotStatusLabel =
     oldSlotStatus === "free"
-      ? "Livre"
-      : "Indisponivel";
+      ? "Livre somente nesta data"
+      : "Indispon\u00EDvel somente nesta data";
 
 
   if (!newDate) {
@@ -6727,8 +6839,14 @@ async function confirmTeacherLessonMove(
 
       newTime +
 
-      "\n\nHorario antigo: " +
-      oldSlotStatusLabel
+      "\n\nHor\u00E1rio antigo: " +
+      oldSlotStatusLabel +
+
+      (
+        reason
+          ? "\n\nJustificativa: " + reason
+          : ""
+      )
 
     );
 
@@ -6781,7 +6899,10 @@ async function confirmTeacherLessonMove(
           newTime,
 
         p_old_slot_status:
-          oldSlotStatus
+          oldSlotStatus,
+
+        p_reason:
+          reason || null
 
       }
     );
@@ -6841,11 +6962,12 @@ async function confirmTeacherLessonMove(
 
   alert(
     "Aula reagendada com sucesso.\n\n" +
-    "A agenda fixa n\u00E3o foi alterada e " +
-    "o aluno recebeu um aviso."
+    "A altera\u00E7\u00E3o vale somente para as datas envolvidas. " +
+    "A agenda fixa das semanas seguintes foi preservada."
   );
 
-}     
+}
+
 
 
 // =====================================================
