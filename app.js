@@ -359,13 +359,6 @@ function setStudentPage(page) {
           style="margin-top:20px;"
         ></div>
 
-<div
-  id="teacherScheduleEditArea"
-  style="
-    margin-top:20px;
-  "
-></div>
-
         <div class="schedule-legend">
           <span>\uD83D\uDFE2 Livre</span>
           <span>\uD83D\uDD34 Ocupado</span>
@@ -4757,6 +4750,12 @@ function setTeacherPage(page) {
 
         </div>
 
+        <div
+          id="teacherScheduleEditArea"
+          style="
+            margin-top:20px;
+          "
+        ></div>
 
         <div
           class="schedule-legend"
@@ -4995,8 +4994,8 @@ async function loadTeacherStudents() {
 
 
   return currentTeacherStudents;
-
 }
+
 
 // =====================================================
 // AGENDA SEMANAL DO PROFESSOR
@@ -5043,10 +5042,6 @@ async function loadTeacherWeeklySchedule() {
 
   `;
 
-
-  // ===================================================
-  // CARREGAR OS 7 DIAS
-  // ===================================================
 
   const days = [];
 
@@ -5106,12 +5101,8 @@ async function loadTeacherWeeklySchedule() {
 
 
     days.push({
-
       date,
-
-      schedule:
-        data || []
-
+      schedule: data || []
     });
 
   }
@@ -5162,10 +5153,6 @@ function renderTeacherWeeklySchedule(
   ];
 
 
-  // ===================================================
-  // CABEÇALHO
-  // ===================================================
-
   head.innerHTML = `
 
     <tr>
@@ -5201,10 +5188,6 @@ function renderTeacherWeeklySchedule(
   `;
 
 
-  // ===================================================
-  // TODOS OS HORÁRIOS DA SEMANA
-  // ===================================================
-
   const times =
     new Set();
 
@@ -5232,70 +5215,8 @@ function renderTeacherWeeklySchedule(
       .sort();
 
 
-  body.innerHTML =
-    "";
+  body.innerHTML = "";
 
-          // ===========================================
-          // EDITAR HORÁRIO FIXO
-          // ===========================================
-
-          if (
-            status.type === "free" ||
-            status.type === "lesson" ||
-            status.type === "unavailable"
-          ) {
-
-            cell.style.cursor =
-              "pointer";
-
-
-            cell.title =
-              "Clique para editar este horário.";
-
-
-            cell.addEventListener(
-              "click",
-              () => {
-
-                openTeacherScheduleEditor(
-                  day.date,
-                  slot
-                );
-
-              }
-            );
-
-          }
-
-
-          else if (
-            status.type === "makeup"
-          ) {
-
-            cell.style.cursor =
-              "default";
-
-            cell.title =
-              "Esta é uma reposição agendada.";
-
-          }
-
-
-          else if (
-            status.type === "cancelled"
-          ) {
-
-            cell.style.cursor =
-              "default";
-
-            cell.title =
-              "Esta ocorrência foi cancelada.";
-
-          }  
-
-  // ===================================================
-  // LINHAS
-  // ===================================================
 
   sortedTimes.forEach(
     time => {
@@ -5346,7 +5267,7 @@ function renderTeacherWeeklySchedule(
 
 
           // ===========================================
-          // HORÁRIO NÃO EXISTE
+          // HORÁRIO NÃO EXISTE NESSE DIA
           // ===========================================
 
           if (!slot) {
@@ -5382,570 +5303,6 @@ function renderTeacherWeeklySchedule(
               ""
             ).trim();
 
-          // =====================================================
-// EDITAR HORÁRIO DO PROFESSOR
-// =====================================================
-
-async function openTeacherScheduleEditor(
-  date,
-  slot
-) {
-
-  const area =
-    document.getElementById(
-      "teacherScheduleEditArea"
-    );
-
-
-  if (!area) {
-    return;
-  }
-
-
-  if (
-    currentTeacherStudents.length === 0
-  ) {
-
-    await loadTeacherStudents();
-
-  }
-
-
-  const dayOfWeek =
-    (
-      (
-        date.getDay() + 6
-      ) % 7
-    ) + 1;
-
-
-  const currentStatus =
-    String(
-      slot.status || ""
-    ).toLowerCase();
-
-
-  const editableStatus =
-    currentStatus === "lesson"
-      ? "lesson"
-
-      : currentStatus ===
-        "unavailable"
-        ? "unavailable"
-
-        : "free";
-
-
-  area.innerHTML = `
-
-    <div
-      class="card"
-      style="
-        border-left:5px solid #2f6fed;
-      "
-    >
-
-      <h3>
-        Editar horário
-      </h3>
-
-
-      <p>
-        <strong>Data:</strong>
-
-        ${formatDate(
-          date
-        )}
-      </p>
-
-
-      <p>
-        <strong>Horário:</strong>
-
-        ${normalizeTime(
-          slot.start_time
-        )}
-
-        às
-
-        ${normalizeTime(
-          slot.end_time
-        )}
-      </p>
-
-
-      <!-- ==========================================
-           TIPO
-           ========================================== -->
-
-      <div
-        style="
-          margin-top:18px;
-        "
-      >
-
-        <label
-          for="teacherSlotStatus"
-          style="
-            display:block;
-            font-weight:bold;
-            margin-bottom:8px;
-          "
-        >
-          Tipo do horário
-        </label>
-
-
-        <select
-          id="teacherSlotStatus"
-          style="
-            width:100%;
-            padding:10px;
-            border:1px solid #ccc;
-            border-radius:8px;
-          "
-        >
-
-          <option
-            value="free"
-            ${
-              editableStatus === "free"
-                ? "selected"
-                : ""
-            }
-          >
-            Livre
-          </option>
-
-
-          <option
-            value="lesson"
-            ${
-              editableStatus === "lesson"
-                ? "selected"
-                : ""
-            }
-          >
-            Aula
-          </option>
-
-
-          <option
-            value="unavailable"
-            ${
-              editableStatus === "unavailable"
-                ? "selected"
-                : ""
-            }
-          >
-            Indisponível
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <!-- ==========================================
-           ALUNO
-           ========================================== -->
-
-      <div
-        id="teacherSlotStudentArea"
-        style="
-          margin-top:18px;
-        "
-      >
-
-        <label
-          for="teacherSlotStudent"
-          style="
-            display:block;
-            font-weight:bold;
-            margin-bottom:8px;
-          "
-        >
-          Aluno
-        </label>
-
-
-        <select
-          id="teacherSlotStudent"
-          style="
-            width:100%;
-            padding:10px;
-            border:1px solid #ccc;
-            border-radius:8px;
-          "
-        >
-
-          <option value="">
-            Selecione um aluno
-          </option>
-
-
-          ${currentTeacherStudents
-            .map(
-              student => `
-
-                <option
-                  value="${student.student_id}"
-
-                  ${
-                    student.student_id ===
-                    slot.student_id
-
-                      ? "selected"
-                      : ""
-                  }
-                >
-
-                  ${escapeHtml(
-                    student.student_name
-                  )}
-
-                  — ${student.class_duration_minutes}
-                  min
-
-                </option>
-
-              `
-            )
-            .join("")}
-
-        </select>
-
-
-        <p
-          style="
-            margin-top:8px;
-            font-size:13px;
-            color:#666;
-          "
-        >
-          A duração da aula é definida pelo
-          cadastro do aluno.
-        </p>
-
-      </div>
-
-
-      <!-- ==========================================
-           BOTÕES
-           ========================================== -->
-
-      <div
-        style="
-          display:flex;
-          gap:10px;
-          flex-wrap:wrap;
-          margin-top:20px;
-        "
-      >
-
-        <button
-          type="button"
-          class="action-button"
-          id="saveTeacherSlotButton"
-        >
-          Salvar
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="closeTeacherSlotEditorButton"
-        >
-          Cancelar
-        </button>
-
-      </div>
-
-
-      <p
-        id="teacherSlotMessage"
-        style="
-          margin-top:12px;
-        "
-      ></p>
-
-    </div>
-
-  `;
-
-
-  const statusSelect =
-    document.getElementById(
-      "teacherSlotStatus"
-    );
-
-
-  const studentArea =
-    document.getElementById(
-      "teacherSlotStudentArea"
-    );
-
-
-  const studentSelect =
-    document.getElementById(
-      "teacherSlotStudent"
-    );
-
-
-  // ===================================================
-  // MOSTRAR ALUNO SÓ QUANDO FOR AULA
-  // ===================================================
-
-  function updateStudentVisibility() {
-
-    if (!studentArea) {
-      return;
-    }
-
-
-    const isLesson =
-      statusSelect.value ===
-      "lesson";
-
-
-    studentArea.style.display =
-      isLesson
-        ? "block"
-        : "none";
-
-
-    if (
-      studentSelect
-    ) {
-
-      studentSelect.disabled =
-        !isLesson;
-
-    }
-
-  }
-
-
-  updateStudentVisibility();
-
-
-  statusSelect.addEventListener(
-    "change",
-    updateStudentVisibility
-  );
-
-
-  // ===================================================
-  // SALVAR
-  // ===================================================
-
-  document
-    .getElementById(
-      "saveTeacherSlotButton"
-    )
-    .addEventListener(
-      "click",
-      () => {
-
-        saveTeacherWeeklySlot(
-          dayOfWeek,
-          slot.start_time
-        );
-
-      }
-    );
-
-
-  // ===================================================
-  // CANCELAR
-  // ===================================================
-
-  document
-    .getElementById(
-      "closeTeacherSlotEditorButton"
-    )
-    .addEventListener(
-      "click",
-      () => {
-
-        area.innerHTML =
-          "";
-
-      }
-    );
-
-}
-
-         // =====================================================
-// SALVAR HORÁRIO DO PROFESSOR
-// =====================================================
-
-async function saveTeacherWeeklySlot(
-  dayOfWeek,
-  startTime
-) {
-
-  const statusSelect =
-    document.getElementById(
-      "teacherSlotStatus"
-    );
-
-
-  const studentSelect =
-    document.getElementById(
-      "teacherSlotStudent"
-    );
-
-
-  const button =
-    document.getElementById(
-      "saveTeacherSlotButton"
-    );
-
-
-  const message =
-    document.getElementById(
-      "teacherSlotMessage"
-    );
-
-
-  if (!statusSelect) {
-    return;
-  }
-
-
-  const status =
-    statusSelect.value;
-
-
-  const studentId =
-    status === "lesson"
-      ? studentSelect?.value || null
-      : null;
-
-
-  if (
-    status === "lesson" &&
-    !studentId
-  ) {
-
-    message.textContent =
-      "Selecione um aluno para a aula.";
-
-    message.style.color =
-      "red";
-
-    return;
-  }
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      "Salvando...";
-
-  }
-
-
-  const {
-    error
-  } =
-    await supabaseClient.rpc(
-      "manage_weekly_slot",
-      {
-
-        p_day_of_week:
-          dayOfWeek,
-
-        p_start_time:
-          normalizeTime(
-            startTime
-          ),
-
-        p_status:
-          status,
-
-        p_student_id:
-          studentId
-
-      }
-    );
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao salvar horário:",
-      error
-    );
-
-
-    if (message) {
-
-      message.textContent =
-        error.message ||
-        "Não foi possível salvar o horário.";
-
-      message.style.color =
-        "red";
-
-    }
-
-
-    if (button) {
-
-      button.disabled =
-        false;
-
-      button.textContent =
-        "Salvar";
-
-    }
-
-
-    return;
-  }
-
-
-  if (message) {
-
-    message.textContent =
-      "Horário atualizado com sucesso.";
-
-    message.style.color =
-      "green";
-
-  }
-
-
-  await loadTeacherWeeklySchedule();
-
-
-  setTimeout(
-    () => {
-
-      const area =
-        document.getElementById(
-          "teacherScheduleEditArea"
-        );
-
-
-      if (area) {
-
-        area.innerHTML =
-          "";
-
-      }
-
-    },
-    500
-  );
-
-} 
 
           // ===========================================
           // LIVRE
@@ -6123,6 +5480,69 @@ async function saveTeacherWeeklySlot(
           }
 
 
+          // ===========================================
+          // HORÁRIOS QUE O PROFESSOR PODE EDITAR
+          // ===========================================
+
+          if (
+            status.type === "free" ||
+            status.type === "lesson" ||
+            status.type === "unavailable"
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              "Clique para editar este horário fixo.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherScheduleEditor(
+                  day.date,
+                  slot
+                );
+
+              }
+            );
+
+          }
+
+
+          else if (
+            status.type ===
+            "makeup"
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Esta é uma reposição agendada.";
+
+          }
+
+
+          else if (
+            status.type ===
+            "cancelled"
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Esta ocorrência foi cancelada.";
+
+          }
+
+
           row.appendChild(
             cell
           );
@@ -6227,9 +5647,585 @@ function normalizeTeacherScheduleStatus(
 
 }
 
+
 // =====================================================
-// CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
+// EDITAR HORÁRIO DO PROFESSOR
 // =====================================================
+
+async function openTeacherScheduleEditor(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+
+    console.error(
+      "Área de edição da agenda do professor não encontrada."
+    );
+
+    return;
+  }
+
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const dayOfWeek =
+    (
+      (
+        date.getDay() + 6
+      ) % 7
+    ) + 1;
+
+
+  const currentStatus =
+    String(
+      slot.status || ""
+    ).toLowerCase();
+
+
+  const editableStatus =
+    currentStatus === "lesson"
+      ? "lesson"
+
+      : currentStatus ===
+        "unavailable"
+        ? "unavailable"
+
+        : "free";
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Editar horário fixo
+      </h3>
+
+
+      <p>
+        <strong>Dia:</strong>
+        ${formatDay(dayOfWeek)}
+      </p>
+
+
+      <p>
+        <strong>Horário:</strong>
+
+        ${normalizeTime(
+          slot.start_time
+        )}
+
+        às
+
+        ${normalizeTime(
+          slot.end_time
+        )}
+      </p>
+
+
+      <p
+        style="
+          padding:10px;
+          border-radius:8px;
+          background:#fff3cd;
+        "
+      >
+        Esta alteração modifica a agenda fixa
+        e será aplicada às próximas semanas.
+      </p>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Tipo do horário
+        </label>
+
+
+        <select
+          id="teacherSlotStatus"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option
+            value="free"
+            ${
+              editableStatus === "free"
+                ? "selected"
+                : ""
+            }
+          >
+            Livre
+          </option>
+
+
+          <option
+            value="lesson"
+            ${
+              editableStatus === "lesson"
+                ? "selected"
+                : ""
+            }
+          >
+            Aula
+          </option>
+
+
+          <option
+            value="unavailable"
+            ${
+              editableStatus === "unavailable"
+                ? "selected"
+                : ""
+            }
+          >
+            Indisponível
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="teacherSlotStudentArea"
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStudent"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Aluno
+        </label>
+
+
+        <select
+          id="teacherSlotStudent"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option value="">
+            Selecione um aluno
+          </option>
+
+
+          ${currentTeacherStudents
+            .map(
+              student => `
+
+                <option
+                  value="${student.student_id}"
+                  ${
+                    student.student_id ===
+                    slot.student_id
+
+                      ? "selected"
+                      : ""
+                  }
+                >
+
+                  ${escapeHtml(
+                    student.student_name
+                  )}
+
+                  — ${student.class_duration_minutes} min
+
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          A duração da aula é definida pelo
+          cadastro do aluno.
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherSlotButton"
+        >
+          Salvar
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherSlotEditorButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherSlotMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherSlotStatus"
+    );
+
+
+  const studentArea =
+    document.getElementById(
+      "teacherSlotStudentArea"
+    );
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherSlotStudent"
+    );
+
+
+  function updateStudentVisibility() {
+
+    if (
+      !statusSelect ||
+      !studentArea
+    ) {
+      return;
+    }
+
+
+    const isLesson =
+      statusSelect.value ===
+      "lesson";
+
+
+    studentArea.style.display =
+      isLesson
+        ? "block"
+        : "none";
+
+
+    if (studentSelect) {
+
+      studentSelect.disabled =
+        !isLesson;
+
+    }
+
+  }
+
+
+  updateStudentVisibility();
+
+
+  if (statusSelect) {
+
+    statusSelect.addEventListener(
+      "change",
+      updateStudentVisibility
+    );
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherSlotButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherWeeklySlot(
+          dayOfWeek,
+          slot.start_time
+        );
+
+      }
+    );
+
+  }
+
+
+  const closeButton =
+    document.getElementById(
+      "closeTeacherSlotEditorButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// SALVAR HORÁRIO DO PROFESSOR
+// =====================================================
+
+async function saveTeacherWeeklySlot(
+  dayOfWeek,
+  startTime
+) {
+
+  const statusSelect =
+    document.getElementById(
+      "teacherSlotStatus"
+    );
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherSlotStudent"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherSlotButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherSlotMessage"
+    );
+
+
+  if (!statusSelect) {
+    return;
+  }
+
+
+  const status =
+    statusSelect.value;
+
+
+  const studentId =
+    status === "lesson"
+
+      ? (
+          studentSelect
+            ? studentSelect.value || null
+            : null
+        )
+
+      : null;
+
+
+  if (
+    status === "lesson" &&
+    !studentId
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione um aluno para a aula.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "manage_weekly_slot",
+      {
+
+        p_day_of_week:
+          Number(
+            dayOfWeek
+          ),
+
+        p_start_time:
+          normalizeTime(
+            startTime
+          ),
+
+        p_status:
+          status,
+
+        p_student_id:
+          studentId
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar horário:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível salvar o horário.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar";
+
+    }
+
+
+    return;
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  alert(
+    "Horário atualizado com sucesso."
+  );
+
+}
 
 // =====================================================
 // CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
