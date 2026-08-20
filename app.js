@@ -1642,99 +1642,163 @@ async function loadStudentMakeups() {
       "makeupsContent"
     );
 
-  if (!container) return;
 
-  container.innerHTML = `<p>Carregando reposi\xe7\xf5es...</p>`;
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML = `
+    <p>Carregando reposições...</p>
+  `;
+
 
   if (!currentStudentId) {
+
     await loadCurrentStudentId();
+
   }
+
 
   const {
     data,
     error
-  } = await supabaseClient.rpc("get_my_makeups");
-
-  if (error) {
-    console.error("Erro ao carregar reposi\xe7\xf5es:", error);
-    container.innerHTML = `<p>N\xe3o foi poss\xedvel carregar suas reposi\xe7\xf5es.</p>`;
-    return;
-  }
-
-  const makeups = data || [];
-
-  if (makeups.length === 0) {
-    container.innerHTML = `
-      <div style="padding:20px;text-align:center;border:1px solid #ddd;border-radius:10px;">
-        <strong>Voc\xea n\xe3o possui reposi\xe7\xf5es cadastradas.</strong>
-        <p>Quando uma falta gerar uma reposi\xe7\xe3o ou o professor atribuir uma, ela aparecer\xe1 aqui.</p>
-      </div>
-    `;
-    return;
-  }
-
-  const makeupIds = makeups
-    .map(makeup => makeup.makeup_id || makeup.id)
-    .filter(Boolean);
-
-  let reservations = [];
-
-  if (makeupIds.length > 0 && currentStudentId) {
-    const {
-      data: reservationData,
-      error: reservationError
-    } = await supabaseClient
-      .from("reservations")
-      .select(`
-        id,
-        makeup_id,
-        student_id,
-        reservation_date,
-        start_time,
-        end_time,
-        status
-      `)
-      .in("makeup_id", makeupIds)
-      .eq("student_id", currentStudentId);
-
-    if (reservationError) {
-      console.warn("N\xe3o foi poss\xedvel consultar as reservas do aluno:", reservationError);
-    } else {
-      reservations = reservationData || [];
-    }
-  }
-
-  const enrichedMakeups = makeups.map(makeup => {
-    const makeupId = makeup.makeup_id || makeup.id;
-
-    const activeReservation = reservations.find(
-      item =>
-        item.makeup_id === makeupId &&
-        String(item.status || "").toLowerCase() === "active"
+  } =
+    await supabaseClient.rpc(
+      "get_my_makeups"
     );
 
-    return {
-      ...makeup,
-      reservation_id: activeReservation?.id || null,
-      reservation_date: activeReservation?.reservation_date || null,
-      reservation_start_time: activeReservation?.start_time || null,
-      reservation_end_time: activeReservation?.end_time || null,
-      reserved_now: Boolean(activeReservation),
-      display_status: activeReservation ? "reserved" : makeup.status
-    };
-  });
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar reposições:",
+      error
+    );
+
+
+    container.innerHTML = `
+      <p>
+        Não foi possível carregar suas reposições.
+      </p>
+    `;
+
+    return;
+  }
+
+
+  const makeups =
+    data || [];
+
+
+  console.log(
+    "REPOSIÇÕES DO ALUNO:",
+    makeups
+  );
+
+
+  if (
+    makeups.length === 0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+
+        <strong>
+          Você não possui reposições cadastradas.
+        </strong>
+
+        <p>
+          Quando uma falta, cancelamento de aula
+          ou atribuição do professor gerar uma
+          reposição, ela aparecerá aqui.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+  }
+
+
+  const enrichedMakeups =
+    makeups.map(
+      makeup => {
+
+        const isReserved =
+          Boolean(
+            makeup.reservation_id
+          );
+
+
+        return {
+
+          ...makeup,
+
+          reserved_now:
+            isReserved,
+
+          display_status:
+            isReserved
+              ? "reserved"
+              : makeup.status
+
+        };
+
+      }
+    );
+
 
   container.innerHTML = `
-    <div style="display:grid;gap:15px;">
-      ${enrichedMakeups.map(renderMakeupCard).join("")}
+
+    <div
+      style="
+        display:grid;
+        gap:15px;
+      "
+    >
+
+      ${enrichedMakeups
+        .map(
+          renderMakeupCard
+        )
+        .join("")}
+
     </div>
+
   `;
 
-  document.querySelectorAll(".cancel-makeup-button").forEach(button => {
-    button.addEventListener("click", () => {
-      cancelStudentMakeup(button.dataset.reservationId);
-    });
-  });
+
+  document
+    .querySelectorAll(
+      ".cancel-makeup-button"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            cancelStudentMakeup(
+              button.dataset.reservationId
+            );
+
+          }
+        );
+
+      }
+    );
+
 }
 
 
@@ -2305,24 +2369,36 @@ function formatMakeupStatus(status) {
 function formatMakeupSource(source) {
 
   switch (
-    String(source || "").toLowerCase()
+    String(
+      source || ""
+    ).toLowerCase()
   ) {
 
     case "absence":
+
       return "Falta";
 
+
     case "manual":
+
       return "Professor";
 
+
     case "student_cancellation":
+
       return "Cancelamento de aula";
 
+
     default:
-      return source || "Não informado";
+
+      return (
+        source ||
+        "Não informado"
+      );
 
   }
-}
 
+}
 
 // =====================================================
 // AGENDA DO ALUNO
