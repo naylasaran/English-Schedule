@@ -4740,6 +4740,10 @@ function setTeacherPage(page) {
 // CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
 // =====================================================
 
+// =====================================================
+// CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
+// =====================================================
+
 async function loadTeacherCancellationMessages() {
 
   const container =
@@ -4751,6 +4755,13 @@ async function loadTeacherCancellationMessages() {
   if (!container) {
     return;
   }
+
+
+  container.innerHTML = `
+    <div class="card">
+      Carregando cancelamentos...
+    </div>
+  `;
 
 
   const {
@@ -4765,7 +4776,7 @@ async function loadTeacherCancellationMessages() {
   if (error) {
 
     console.error(
-      "Erro ao carregar cancelamentos dos alunos:",
+      "Erro ao carregar cancelamentos:",
       error
     );
 
@@ -4793,7 +4804,7 @@ async function loadTeacherCancellationMessages() {
 
 
   // ===================================================
-  // NENHUM CANCELAMENTO
+  // NENHUM CANCELAMENTO NOVO
   // ===================================================
 
   if (
@@ -4809,8 +4820,7 @@ async function loadTeacherCancellationMessages() {
         </h3>
 
         <p>
-          Nenhum cancelamento recente
-          feito por alunos.
+          Nenhum cancelamento novo.
         </p>
 
       </div>
@@ -4838,28 +4848,50 @@ async function loadTeacherCancellationMessages() {
       <div
         style="
           display:flex;
+          justify-content:space-between;
           align-items:center;
-          gap:10px;
+          gap:15px;
+          flex-wrap:wrap;
           margin-bottom:18px;
         "
       >
 
-        <span
+        <div
           style="
-            font-size:24px;
+            display:flex;
+            align-items:center;
+            gap:10px;
           "
         >
-          📩
-        </span>
+
+          <span
+            style="
+              font-size:24px;
+            "
+          >
+            📩
+          </span>
 
 
-        <h3
-          style="
-            margin:0;
-          "
-        >
-          Cancelamentos / adiamentos
-        </h3>
+          <h3
+            style="
+              margin:0;
+            "
+          >
+            Cancelamentos / adiamentos
+          </h3>
+
+        </div>
+
+
+        <strong>
+          ${cancellations.length}
+          ${
+            cancellations.length === 1
+              ? "novo"
+              : "novos"
+          }
+        </strong>
 
       </div>
 
@@ -4885,6 +4917,30 @@ async function loadTeacherCancellationMessages() {
     </div>
 
   `;
+
+
+  // ===================================================
+  // BOTÕES MARCAR COMO LIDO
+  // ===================================================
+
+  document
+    .querySelectorAll(
+      ".mark-cancellation-read-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          markTeacherCancellationAsRead(
+            button.dataset.lessonId
+          );
+
+        }
+      );
+
+    });
 
 }
 
@@ -4934,12 +4990,14 @@ function renderTeacherCancellationCard(
 
 
   const generatedMakeup =
-    cancellation.generated_makeup === true;
+    cancellation.generated_makeup ===
+    true;
 
 
   return `
 
     <div
+      id="teacher-cancellation-${cancellation.lesson_id}"
       style="
         padding:18px;
         border:1px solid #ddd;
@@ -4947,10 +5005,6 @@ function renderTeacherCancellationCard(
         background:#fffdf5;
       "
     >
-
-      <!-- ========================================
-           ALUNO
-           ======================================== -->
 
       <div
         style="
@@ -4981,10 +5035,6 @@ function renderTeacherCancellationCard(
       </div>
 
 
-      <!-- ========================================
-           AULA
-           ======================================== -->
-
       <p
         style="
           margin-top:12px;
@@ -5012,10 +5062,6 @@ function renderTeacherCancellationCard(
       </p>
 
 
-      <!-- ========================================
-           REPOSIÇÃO
-           ======================================== -->
-
       <p>
 
         <strong>
@@ -5030,10 +5076,6 @@ function renderTeacherCancellationCard(
 
       </p>
 
-
-      <!-- ========================================
-           MENSAGEM DO ALUNO
-           ======================================== -->
 
       <div
         style="
@@ -5084,10 +5126,6 @@ function renderTeacherCancellationCard(
       </div>
 
 
-      <!-- ========================================
-           DETALHES
-           ======================================== -->
-
       ${
         cancellation.cancellation_notes
 
@@ -5096,7 +5134,6 @@ function renderTeacherCancellationCard(
             <p
               style="
                 margin-top:15px;
-                margin-bottom:0;
                 font-size:13px;
                 color:#666;
               "
@@ -5113,12 +5150,122 @@ function renderTeacherCancellationCard(
           : ""
       }
 
+
+      <button
+        type="button"
+        class="secondary-button mark-cancellation-read-button"
+        data-lesson-id="${cancellation.lesson_id}"
+        style="
+          margin-top:15px;
+        "
+      >
+        ✓ Marcar como lido
+      </button>
+
+
+      <p
+        id="teacher-cancellation-message-${cancellation.lesson_id}"
+        style="
+          margin-top:8px;
+        "
+      ></p>
+
     </div>
 
   `;
 
 }
 
+// =====================================================
+// MARCAR CANCELAMENTO COMO LIDO
+// =====================================================
+
+async function markTeacherCancellationAsRead(
+  lessonId
+) {
+
+  if (!lessonId) {
+    return;
+  }
+
+
+  const button =
+    document.querySelector(
+      `.mark-cancellation-read-button[data-lesson-id="${lessonId}"]`
+    );
+
+
+  const message =
+    document.getElementById(
+      `teacher-cancellation-message-${lessonId}`
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Marcando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "mark_student_cancellation_read",
+      {
+        p_lesson_id:
+          lessonId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao marcar cancelamento como lido:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível marcar como lido.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "✓ Marcar como lido";
+
+    }
+
+
+    return;
+  }
+
+
+  // Atualiza toda a caixa.
+  // O cancelamento marcado desaparece porque
+  // o RPC agora retorna somente os não lidos.
+
+  await loadTeacherCancellationMessages();
+
+}
 
 // =====================================================
 // CARREGAR REGRAS DO PROFESSOR
