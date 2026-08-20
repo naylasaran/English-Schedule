@@ -3292,7 +3292,7 @@ async function openLessonCancellation(
 
     alert(
       error.message ||
-      "Não foi possível identificar esta aula."
+      "NÃ£o foi possÃ­vel identificar esta aula."
     );
 
     return;
@@ -3308,7 +3308,7 @@ async function openLessonCancellation(
   if (!lesson) {
 
     alert(
-      "Não foi possível identificar esta aula."
+      "NÃ£o foi possÃ­vel identificar esta aula."
     );
 
     return;
@@ -3335,7 +3335,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // AULA JÁ COMEÇOU
+  // AULA JÃ COMEÃ‡OU
   // ===================================================
 
   if (
@@ -3343,7 +3343,7 @@ async function openLessonCancellation(
   ) {
 
     alert(
-      "Essa aula já começou ou já ocorreu e não pode mais ser cancelada."
+      "Essa aula jÃ¡ comeÃ§ou ou jÃ¡ ocorreu e nÃ£o pode mais ser cancelada."
     );
 
     return;
@@ -3351,7 +3351,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // ANTECEDÊNCIA
+  // ANTECEDÃŠNCIA
   // ===================================================
 
   const minimumHours =
@@ -3380,7 +3380,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // ÁREA DO FORMULÁRIO
+  // ÃREA DO FORMULÃRIO
   // ===================================================
 
   const area =
@@ -3406,15 +3406,15 @@ async function openLessonCancellation(
             background:#fff3cd;
           "
         >
-          <strong>Atenção:</strong>
+          <strong>AtenÃ§Ã£o:</strong>
           faltam menos de ${minimumHours} horas
           para esta aula.
 
           <br><br>
 
-          Se você cancelar agora,
+          Se vocÃª cancelar agora,
           <strong>
-            esta aula não poderá ser reposta depois.
+            esta aula nÃ£o poderÃ¡ ser reposta depois.
           </strong>
         </div>
       `
@@ -3428,15 +3428,15 @@ async function openLessonCancellation(
             background:#eef5ff;
           "
         >
-          Como o cancelamento está sendo feito
-          com antecedência, uma reposição será
-          liberada para você.
+          Como o cancelamento estÃ¡ sendo feito
+          com antecedÃªncia, uma reposiÃ§Ã£o serÃ¡
+          liberada para vocÃª.
         </div>
       `;
 
 
   // ===================================================
-  // FORMULÁRIO
+  // FORMULÃRIO
   // ===================================================
 
   area.innerHTML = `
@@ -3465,13 +3465,13 @@ async function openLessonCancellation(
 
 
       <p>
-        <strong>Horário:</strong>
+        <strong>HorÃ¡rio:</strong>
 
         ${normalizeTime(
           lesson.start_time
         )}
 
-        às
+        Ã s
 
         ${normalizeTime(
           lesson.end_time
@@ -3513,7 +3513,7 @@ async function openLessonCancellation(
           id="lessonCancellationMessage"
           maxlength="1000"
           rows="4"
-          placeholder="Ex.: Professor, surgiu um compromisso e não vou conseguir participar da aula..."
+          placeholder="Ex.: Professor, surgiu um compromisso e nÃ£o vou conseguir participar da aula..."
           style="
             width:100%;
             box-sizing:border-box;
@@ -3706,7 +3706,7 @@ async function confirmLessonCancellation(
 
 
   // ===================================================
-  // CONFIRMAÇÃO FINAL
+  // CONFIRMAÃ‡ÃƒO FINAL
   // ===================================================
 
   const confirmationMessage =
@@ -3714,12 +3714,12 @@ async function confirmLessonCancellation(
 
       ? (
           "Tem certeza que deseja cancelar esta aula?\n\n" +
-          "Essa aula não poderá ser reposta depois."
+          "Essa aula nÃ£o poderÃ¡ ser reposta depois."
         )
 
       : (
           "Tem certeza que deseja cancelar esta aula?\n\n" +
-          "Uma reposição será liberada para você."
+          "Uma reposiÃ§Ã£o serÃ¡ liberada para vocÃª."
         );
 
 
@@ -3783,7 +3783,7 @@ async function confirmLessonCancellation(
 
       resultMessage.textContent =
         error.message ||
-        "Não foi possível cancelar a aula.";
+        "NÃ£o foi possÃ­vel cancelar a aula.";
 
       resultMessage.style.color =
         "red";
@@ -3817,7 +3817,7 @@ async function confirmLessonCancellation(
 
     alert(
       "Aula cancelada com sucesso.\n\n" +
-      "Uma reposição foi liberada para você." +
+      "Uma reposiÃ§Ã£o foi liberada para vocÃª." +
       (
         studentMessage
           ? "\n\nSua mensagem foi enviada ao professor."
@@ -3835,8 +3835,8 @@ async function confirmLessonCancellation(
 
     alert(
       "Aula cancelada.\n\n" +
-      "Como o cancelamento foi feito sem a antecedência mínima, " +
-      "esta aula não poderá ser reposta." +
+      "Como o cancelamento foi feito sem a antecedÃªncia mÃ­nima, " +
+      "esta aula nÃ£o poderÃ¡ ser reposta." +
       (
         studentMessage
           ? "\n\nSua mensagem foi enviada ao professor."
@@ -3862,7 +3862,7 @@ async function confirmLessonCancellation(
 
 
   // ===================================================
-  // FECHAR FORMULÁRIO
+  // FECHAR FORMULÃRIO
   // ===================================================
 
   const area =
@@ -4689,7 +4689,7 @@ function setTeacherPage(page) {
             class="secondary-button"
             id="teacherPreviousWeekButton"
           >
-            ← Semana anterior
+            â† Semana anterior
           </button>
 
 
@@ -4707,7 +4707,7 @@ function setTeacherPage(page) {
             class="secondary-button"
             id="teacherNextWeekButton"
           >
-            Próxima semana →
+            PrÃ³xima semana â†’
           </button>
 
         </div>
@@ -4765,23 +4765,23 @@ function setTeacherPage(page) {
         >
 
           <span>
-            🟢 Livre
+            ðŸŸ¢ Livre
           </span>
 
           <span>
-            🔵 Aula
+            ðŸ”µ Aula
           </span>
 
           <span>
-            🟣 Reposição
+            ðŸŸ£ ReposiÃ§Ã£o
           </span>
 
           <span>
-            🟡 Cancelada
+            ðŸŸ¡ Cancelada
           </span>
 
           <span>
-            ⚫ Indisponível
+            âš« IndisponÃ­vel
           </span>
 
         </div>
@@ -4849,7 +4849,7 @@ function setTeacherPage(page) {
 
 
     // =================================================
-    // PRÓXIMA SEMANA
+    // PRÃ“XIMA SEMANA
     // =================================================
 
     const nextButton =
@@ -5088,7 +5088,7 @@ async function loadTeacherWeeklySchedule() {
         <tr>
 
           <td colspan="8">
-            Não foi possível carregar a agenda.
+            NÃ£o foi possÃ­vel carregar a agenda.
           </td>
 
         </tr>
@@ -5133,17 +5133,17 @@ function renderTeacherWeeklySchedule(days) {
 
   const dayNames = [
     "Segunda",
-    "Terça",
+    "TerÃ§a",
     "Quarta",
     "Quinta",
     "Sexta",
-    "Sábado",
+    "SÃ¡bado",
     "Domingo"
   ];
 
   head.innerHTML = `
     <tr>
-      <th>Horário</th>
+      <th>HorÃ¡rio</th>
 
       ${days.map(
         (day, index) => `
@@ -5219,7 +5219,7 @@ function renderTeacherWeeklySchedule(days) {
       if (!slot) {
 
         cell.textContent =
-          "—";
+          "â€”";
 
         cell.style.backgroundColor =
           "#eeeeee";
@@ -5302,7 +5302,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // REPOSIÇÃO
+      // REPOSIÃ‡ÃƒO
       // ===========================================
 
       else if (
@@ -5322,7 +5322,7 @@ function renderTeacherWeeklySchedule(days) {
           <br>
 
           <small>
-            Reposição
+            ReposiÃ§Ã£o
           </small>
 
         `;
@@ -5372,7 +5372,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // INDISPONÍVEL
+      // INDISPONÃVEL
       // ===========================================
 
       else if (
@@ -5381,7 +5381,7 @@ function renderTeacherWeeklySchedule(days) {
       ) {
 
         cell.textContent =
-          "Indisponível";
+          "IndisponÃ­vel";
 
         cell.style.backgroundColor =
           "#333333";
@@ -5419,7 +5419,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // EDIÇÃO DA AGENDA FIXA
+      // EDIÃ‡ÃƒO DA AGENDA FIXA
       // ===========================================
 
       const todayForEdit =
@@ -5467,12 +5467,12 @@ function renderTeacherWeeklySchedule(days) {
           "default";
 
         cell.title =
-          "Semanas anteriores são somente para consulta.";
+          "Semanas anteriores sÃ£o somente para consulta.";
 
       }
 
 
-      // HOJE/FUTURO = EDITÁVEL
+      // HOJE/FUTURO = EDITÃVEL
 
       else if (
         isEditableStatus
@@ -5482,7 +5482,7 @@ function renderTeacherWeeklySchedule(days) {
           "pointer";
 
         cell.title =
-          "Clique para editar este horário fixo.";
+          "Clique para editar este horÃ¡rio fixo.";
 
         cell.addEventListener(
           "click",
@@ -5498,8 +5498,663 @@ function renderTeacherWeeklySchedule(days) {
 
       }
 
+
+      else if (
+        status.type === "makeup"
+      ) {
+
+        cell.style.cursor =
+          "default";
+
+        cell.title =
+          "Esta Ã© uma reposiÃ§Ã£o agendada.";
+
+      }
+
+
+      else if (
+        status.type === "cancelled"
+      ) {
+
+        cell.style.cursor =
+          "default";
+
+        cell.title =
+          "Esta ocorrÃªncia foi cancelada.";
+
+      }
+
+
+      row.appendChild(
+        cell
+      );
+
+    });
+
+
+    body.appendChild(
+      row
+    );
+
+  });
+
+
+  if (
+    sortedTimes.length === 0
+  ) {
+
+    body.innerHTML = `
+
+      <tr>
+
+        <td colspan="8">
+          Nenhum horÃ¡rio cadastrado.
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+}
+
+
+// =====================================================
+// STATUS DA AGENDA DO PROFESSOR
+// =====================================================
+
+function normalizeTeacherScheduleStatus(
+  status
+) {
+
+  switch (
+    String(
+      status || ""
+    ).toLowerCase()
+  ) {
+
+    case "free":
+    case "available":
+
+      return {
+        type: "free"
+      };
+
+
+    case "lesson":
+
+      return {
+        type: "lesson"
+      };
+
+
+    case "makeup":
+
+      return {
+        type: "makeup"
+      };
+
+
+    case "cancelled":
+
+      return {
+        type: "cancelled"
+      };
+
+
+    case "unavailable":
+
+      return {
+        type: "unavailable"
+      };
+
+
+    case "reservation":
+
+      return {
+        type: "reservation"
+      };
+
+
+    default:
+
+      return {
+        type: "reservation"
+      };
+
+  }
+
+}
+
+
+// =====================================================
+// EDITAR HORÃRIO DO PROFESSOR
+// =====================================================
+
+async function openTeacherScheduleEditor(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+
+    console.error(
+      "Ãrea de ediÃ§Ã£o da agenda do professor nÃ£o encontrada."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // NÃƒO PERMITIR ALTERAÃ‡ÃƒO RETROATIVA
+  // ===================================================
+
+  const today =
+    new Date();
+
+  today.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  const selectedDate =
+    new Date(
+      date
+    );
+
+  selectedDate.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  if (
+    selectedDate <
+    today
+  ) {
+
+    alert(
+      "Semanas anteriores sÃ£o somente para consulta. " +
+      "AlteraÃ§Ãµes na agenda fixa nÃ£o podem modificar o passado."
+    );
+
+    return;
+  }
+
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const dayOfWeek =
+    (
+      (
+        date.getDay() + 6
+      ) % 7
+    ) + 1;
+
+
+  const currentStatus =
+    String(
+      slot.status || ""
+    ).toLowerCase();
+
+
+  const editableStatus =
+    currentStatus === "lesson"
+      ? "lesson"
+
+      : currentStatus ===
+        "unavailable"
+        ? "unavailable"
+
+        : "free";
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Editar horÃ¡rio fixo
+      </h3>
+
+
+      <p>
+        <strong>Dia:</strong>
+        ${formatDay(dayOfWeek)}
+      </p>
+
+
+      <p>
+        <strong>HorÃ¡rio:</strong>
+
+        ${normalizeTime(
+          slot.start_time
+        )}
+
+        Ã s
+
+        ${normalizeTime(
+          slot.end_time
+        )}
+      </p>
+
+
+      <p
+        style="
+          padding:10px;
+          border-radius:8px;
+          background:#fff3cd;
+        "
+      >
+
+        <strong>
+          AlteraÃ§Ã£o da agenda fixa
+        </strong>
+
+        <br><br>
+
+        A mudanÃ§a entra em vigor hoje e vale
+        para as prÃ³ximas ocorrÃªncias deste horÃ¡rio.
+
+        <br>
+
+        Semanas e dias anteriores permanecerÃ£o
+        registrados como estavam.
+
+      </p>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Tipo do horÃ¡rio
+        </label>
+
+
+        <select
+          id="teacherSlotStatus"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option
+            value="free"
+            ${
+              editableStatus === "free"
+                ? "selected"
+                : ""
+            }
+          >
+            Livre
+          </option>
+
+
+          <option
+            value="lesson"
+            ${
+              editableStatus === "lesson"
+                ? "selected"
+                : ""
+            }
+          >
+            Aula
+          </option>
+
+
+          <option
+            value="unavailable"
+            ${
+              editableStatus === "unavailable"
+                ? "selected"
+                : ""
+            }
+          >
+            IndisponÃ­vel
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="teacherSlotStudentArea"
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStudent"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Aluno
+        </label>
+
+
+        <select
+          id="teacherSlotStudent"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option value="">
+            Selecione um aluno
+          </option>
+
+
+          ${currentTeacherStudents
+            .map(
+              student => `
+
+                <option
+                  value="${student.student_id}"
+
+                  ${
+                    student.student_id ===
+                    slot.student_id
+                      ? "selected"
+                      : ""
+                  }
+                >
+
+                  ${escapeHtml(
+                    student.student_name
+                  )}
+
+                  â€” ${student.class_duration_minutes} min
+
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          A duraÃ§Ã£o da aula Ã© definida pelo
+          cadastro do aluno.
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherSlotButton"
+        >
+          Salvar
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherSlotEditorButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherSlotMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherSlotStatus"
+    );
+
+
+  const studentArea =
+    document.getElementById(
+      "teacherSlotStudentArea"
+    );
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherSlotStudent"
+    );
+
+
+  function updateStudentVisibility() {
+
+    if (
+      !statusSelect ||
+      !studentArea
+    ) {
+      return;
+    }
+
+
+    const isLesson =
+      statusSelect.value ===
+      "lesson";
+
+
+    studentArea.style.display =
+      isLesson
+        ? "block"
+        : "none";
+
+
+    if (
+      studentSelect
+    ) {
+
+      studentSelect.disabled =
+        !isLesson;
+
+    }
+
+  }
+
+
+  updateStudentVisibility();
+
+
+  if (
+    statusSelect
+  ) {
+
+    statusSelect.addEventListener(
+      "change",
+      updateStudentVisibility
+    );
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherSlotButton"
+    );
+
+
+  if (
+    saveButton
+  ) {
+
+    saveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherWeeklySlot(
+          dayOfWeek,
+          slot.start_time
+        );
+
+      }
+    );
+
+  }
+
+
+  const closeButton =
+    document.getElementById(
+      "closeTeacherSlotEditorButton"
+    );
+
+
+  // ===================================================
+  // BOTÃƒO REAGENDAR SOMENTE ESTA AULA
+  // ===================================================
+
+  if (
+    currentStatus === "lesson" &&
+    closeButton &&
+    closeButton.parentElement
+  ) {
+
+    const moveButton =
+      document.createElement(
+        "button"
+      );
+
+
+    moveButton.type =
+      "button";
+
+
+    moveButton.className =
+      "secondary-button";
+
+
+    moveButton.textContent =
+      "Reagendar somente esta aula";
+
+
+    moveButton.style.borderColor =
+      "#6f42c1";
+
+
+    moveButton.style.color =
+      "#6f42c1";
+
+
+    closeButton.parentElement.insertBefore(
+      moveButton,
+      closeButton
+    );
+
+
+    moveButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherLessonMove(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
+  // ===================================================
+  // FECHAR
+  // ===================================================
+
+  if (
+    closeButton
+  ) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
    // =====================================================
-// REAGENDAR UMA ÚNICA AULA
+// REAGENDAR UMA ÃšNICA AULA
 // =====================================================
 
 function openTeacherLessonMove(
@@ -5581,7 +6236,7 @@ function openTeacherLessonMove(
 
         ${formatDate(date)}
 
-        às
+        Ã s
 
         ${normalizeTime(
           slot.start_time
@@ -5596,10 +6251,10 @@ function openTeacherLessonMove(
           color:#555;
         "
       >
-        Esta alteração será feita somente
-        para esta ocorrência.
+        Esta alteraÃ§Ã£o serÃ¡ feita somente
+        para esta ocorrÃªncia.
 
-        A agenda fixa continuará igual.
+        A agenda fixa continuarÃ¡ igual.
       </p>
 
 
@@ -5643,7 +6298,7 @@ function openTeacherLessonMove(
 
 
       <!-- ==========================================
-           NOVO HORÁRIO
+           NOVO HORÃRIO
            ========================================== -->
 
       <div
@@ -5660,7 +6315,7 @@ function openTeacherLessonMove(
             margin-bottom:8px;
           "
         >
-          Novo horário
+          Novo horÃ¡rio
         </label>
 
 
@@ -5685,9 +6340,9 @@ function openTeacherLessonMove(
             color:#666;
           "
         >
-          Use horários terminados em :00 ou :30.
-          O sistema verificará automaticamente se
-          todos os blocos necessários estão livres.
+          Use horÃ¡rios terminados em :00 ou :30.
+          O sistema verificarÃ¡ automaticamente se
+          todos os blocos necessÃ¡rios estÃ£o livres.
         </p>
 
       </div>
@@ -5834,7 +6489,7 @@ async function confirmTeacherLessonMove(
   if (!newTime) {
 
     message.textContent =
-      "Escolha o novo horário.";
+      "Escolha o novo horÃ¡rio.";
 
     message.style.color =
       "red";
@@ -5855,7 +6510,7 @@ async function confirmTeacherLessonMove(
   ) {
 
     message.textContent =
-      "O horário precisa terminar em :00 ou :30.";
+      "O horÃ¡rio precisa terminar em :00 ou :30.";
 
     message.style.color =
       "red";
@@ -5873,13 +6528,13 @@ async function confirmTeacherLessonMove(
         originalDate
       ) +
 
-      " às " +
+      " Ã s " +
 
       normalizeTime(
         slot.start_time
       ) +
 
-      "\n\n→\n\n" +
+      "\n\nâ†’\n\n" +
 
       formatDate(
         new Date(
@@ -5888,7 +6543,7 @@ async function confirmTeacherLessonMove(
         )
       ) +
 
-      " às " +
+      " Ã s " +
 
       newTime
 
@@ -5958,7 +6613,7 @@ async function confirmTeacherLessonMove(
 
       message.textContent =
         error.message ||
-        "Não foi possível reagendar a aula.";
+        "NÃ£o foi possÃ­vel reagendar a aula.";
 
       message.style.color =
         "red";
@@ -6000,668 +6655,15 @@ async function confirmTeacherLessonMove(
 
   alert(
     "Aula reagendada com sucesso.\n\n" +
-    "A agenda fixa não foi alterada e " +
+    "A agenda fixa nÃ£o foi alterada e " +
     "o aluno recebeu um aviso."
   );
 
 }     
 
-      else if (
-        status.type === "makeup"
-      ) {
-
-        cell.style.cursor =
-          "default";
-
-        cell.title =
-          "Esta é uma reposição agendada.";
-
-      }
-
-
-      else if (
-        status.type === "cancelled"
-      ) {
-
-        cell.style.cursor =
-          "default";
-
-        cell.title =
-          "Esta ocorrência foi cancelada.";
-
-      }
-
-
-      row.appendChild(
-        cell
-      );
-
-    });
-
-
-    body.appendChild(
-      row
-    );
-
-  });
-
-
-  if (
-    sortedTimes.length === 0
-  ) {
-
-    body.innerHTML = `
-
-      <tr>
-
-        <td colspan="8">
-          Nenhum horário cadastrado.
-        </td>
-
-      </tr>
-
-    `;
-
-  }
-
-}
-
 
 // =====================================================
-// STATUS DA AGENDA DO PROFESSOR
-// =====================================================
-
-function normalizeTeacherScheduleStatus(
-  status
-) {
-
-  switch (
-    String(
-      status || ""
-    ).toLowerCase()
-  ) {
-
-    case "free":
-    case "available":
-
-      return {
-        type: "free"
-      };
-
-
-    case "lesson":
-
-      return {
-        type: "lesson"
-      };
-
-
-    case "makeup":
-
-      return {
-        type: "makeup"
-      };
-
-
-    case "cancelled":
-
-      return {
-        type: "cancelled"
-      };
-
-
-    case "unavailable":
-
-      return {
-        type: "unavailable"
-      };
-
-
-    case "reservation":
-
-      return {
-        type: "reservation"
-      };
-
-
-    default:
-
-      return {
-        type: "reservation"
-      };
-
-  }
-
-}
-
-
-// =====================================================
-// EDITAR HORÁRIO DO PROFESSOR
-// =====================================================
-
-async function openTeacherScheduleEditor(
-  date,
-  slot
-) {
-
-  const area =
-    document.getElementById(
-      "teacherScheduleEditArea"
-    );
-
-
-  if (!area) {
-
-    console.error(
-      "Área de edição da agenda do professor não encontrada."
-    );
-
-    return;
-  }
-
-
-  // ===================================================
-  // NÃO PERMITIR ALTERAÇÃO RETROATIVA
-  // ===================================================
-
-  const today =
-    new Date();
-
-  today.setHours(
-    0,
-    0,
-    0,
-    0
-  );
-
-
-  const selectedDate =
-    new Date(
-      date
-    );
-
-  selectedDate.setHours(
-    0,
-    0,
-    0,
-    0
-  );
-
-
-  if (
-    selectedDate <
-    today
-  ) {
-
-    alert(
-      "Semanas anteriores são somente para consulta. " +
-      "Alterações na agenda fixa não podem modificar o passado."
-    );
-
-    return;
-  }
-
-
-  if (
-    currentTeacherStudents.length === 0
-  ) {
-
-    await loadTeacherStudents();
-
-  }
-
-
-  const dayOfWeek =
-    (
-      (
-        date.getDay() + 6
-      ) % 7
-    ) + 1;
-
-
-  const currentStatus =
-    String(
-      slot.status || ""
-    ).toLowerCase();
-
-
-  const editableStatus =
-    currentStatus === "lesson"
-      ? "lesson"
-
-      : currentStatus ===
-        "unavailable"
-        ? "unavailable"
-
-        : "free";
-
-
-  area.innerHTML = `
-
-    <div
-      class="card"
-      style="
-        border-left:5px solid #2f6fed;
-      "
-    >
-
-      <h3>
-        Editar horário fixo
-      </h3>
-
-
-      <p>
-        <strong>Dia:</strong>
-        ${formatDay(dayOfWeek)}
-      </p>
-
-
-      <p>
-        <strong>Horário:</strong>
-
-        ${normalizeTime(
-          slot.start_time
-        )}
-
-        às
-
-        ${normalizeTime(
-          slot.end_time
-        )}
-      </p>
-
-
-      <p
-        style="
-          padding:10px;
-          border-radius:8px;
-          background:#fff3cd;
-        "
-      >
-
-        <strong>
-          Alteração da agenda fixa
-        </strong>
-
-        <br><br>
-
-        A mudança entra em vigor hoje e vale
-        para as próximas ocorrências deste horário.
-
-        <br>
-
-        Semanas e dias anteriores permanecerão
-        registrados como estavam.
-
-      </p>
-
-
-      <div
-        style="
-          margin-top:18px;
-        "
-      >
-
-        <label
-          for="teacherSlotStatus"
-          style="
-            display:block;
-            font-weight:bold;
-            margin-bottom:8px;
-          "
-        >
-          Tipo do horário
-        </label>
-
-
-        <select
-          id="teacherSlotStatus"
-          style="
-            width:100%;
-            padding:10px;
-            border:1px solid #ccc;
-            border-radius:8px;
-          "
-        >
-
-          <option
-            value="free"
-            ${
-              editableStatus === "free"
-                ? "selected"
-                : ""
-            }
-          >
-            Livre
-          </option>
-
-
-          <option
-            value="lesson"
-            ${
-              editableStatus === "lesson"
-                ? "selected"
-                : ""
-            }
-          >
-            Aula
-          </option>
-
-
-          <option
-            value="unavailable"
-            ${
-              editableStatus === "unavailable"
-                ? "selected"
-                : ""
-            }
-          >
-            Indisponível
-          </option>
-
-        </select>
-
-      </div>
-
-
-      <div
-        id="teacherSlotStudentArea"
-        style="
-          margin-top:18px;
-        "
-      >
-
-        <label
-          for="teacherSlotStudent"
-          style="
-            display:block;
-            font-weight:bold;
-            margin-bottom:8px;
-          "
-        >
-          Aluno
-        </label>
-
-
-        <select
-          id="teacherSlotStudent"
-          style="
-            width:100%;
-            padding:10px;
-            border:1px solid #ccc;
-            border-radius:8px;
-          "
-        >
-
-          <option value="">
-            Selecione um aluno
-          </option>
-
-
-          ${currentTeacherStudents
-            .map(
-              student => `
-
-                <option
-                  value="${student.student_id}"
-
-                  ${
-                    student.student_id ===
-                    slot.student_id
-                      ? "selected"
-                      : ""
-                  }
-                >
-
-                  ${escapeHtml(
-                    student.student_name
-                  )}
-
-                  — ${student.class_duration_minutes} min
-
-                </option>
-
-              `
-            )
-            .join("")}
-
-        </select>
-
-
-        <p
-          style="
-            margin-top:8px;
-            font-size:13px;
-            color:#666;
-          "
-        >
-          A duração da aula é definida pelo
-          cadastro do aluno.
-        </p>
-
-      </div>
-
-
-      <div
-        style="
-          display:flex;
-          gap:10px;
-          flex-wrap:wrap;
-          margin-top:20px;
-        "
-      >
-
-        <button
-          type="button"
-          class="action-button"
-          id="saveTeacherSlotButton"
-        >
-          Salvar
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="closeTeacherSlotEditorButton"
-        >
-          Cancelar
-        </button>
-
-      </div>
-
-
-      <p
-        id="teacherSlotMessage"
-        style="
-          margin-top:12px;
-        "
-      ></p>
-
-    </div>
-
-  `;
-
-
-  const statusSelect =
-    document.getElementById(
-      "teacherSlotStatus"
-    );
-
-
-  const studentArea =
-    document.getElementById(
-      "teacherSlotStudentArea"
-    );
-
-
-  const studentSelect =
-    document.getElementById(
-      "teacherSlotStudent"
-    );
-
-
-  function updateStudentVisibility() {
-
-    if (
-      !statusSelect ||
-      !studentArea
-    ) {
-      return;
-    }
-
-
-    const isLesson =
-      statusSelect.value ===
-      "lesson";
-
-
-    studentArea.style.display =
-      isLesson
-        ? "block"
-        : "none";
-
-
-    if (
-      studentSelect
-    ) {
-
-      studentSelect.disabled =
-        !isLesson;
-
-    }
-
-  }
-
-
-  updateStudentVisibility();
-
-
-  if (
-    statusSelect
-  ) {
-
-    statusSelect.addEventListener(
-      "change",
-      updateStudentVisibility
-    );
-
-  }
-
-
-  const saveButton =
-    document.getElementById(
-      "saveTeacherSlotButton"
-    );
-
-
-  if (
-    saveButton
-  ) {
-
-    saveButton.addEventListener(
-      "click",
-      () => {
-
-        saveTeacherWeeklySlot(
-          dayOfWeek,
-          slot.start_time
-        );
-
-      }
-    );
-
-  }
-
-
-  const closeButton =
-    document.getElementById(
-      "closeTeacherSlotEditorButton"
-    );
-
-
-  // ===================================================
-  // BOTÃO REAGENDAR SOMENTE ESTA AULA
-  // ===================================================
-
-  if (
-    currentStatus === "lesson" &&
-    closeButton &&
-    closeButton.parentElement
-  ) {
-
-    const moveButton =
-      document.createElement(
-        "button"
-      );
-
-
-    moveButton.type =
-      "button";
-
-
-    moveButton.className =
-      "secondary-button";
-
-
-    moveButton.textContent =
-      "Reagendar somente esta aula";
-
-
-    moveButton.style.borderColor =
-      "#6f42c1";
-
-
-    moveButton.style.color =
-      "#6f42c1";
-
-
-    closeButton.parentElement.insertBefore(
-      moveButton,
-      closeButton
-    );
-
-
-    moveButton.addEventListener(
-      "click",
-      () => {
-
-        openTeacherLessonMove(
-          date,
-          slot
-        );
-
-      }
-    );
-
-  }
-
-
-  // ===================================================
-  // FECHAR
-  // ===================================================
-
-  if (
-    closeButton
-  ) {
-
-    closeButton.addEventListener(
-      "click",
-      () => {
-
-        area.innerHTML =
-          "";
-
-      }
-    );
-
-  }
-
-}
-
-
-// =====================================================
-// SALVAR HORÁRIO DO PROFESSOR
+// SALVAR HORÃRIO DO PROFESSOR
 // =====================================================
 
 async function saveTeacherWeeklySlot(
@@ -6791,7 +6793,7 @@ async function saveTeacherWeeklySlot(
   ) {
 
     console.error(
-      "Erro ao salvar horário:",
+      "Erro ao salvar horÃ¡rio:",
       error
     );
 
@@ -6802,7 +6804,7 @@ async function saveTeacherWeeklySlot(
 
       message.textContent =
         error.message ||
-        "Não foi possível salvar o horário.";
+        "NÃ£o foi possÃ­vel salvar o horÃ¡rio.";
 
       message.style.color =
         "red";
@@ -6847,7 +6849,7 @@ async function saveTeacherWeeklySlot(
 
 
   alert(
-    "Horário atualizado com sucesso."
+    "HorÃ¡rio atualizado com sucesso."
   );
 
 }
@@ -6898,7 +6900,7 @@ async function loadTeacherCancellationMessages() {
       <div class="card">
 
         <strong>
-          Não foi possível carregar
+          NÃ£o foi possÃ­vel carregar
           os cancelamentos dos alunos.
         </strong>
 
@@ -6981,7 +6983,7 @@ async function loadTeacherCancellationMessages() {
               font-size:24px;
             "
           >
-            📩
+            ðŸ“©
           </span>
 
 
@@ -7032,7 +7034,7 @@ async function loadTeacherCancellationMessages() {
 
 
   // ===================================================
-  // BOTÕES MARCAR COMO LIDO
+  // BOTÃ•ES MARCAR COMO LIDO
   // ===================================================
 
   document
@@ -7075,7 +7077,7 @@ function renderTeacherCancellationCard(
           )
         )
 
-      : "Data não informada";
+      : "Data nÃ£o informada";
 
 
   const start =
@@ -7167,7 +7169,7 @@ function renderTeacherCancellationCard(
 
         ${
           end
-            ? ` às ${end}`
+            ? ` Ã s ${end}`
             : ""
         }
 
@@ -7177,13 +7179,13 @@ function renderTeacherCancellationCard(
       <p>
 
         <strong>
-          Gerou reposição:
+          Gerou reposiÃ§Ã£o:
         </strong>
 
         ${
           generatedMakeup
-            ? "✅ Sim"
-            : "❌ Não"
+            ? "âœ… Sim"
+            : "âŒ NÃ£o"
         }
 
       </p>
@@ -7229,7 +7231,7 @@ function renderTeacherCancellationCard(
                   color:#666;
                 "
               >
-                O aluno não deixou uma mensagem.
+                O aluno nÃ£o deixou uma mensagem.
               </p>
 
             `
@@ -7271,7 +7273,7 @@ function renderTeacherCancellationCard(
           margin-top:15px;
         "
       >
-        ✓ Marcar como lido
+        âœ“ Marcar como lido
       </button>
 
 
@@ -7348,7 +7350,7 @@ async function markTeacherCancellationAsRead(
 
       message.textContent =
         error.message ||
-        "Não foi possível marcar como lido.";
+        "NÃ£o foi possÃ­vel marcar como lido.";
 
       message.style.color =
         "red";
@@ -7362,7 +7364,7 @@ async function markTeacherCancellationAsRead(
         false;
 
       button.textContent =
-        "✓ Marcar como lido";
+        "âœ“ Marcar como lido";
 
     }
 
@@ -7373,7 +7375,7 @@ async function markTeacherCancellationAsRead(
 
   // Atualiza toda a caixa.
   // O cancelamento marcado desaparece porque
-  // o RPC agora retorna somente os não lidos.
+  // o RPC agora retorna somente os nÃ£o lidos.
 
   await loadTeacherCancellationMessages();
 
