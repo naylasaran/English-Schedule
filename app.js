@@ -244,11 +244,9 @@ function setStudentPage(page) {
       "studentContent"
     );
 
-
   if (!content) {
     return;
   }
-
 
   document
     .querySelectorAll(
@@ -268,28 +266,22 @@ function setStudentPage(page) {
   // AGENDA
   // ===================================================
 
-content.innerHTML = `
+  if (page === "agenda") {
 
-      <!-- ==========================================
-           AVISOS
-           ========================================== -->
+    content.innerHTML = `
 
       <div
         id="studentNoticesArea"
         style="margin-bottom:20px;"
       ></div>
 
-
-      <!-- ==========================================
-           AGENDA
-           ========================================== -->
-
       <div class="card">
 
         <h3>Agenda semanal</h3>
+
         <p>
-          Clique em um hor\xe1rio livre para
-          escolher uma reposi\xe7\xe3o.
+          Clique em um hor\u00E1rio livre para
+          escolher uma reposi\u00E7\u00E3o.
         </p>
 
         <div
@@ -323,7 +315,7 @@ content.innerHTML = `
             class="secondary-button"
             id="nextWeekButton"
           >
-            Pr\xf3xima semana \u2192
+            Pr\u00F3xima semana \u2192
           </button>
 
         </div>
@@ -357,21 +349,10 @@ content.innerHTML = `
 
         </div>
 
-         <!-- =================================================
-             SELEÇÃO DE REPOSIÇÃO
-             ================================================= -->
-
         <div
           id="makeupSelectionArea"
-          style="
-            margin-top:20px;
-          "
+          style="margin-top:20px;"
         ></div>
-
-
-        <!-- =================================================
-             LEGENDA
-             ================================================= -->
 
         <div class="schedule-legend">
           <span>\uD83D\uDFE2 Livre</span>
@@ -386,109 +367,103 @@ content.innerHTML = `
     `;
 
 
-    // NavegaÃ§Ã£o entre semanas.
     const previousWeekButton =
-      document.getElementById("previousWeekButton");
+      document.getElementById(
+        "previousWeekButton"
+      );
 
     const currentWeekButton =
-      document.getElementById("currentWeekButton");
+      document.getElementById(
+        "currentWeekButton"
+      );
 
     const nextWeekButton =
-      document.getElementById("nextWeekButton");
+      document.getElementById(
+        "nextWeekButton"
+      );
 
 
     if (previousWeekButton) {
-      previousWeekButton.onclick = async () => {
 
-        selectedWeekStart =
-          addDays(
-            selectedWeekStart,
-            -7
-          );
+      previousWeekButton.onclick =
+        async () => {
 
-        await loadStudentWeeklySchedule()
-          .catch(error => {
-            console.error(
-              "Erro ao carregar semana anterior:",
-              error
+          selectedWeekStart =
+            addDays(
+              selectedWeekStart,
+              -7
             );
-          });
 
-      };
+          await loadStudentWeeklySchedule();
+
+        };
+
     }
 
 
     if (currentWeekButton) {
-      currentWeekButton.onclick = async () => {
 
-        selectedWeekStart =
-          getMonday(
-            new Date()
-          );
+      currentWeekButton.onclick =
+        async () => {
 
-        await loadStudentWeeklySchedule()
-          .catch(error => {
-            console.error(
-              "Erro ao carregar semana atual:",
-              error
+          selectedWeekStart =
+            getMonday(
+              new Date()
             );
-          });
 
-      };
+          await loadStudentWeeklySchedule();
+
+        };
+
     }
 
 
     if (nextWeekButton) {
-      nextWeekButton.onclick = async () => {
 
-        selectedWeekStart =
-          addDays(
-            selectedWeekStart,
-            7
-          );
+      nextWeekButton.onclick =
+        async () => {
 
-        await loadStudentWeeklySchedule()
-          .catch(error => {
-            console.error(
-              "Erro ao carregar prÃ³xima semana:",
-              error
+          selectedWeekStart =
+            addDays(
+              selectedWeekStart,
+              7
             );
-          });
 
-      };
+          await loadStudentWeeklySchedule();
+
+        };
+
     }
 
 
-    // A agenda nÃ£o pode impedir o login caso haja
-    // algum erro isolado ao carregar os horÃ¡rios.
-    
-loadStudentNotices()
-  .catch(error => {
+    loadStudentNotices()
+      .catch(error => {
 
-    console.error(
-      "Erro ao carregar avisos:",
-      error
-    );
+        console.error(
+          "Erro ao carregar avisos:",
+          error
+        );
 
-  });
+      });
 
 
-loadStudentWeeklySchedule()
-  .catch(error => {
+    loadStudentWeeklySchedule()
+      .catch(error => {
 
-    console.error(
-      "Erro ao carregar agenda:",
-      error
-    );
+        console.error(
+          "Erro ao carregar agenda:",
+          error
+        );
 
-  });
+      });
 
 
     return;
   }
 
- // ===================================================
-  // HISTÓRICO
+
+  // ===================================================
+  // HIST\u00D3RICO
   // ===================================================
 
   if (page === "history") {
@@ -497,29 +472,30 @@ loadStudentWeeklySchedule()
 
       <div class="card">
 
-        <h3>Histórico de aulas</h3>
+        <h3>Hist\u00F3rico de aulas</h3>
 
         <p>
-          Aqui você pode acompanhar suas aulas,
-          conteúdos, presença e observações.
+          Aqui voc\u00EA pode acompanhar suas aulas,
+          conte\u00FAdos, presen\u00E7a e observa\u00E7\u00F5es.
         </p>
 
         <div
           id="studentHistoryContent"
           style="margin-top:20px;"
         >
-          Carregando histórico...
+          Carregando hist\u00F3rico...
         </div>
 
       </div>
 
     `;
 
+
     loadStudentHistory()
       .catch(error => {
 
         console.error(
-          "Erro ao carregar histórico:",
+          "Erro ao carregar hist\u00F3rico:",
           error
         );
 
@@ -532,7 +508,7 @@ loadStudentWeeklySchedule()
 
           container.innerHTML = `
             <p>
-              Não foi possível carregar seu histórico.
+              N\u00E3o foi poss\u00EDvel carregar seu hist\u00F3rico.
             </p>
           `;
 
@@ -540,11 +516,13 @@ loadStudentWeeklySchedule()
 
       });
 
+
     return;
   }
-  
+
+
   // ===================================================
-  // REPOSI\xc7\xd5ES
+  // REPOSI\u00C7\u00D5ES
   // ===================================================
 
   if (page === "makeups") {
@@ -553,11 +531,11 @@ loadStudentWeeklySchedule()
 
       <div class="card">
 
-        <h3>Minhas reposi\xe7\xf5es</h3>
+        <h3>Minhas reposi\u00E7\u00F5es</h3>
 
         <p>
-          Consulte suas reposi\xe7\xf5es,
-          dura\xe7\xe3o, validade e situa\xe7\xe3o.
+          Consulte suas reposi\u00E7\u00F5es,
+          dura\u00E7\u00E3o, validade e situa\u00E7\u00E3o.
         </p>
 
         <div
@@ -592,7 +570,7 @@ loadStudentWeeklySchedule()
 
         <p>
           Consulte suas mensalidades e
-          hist\xf3rico de pagamentos.
+          hist\u00F3rico de pagamentos.
         </p>
 
         <div
@@ -653,6 +631,7 @@ loadStudentWeeklySchedule()
 
 }
 
+
 // =====================================================
 // AVISOS DO ALUNO
 // =====================================================
@@ -696,23 +675,13 @@ async function loadStudentNotices() {
     data || [];
 
 
-  // ===================================================
-  // SEM AVISOS
-  // ===================================================
-
-  if (
-    notices.length === 0
-  ) {
+  if (notices.length === 0) {
 
     container.innerHTML = "";
 
     return;
   }
 
-
-  // ===================================================
-  // MOSTRAR AVISOS
-  // ===================================================
 
   container.innerHTML = `
 
@@ -732,24 +701,15 @@ async function loadStudentNotices() {
         "
       >
 
-        <span
-          style="
-            font-size:24px;
-          "
-        >
-          📢
+        <span style="font-size:24px;">
+          \uD83D\uDCE2
         </span>
 
-        <h3
-          style="
-            margin:0;
-          "
-        >
+        <h3 style="margin:0;">
           Avisos
         </h3>
 
       </div>
-
 
       <div
         style="
@@ -775,6 +735,7 @@ async function loadStudentNotices() {
 
 }
 
+
 // =====================================================
 // CARD DE AVISO
 // =====================================================
@@ -786,9 +747,7 @@ function renderStudentNotice(
   let validityInfo = "";
 
 
-  if (
-    notice.expires_at
-  ) {
+  if (notice.expires_at) {
 
     validityInfo = `
 
@@ -799,13 +758,10 @@ function renderStudentNotice(
           color:#666;
         "
       >
-
-        Aviso válido até:
-
+        Aviso v\u00E1lido at\u00E9:
         ${formatDateTime(
           notice.expires_at
         )}
-
       </div>
 
     `;
@@ -831,13 +787,10 @@ function renderStudentNotice(
           font-size:17px;
         "
       >
-
         ${escapeHtml(
           notice.title
         )}
-
       </strong>
-
 
       <div
         style="
@@ -845,13 +798,10 @@ function renderStudentNotice(
           line-height:1.5;
         "
       >
-
         ${escapeHtml(
           notice.message
         )}
-
       </div>
-
 
       ${validityInfo}
 
@@ -860,6 +810,7 @@ function renderStudentNotice(
   `;
 
 }
+
 
 // =====================================================
 // REGRAS DO ALUNO
@@ -1581,6 +1532,7 @@ function renderHistoryLesson(
         )}
       </p>
 
+
       ${
         lesson.lesson_status ===
         "cancelled"
@@ -1600,33 +1552,28 @@ function renderHistoryLesson(
                 Cancelamento
               </strong>
 
-
               <p>
                 <strong>
                   Cancelado por:
                 </strong>
 
-                ${
-                  escapeHtml(
-                    lesson.cancelled_by ||
-                    "Não informado"
-                  )
-                }
+                ${escapeHtml(
+                  lesson.cancelled_by ||
+                  "N\u00E3o informado"
+                )}
               </p>
-
 
               <p>
                 <strong>
-                  Reposição gerada:
+                  Reposi\u00E7\u00E3o gerada:
                 </strong>
 
                 ${
                   lesson.generated_makeup
-                    ? "✅ Sim"
-                    : "❌ Não"
+                    ? "\u2705 Sim"
+                    : "\u274C N\u00E3o"
                 }
               </p>
-
 
               ${
                 lesson.cancellation_notes
@@ -1936,7 +1883,7 @@ function formatAttendanceStatus(status) {
 
 
 // =====================================================
-// REPOSI\xc7\xd5ES
+// REPOSI\u00C7\u00D5ES
 // =====================================================
 
 async function loadStudentMakeups() {
@@ -1953,7 +1900,7 @@ async function loadStudentMakeups() {
 
 
   container.innerHTML = `
-    <p>Carregando reposições...</p>
+    <p>Carregando reposi\u00E7\u00F5es...</p>
   `;
 
 
@@ -1976,14 +1923,13 @@ async function loadStudentMakeups() {
   if (error) {
 
     console.error(
-      "Erro ao carregar reposições:",
+      "Erro ao carregar reposi\u00E7\u00F5es:",
       error
     );
 
-
     container.innerHTML = `
       <p>
-        Não foi possível carregar suas reposições.
+        N\u00E3o foi poss\u00EDvel carregar suas reposi\u00E7\u00F5es.
       </p>
     `;
 
@@ -1995,15 +1941,7 @@ async function loadStudentMakeups() {
     data || [];
 
 
-  console.log(
-    "REPOSIÇÕES DO ALUNO:",
-    makeups
-  );
-
-
-  if (
-    makeups.length === 0
-  ) {
+  if (makeups.length === 0) {
 
     container.innerHTML = `
 
@@ -2017,13 +1955,13 @@ async function loadStudentMakeups() {
       >
 
         <strong>
-          Você não possui reposições cadastradas.
+          Voc\u00EA n\u00E3o possui reposi\u00E7\u00F5es cadastradas.
         </strong>
 
         <p>
           Quando uma falta, cancelamento de aula
-          ou atribuição do professor gerar uma
-          reposição, ela aparecerá aqui.
+          ou atribui\u00E7\u00E3o do professor gerar uma
+          reposi\u00E7\u00E3o, ela aparecer\u00E1 aqui.
         </p>
 
       </div>
@@ -2106,7 +2044,6 @@ async function loadStudentMakeups() {
 }
 
 
-
 // =====================================================
 // ID DO ALUNO ATUAL
 // =====================================================
@@ -2124,30 +2061,47 @@ function currentStudentIdForQuery() {
 
 
 // =====================================================
-// CARD DE REPOSI\xc7\xc3O
+// CARD DE REPOSI\u00C7\u00C3O
 // =====================================================
 
 function renderMakeupCard(makeup) {
 
-  const duration = makeup.duration_minutes || 0;
-  const source = formatMakeupSource(makeup.source);
-  const status = formatMakeupStatus(makeup.display_status || makeup.status);
+  const duration =
+    makeup.duration_minutes || 0;
 
-  const expires = makeup.expires_at
-    ? formatDateTime(makeup.expires_at)
-    : "N\xe3o informado";
+  const source =
+    formatMakeupSource(
+      makeup.source
+    );
 
-  const cancellationCount = Number(makeup.cancellation_count || 0);
+  const status =
+    formatMakeupStatus(
+      makeup.display_status ||
+      makeup.status
+    );
 
-  const isReserved = Boolean(
-    makeup.reserved_now &&
-    makeup.reservation_id
-  );
+  const expires =
+    makeup.expires_at
+      ? formatDateTime(
+          makeup.expires_at
+        )
+      : "N\u00E3o informado";
 
-  let reservationInfo = "";
+  const cancellationCount =
+    Number(
+      makeup.cancellation_count ||
+      0
+    );
+
+  const isReserved =
+    Boolean(
+      makeup.reserved_now &&
+      makeup.reservation_id
+    );
+
 
   // ===================================================
-  // AULA DE ORIGEM DA REPOSIÇÃO
+  // AULA QUE GEROU A REPOSI\u00C7\u00C3O
   // ===================================================
 
   let sourceLessonInfo = "";
@@ -2165,14 +2119,12 @@ function renderMakeupCard(makeup) {
         )
       );
 
-
     const sourceStart =
       makeup.source_lesson_start_time
         ? normalizeTime(
             makeup.source_lesson_start_time
           )
         : "";
-
 
     const sourceEnd =
       makeup.source_lesson_end_time
@@ -2199,161 +2151,183 @@ function renderMakeupCard(makeup) {
 
         ${
           sourceEnd
-            ? ` às ${sourceEnd}`
+            ? ` \u00E0s ${sourceEnd}`
             : ""
         }
-
       </p>
 
     `;
 
   }
-  
-  if (isReserved && makeup.reservation_date) {
-
-    reservationInfo = `
-      <div style="margin-top:15px;padding:14px;border-radius:8px;background:#eef5ff;">
-        <strong>Reposi\xe7\xe3o agendada:</strong>
-        <br>
-        ${formatDate(new Date(makeup.reservation_date + "T12:00:00"))}
-        ${makeup.reservation_start_time ? ` \xe0s ${normalizeTime(makeup.reservation_start_time)}` : ""}
-        ${makeup.reservation_end_time ? ` at\xe9 ${normalizeTime(makeup.reservation_end_time)}` : ""}
-      </div>
-    `;
-  }
-
-let cancelButton = "";
 
 
-if (
-  isReserved &&
-  makeup.reservation_id &&
-  makeup.reservation_date &&
-  makeup.reservation_start_time
-) {
+  // ===================================================
+  // RESERVA ATUAL
+  // ===================================================
 
-  const reservationDate =
-    new Date(
-      makeup.reservation_date +
-      "T12:00:00"
-    );
+  let reservationInfo = "";
 
-
-  const reservationDateTime =
-    combineDateAndTime(
-      reservationDate,
-      makeup.reservation_start_time
-    );
-
-
-  const minimumCancellationHours =
-    2;
-
-
-  const cancellationLimit =
-    new Date(
-      reservationDateTime.getTime() -
-      (
-        minimumCancellationHours *
-        60 *
-        60 *
-        1000
-      )
-    );
-
-
-  const now =
-    new Date();
-
-
-  // =================================================
-  // AINDA PODE CANCELAR
-  // =================================================
 
   if (
-    now < cancellationLimit
+    isReserved &&
+    makeup.reservation_date
   ) {
 
-    cancelButton = `
-      <button
-        type="button"
-        class="secondary-button cancel-makeup-button"
-        data-reservation-id="${makeup.reservation_id}"
-        style="
-          margin-top:15px;
-          border-color:#c0392b;
-          color:#c0392b;
-        "
-      >
-        Cancelar reposição
-      </button>
+    reservationInfo = `
 
-      <p
-        id="cancel-makeup-message-${makeup.reservation_id}"
-        style="margin-top:8px;"
-      ></p>
-    `;
-
-  }
-
-
-  // =================================================
-  // PRAZO DE CANCELAMENTO ENCERRADO
-  // =================================================
-
-  else if (
-    reservationDateTime > now
-  ) {
-
-    cancelButton = `
       <div
         style="
           margin-top:15px;
-          padding:12px;
+          padding:14px;
           border-radius:8px;
-          background:#fff3cd;
-          color:#856404;
+          background:#eef5ff;
         "
       >
-        Prazo de cancelamento encerrado.
-        O cancelamento precisa ser feito com
-        pelo menos 2 horas de antecedência.
+
+        <strong>
+          Reposi\u00E7\u00E3o agendada:
+        </strong>
+
+        <br>
+
+        ${formatDate(
+          new Date(
+            makeup.reservation_date +
+            "T12:00:00"
+          )
+        )}
+
+        ${
+          makeup.reservation_start_time
+            ? ` \u00E0s ${normalizeTime(
+                makeup.reservation_start_time
+              )}`
+            : ""
+        }
+
+        ${
+          makeup.reservation_end_time
+            ? ` at\u00E9 ${normalizeTime(
+                makeup.reservation_end_time
+              )}`
+            : ""
+        }
+
       </div>
+
     `;
 
   }
 
 
-  // =================================================
-  // REPOSIÇÃO JÁ PASSOU
-  // =================================================
+  // ===================================================
+  // BOT\u00C3O DE CANCELAMENTO
+  // ===================================================
 
-  else {
+  let cancelButton = "";
 
-    cancelButton = `
-      <div
-        style="
-          margin-top:15px;
-          padding:12px;
-          border-radius:8px;
-          background:#eeeeee;
-          color:#666666;
-        "
-      >
-        Esta reposição já ocorreu.
-      </div>
-    `;
+
+  if (
+    isReserved &&
+    makeup.reservation_id &&
+    makeup.reservation_date &&
+    makeup.reservation_start_time
+  ) {
+
+    const reservationDate =
+      new Date(
+        makeup.reservation_date +
+        "T12:00:00"
+      );
+
+    const reservationDateTime =
+      combineDateAndTime(
+        reservationDate,
+        makeup.reservation_start_time
+      );
+
+    const now =
+      new Date();
+
+
+    if (
+      reservationDateTime > now
+    ) {
+
+      cancelButton = `
+
+        <button
+          type="button"
+          class="secondary-button cancel-makeup-button"
+          data-reservation-id="${makeup.reservation_id}"
+          style="
+            margin-top:15px;
+            border-color:#c0392b;
+            color:#c0392b;
+          "
+        >
+          Cancelar reposi\u00E7\u00E3o
+        </button>
+
+        <p
+          id="cancel-makeup-message-${makeup.reservation_id}"
+          style="margin-top:8px;"
+        ></p>
+
+      `;
+
+    }
+
+    else {
+
+      cancelButton = `
+
+        <div
+          style="
+            margin-top:15px;
+            padding:12px;
+            border-radius:8px;
+            background:#eeeeee;
+            color:#666666;
+          "
+        >
+          Esta reposi\u00E7\u00E3o j\u00E1 ocorreu.
+        </div>
+
+      `;
+
+    }
 
   }
 
-}
 
   return `
-    <div style="border:1px solid #ddd;border-radius:12px;padding:18px;background:white;">
 
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div
+      style="
+        border:1px solid #ddd;
+        border-radius:12px;
+        padding:18px;
+        background:white;
+      "
+    >
 
-        <h4 style="margin:0;font-size:20px;">
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <h4
+          style="
+            margin:0;
+            font-size:20px;
+          "
+        >
           ${duration} minutos
         </h4>
 
@@ -2370,9 +2344,7 @@ if (
           ${source}
         </p>
 
-
         ${sourceLessonInfo}
-
 
         <p>
           <strong>Validade:</strong>
@@ -2391,13 +2363,14 @@ if (
       </div>
 
     </div>
+
   `;
+
 }
 
 
-
 // =====================================================
-// CANCELAR REPOSI\xc7\xc3O DO ALUNO
+// CANCELAR REPOSI\u00C7\u00C3O DO ALUNO
 // =====================================================
 
 async function cancelStudentMakeup(
@@ -2407,7 +2380,7 @@ async function cancelStudentMakeup(
   if (!reservationId) {
 
     alert(
-      "Não foi possível identificar a reserva."
+      "N\u00E3o foi poss\u00EDvel identificar a reserva."
     );
 
     return;
@@ -2419,16 +2392,11 @@ async function cancelStudentMakeup(
       `.cancel-makeup-button[data-reservation-id="${reservationId}"]`
     );
 
-
   const message =
     document.getElementById(
       `cancel-makeup-message-${reservationId}`
     );
 
-
-  // =====================================================
-  // BUSCAR DATA/HORA DA RESERVA
-  // =====================================================
 
   const {
     data: reservation,
@@ -2459,7 +2427,7 @@ async function cancelStudentMakeup(
     if (message) {
 
       message.textContent =
-        "Não foi possível consultar a reserva.";
+        "N\u00E3o foi poss\u00EDvel consultar a reserva.";
 
       message.style.color =
         "red";
@@ -2469,10 +2437,6 @@ async function cancelStudentMakeup(
     return;
   }
 
-
-  // =====================================================
-  // MONTAR DATA/HORA
-  // =====================================================
 
   const reservationDateTime =
     new Date(
@@ -2484,77 +2448,60 @@ async function cancelStudentMakeup(
       ":00"
     );
 
-
   const now =
     new Date();
 
-
-  // =====================================================
-  // JÁ COMEÇOU / JÁ PASSOU
-  // =====================================================
 
   if (
     reservationDateTime <= now
   ) {
 
     alert(
-      "Essa reposição já começou ou já ocorreu e não pode mais ser cancelada."
+      "Essa reposi\u00E7\u00E3o j\u00E1 come\u00E7ou ou j\u00E1 ocorreu e n\u00E3o pode mais ser cancelada."
     );
 
     return;
   }
 
 
-  // =====================================================
-  // CALCULAR ANTECEDÊNCIA
-  // =====================================================
-
   const minimumHours =
     2;
 
-
-  const millisecondsUntilClass =
-    reservationDateTime.getTime()
-    - now.getTime();
-
-
   const hoursUntilClass =
-    millisecondsUntilClass
-    / (
+    (
+      reservationDateTime.getTime()
+      - now.getTime()
+    )
+    /
+    (
       1000 *
       60 *
       60
     );
 
-
   const lateCancellation =
-    hoursUntilClass < minimumHours;
+    hoursUntilClass <
+    minimumHours;
 
-
-  // =====================================================
-  // CONFIRMAÇÃO
-  // =====================================================
 
   let confirmationText;
 
 
-  if (
-    lateCancellation
-  ) {
+  if (lateCancellation) {
 
     confirmationText =
-      "Tem certeza que deseja cancelar esta reposição?\n\n" +
+      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n" +
       "Faltam menos de 2 horas para a aula.\n\n" +
-      "Essa aula não poderá ser reposta depois.";
+      "Essa aula n\u00E3o poder\u00E1 ser reposta depois.";
 
   }
 
   else {
 
     confirmationText =
-      "Tem certeza que deseja cancelar esta reposição?\n\n" +
-      "No primeiro cancelamento, a reposição volta uma vez. " +
-      "No segundo cancelamento, ela será perdida.";
+      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n" +
+      "No primeiro cancelamento, a reposi\u00E7\u00E3o volta uma vez. " +
+      "No segundo cancelamento, ela ser\u00E1 perdida.";
 
   }
 
@@ -2566,15 +2513,9 @@ async function cancelStudentMakeup(
 
 
   if (!confirmed) {
-
     return;
-
   }
 
-
-  // =====================================================
-  // CANCELAR
-  // =====================================================
 
   if (button) {
 
@@ -2588,7 +2529,6 @@ async function cancelStudentMakeup(
 
 
   const {
-    data,
     error
   } =
     await supabaseClient.rpc(
@@ -2603,7 +2543,7 @@ async function cancelStudentMakeup(
   if (error) {
 
     console.error(
-      "Erro ao cancelar reposição:",
+      "Erro ao cancelar reposi\u00E7\u00E3o:",
       error
     );
 
@@ -2612,7 +2552,7 @@ async function cancelStudentMakeup(
 
       message.textContent =
         error.message ||
-        "Não foi possível cancelar a reposição.";
+        "N\u00E3o foi poss\u00EDvel cancelar a reposi\u00E7\u00E3o.";
 
       message.style.color =
         "red";
@@ -2626,7 +2566,7 @@ async function cancelStudentMakeup(
         false;
 
       button.textContent =
-        "Cancelar reposição";
+        "Cancelar reposi\u00E7\u00E3o";
 
     }
 
@@ -2635,28 +2575,21 @@ async function cancelStudentMakeup(
   }
 
 
-  // =====================================================
-  // SUCESSO
-  // =====================================================
-
   if (message) {
 
-    if (
-      lateCancellation
-    ) {
+    if (lateCancellation) {
 
       message.textContent =
-        "Reposição cancelada. Como o cancelamento foi feito com menos de 2 horas de antecedência, o direito à reposição foi perdido.";
+        "Reposi\u00E7\u00E3o cancelada. Como o cancelamento foi feito com menos de 2 horas de anteced\u00EAncia, o direito \u00E0 reposi\u00E7\u00E3o foi perdido.";
 
     }
 
     else {
 
       message.textContent =
-        "Reposição cancelada com sucesso.";
+        "Reposi\u00E7\u00E3o cancelada com sucesso.";
 
     }
-
 
     message.style.color =
       "green";
@@ -2664,12 +2597,7 @@ async function cancelStudentMakeup(
   }
 
 
-  // =====================================================
-  // ATUALIZAR TELAS
-  // =====================================================
-
   await loadStudentMakeups();
-
 
   await loadStudentWeeklySchedule();
 
@@ -2701,6 +2629,7 @@ function formatMakeupStatus(status) {
 
 
     case "used":
+    case "completed":
 
       return {
         label: "\u26ab Utilizada"
@@ -2734,7 +2663,7 @@ function formatMakeupStatus(status) {
 
 
 // =====================================================
-// ORIGEM REPOSI\xc7\xc3O
+// ORIGEM REPOSI\u00C7\u00C3O
 // =====================================================
 
 function formatMakeupSource(source) {
@@ -2746,30 +2675,24 @@ function formatMakeupSource(source) {
   ) {
 
     case "absence":
-
       return "Falta";
 
-
     case "manual":
-
       return "Professor";
 
-
     case "student_cancellation":
-
       return "Cancelamento de aula";
 
-
     default:
-
       return (
         source ||
-        "Não informado"
+        "N\u00E3o informado"
       );
 
   }
 
 }
+
 
 // =====================================================
 // AGENDA DO ALUNO
@@ -2879,7 +2802,6 @@ function renderStudentWeeklySchedule(
       "studentScheduleHead"
     );
 
-
   const body =
     document.getElementById(
       "studentScheduleBody"
@@ -2895,7 +2817,7 @@ function renderStudentWeeklySchedule(
 
     <tr>
 
-      <th>Hor\xe1rio</th>
+      <th>Hor\u00E1rio</th>
 
       ${getWeekDays()
         .map(
@@ -2951,14 +2873,11 @@ function renderStudentWeeklySchedule(
     const row =
       document.createElement("tr");
 
-
     const timeCell =
       document.createElement("td");
 
-
     timeCell.textContent =
       time;
-
 
     row.appendChild(
       timeCell
@@ -2973,7 +2892,6 @@ function renderStudentWeeklySchedule(
 
       const cell =
         document.createElement("td");
-
 
       cell.classList.add(
         "schedule-cell"
@@ -2990,7 +2908,8 @@ function renderStudentWeeklySchedule(
 
       if (!slot) {
 
-        cell.textContent = "\u2014";
+        cell.textContent =
+          "\u2014";
 
         cell.classList.add(
           "unavailable"
@@ -3003,36 +2922,32 @@ function renderStudentWeeklySchedule(
         const slotDate =
           getDateForDay(
             selectedWeekStart,
-            Number(slot.day_of_week)
+            Number(
+              slot.day_of_week
+            )
           );
 
         const slotDateDb =
-          formatDateForDatabase(slotDate);
+          formatDateForDatabase(
+            slotDate
+          );
 
-        /*
-         * A reposi\u00E7\u00E3o pode durar mais de um bloco da agenda.
-         *
-         * Exemplo:
-         * reserva = 10:30 at\u00E9 11:30
-         *
-         * Ent\u00E3o os blocos:
-         * 10:30-11:00 -> Minha reposi\u00E7\u00E3o
-         * 11:00-11:30 -> Minha reposi\u00E7\u00E3o
-         *
-         * Por isso n\u00E3o podemos comparar somente o start_time.
-         * Precisamos verificar se a reserva se sobrep\u00F5e ao bloco.
-         */
+
         const ownMakeupReservation =
           makeupReservations.find(
             reservation => {
 
               const sameDate =
-                String(reservation.reservation_date) ===
+                String(
+                  reservation.reservation_date
+                ) ===
                 slotDateDb;
+
 
               if (!sameDate) {
                 return false;
               }
+
 
               const reservationStart =
                 timeToMinutes(
@@ -3054,13 +2969,7 @@ function renderStudentWeeklySchedule(
                   slot.end_time
                 );
 
-              /*
-               * Dois intervalos se sobrep\u00F5em quando:
-               *
-               * reserva come\u00E7a antes do fim do bloco
-               * E
-               * reserva termina depois do in\u00EDcio do bloco
-               */
+
               return (
                 reservationStart < slotEnd &&
                 reservationEnd > slotStart
@@ -3069,13 +2978,22 @@ function renderStudentWeeklySchedule(
             }
           );
 
+
         const status =
           ownMakeupReservation
+
             ? {
-                className: "own-makeup",
-                label: "Minha reposi\u00E7\u00E3o"
+                className:
+                  "own-makeup",
+
+                label:
+                  "Minha reposi\u00E7\u00E3o"
               }
-            : normalizeStudentScheduleStatus(slot.status);
+
+            : normalizeStudentScheduleStatus(
+                slot.status
+              );
+
 
         cell.classList.add(
           status.className
@@ -3084,20 +3002,16 @@ function renderStudentWeeklySchedule(
         cell.textContent =
           status.label;
 
-        // ------------------------------------------------
-        // Minha reposi\u00E7\u00E3o
-        // ------------------------------------------------
+
+        // =============================================
+        // MINHA REPOSI\u00C7\u00C3O
+        // =============================================
 
         if (
           status.className ===
           "own-makeup"
         ) {
 
-          /*
-           * Aplicamos a cor diretamente pelo app.js para
-           * garantir que a reposi\u00E7\u00E3o fique roxa mesmo que
-           * o CSS externo ainda n\u00E3o tenha .own-makeup.
-           */
           cell.style.backgroundColor =
             "#eadcf8";
 
@@ -3115,156 +3029,99 @@ function renderStudentWeeklySchedule(
 
         }
 
-        // ------------------------------------------------
-        // Minha aula
-        // ------------------------------------------------
 
-else if (
-  status.className ===
-  "own"
-) {
+        // =============================================
+        // MINHA AULA
+        // =============================================
 
-  cell.style.fontWeight =
-    "bold";
+        else if (
+          status.className ===
+          "own"
+        ) {
 
-  cell.style.cursor =
-    "pointer";
+          cell.style.fontWeight =
+            "bold";
 
-  cell.title =
-    "Clique para cancelar esta aula.";
+          cell.style.cursor =
+            "pointer";
 
-
-  cell.addEventListener(
-    "click",
-    () => {
-
-      openLessonCancellation(
-        slot,
-        slotDate
-      );
-
-    }
-  );
-
-}
-
-        // ------------------------------------------------
-        // Hor\u00E1rio livre
-        // ------------------------------------------------
-
-else if (
-  status.className ===
-  "available"
-) {
-
-  const slotDateTime =
-    combineDateAndTime(
-      slotDate,
-      slot.start_time
-    );
+          cell.title =
+            "Clique para cancelar esta aula.";
 
 
-  const now =
-    new Date();
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openLessonCancellation(
+                slot,
+                slotDate
+              );
+
+            }
+          );
+
+        }
 
 
-  // =================================================
-  // HORÁRIO JÁ PASSOU
-  // =================================================
+        // =============================================
+        // HOR\u00C1RIO LIVRE
+        // =============================================
 
-  if (
-    slotDateTime <= now
-  ) {
+        else if (
+          status.className ===
+          "available"
+        ) {
 
-    cell.textContent =
-      "Encerrado";
+          if (
+            !canBookMakeupOnDate(
+              slotDate
+            )
+          ) {
 
-    cell.style.cursor =
-      "not-allowed";
+            cell.textContent =
+              "Prazo encerrado";
 
-    cell.style.opacity =
-      "0.55";
+            cell.style.cursor =
+              "not-allowed";
 
-    cell.style.backgroundColor =
-      "#eeeeee";
+            cell.style.opacity =
+              "0.55";
 
-    cell.style.color =
-      "#777777";
+            cell.style.backgroundColor =
+              "#eeeeee";
 
-    cell.title =
-      "Este horário já passou.";
+            cell.style.color =
+              "#777777";
 
-  }
+            cell.title =
+              "Reposi\u00E7\u00F5es precisam ser marcadas at\u00E9 o dia anterior.";
 
+          }
 
-  // =================================================
-  // HORÁRIO FUTURO
-  // =================================================
+          else {
 
-else if (
-  status.className ===
-  "available"
-) {
+            cell.style.cursor =
+              "pointer";
 
-  // ================================================
-  // VERIFICAR ANTECEDÊNCIA MÍNIMA
-  // ================================================
+            cell.title =
+              "Clique para escolher uma reposi\u00E7\u00E3o.";
 
-  if (
-    !canBookMakeupOnDate(
-      slotDate
-    )
-  ) {
+            cell.addEventListener(
+              "click",
+              () => {
 
-    cell.textContent =
-      "Prazo encerrado";
+                openMakeupSelection(
+                  slot
+                );
 
-    cell.style.cursor =
-      "not-allowed";
+              }
+            );
 
-    cell.style.opacity =
-      "0.55";
+          }
 
-    cell.style.backgroundColor =
-      "#eeeeee";
+        }
 
-    cell.style.color =
-      "#777777";
-
-    cell.title =
-      "Reposições precisam ser marcadas até o dia anterior.";
-
-  }
-
-
-  // ================================================
-  // PODE MARCAR
-  // ================================================
-
-  else {
-
-    cell.style.cursor =
-      "pointer";
-
-    cell.title =
-      "Clique para escolher uma reposição.";
-
-    cell.addEventListener(
-      "click",
-      () => {
-
-        openMakeupSelection(
-          slot
-        );
-
-      }
-    );
-
-  }
-
-}
-
-}
       }
 
 
@@ -3287,12 +3144,13 @@ else if (
     body.innerHTML = `
       <tr>
         <td colspan="8">
-          Nenhum hor\xe1rio cadastrado.
+          Nenhum hor\u00E1rio cadastrado.
         </td>
       </tr>
     `;
 
   }
+
 }
 
 
@@ -3386,6 +3244,7 @@ function normalizeStudentScheduleStatus(
   }
 }
 
+
 // =====================================================
 // CANCELAR AULA NORMAL PELO ALUNO
 // =====================================================
@@ -3400,10 +3259,6 @@ async function openLessonCancellation(
       slotDate
     );
 
-
-  // ===================================================
-  // IDENTIFICAR A AULA REAL
-  // ===================================================
 
   const {
     data,
@@ -3432,7 +3287,7 @@ async function openLessonCancellation(
 
     alert(
       error.message ||
-      "Não foi possível identificar esta aula."
+      "N\u00E3o foi poss\u00EDvel identificar esta aula."
     );
 
     return;
@@ -3448,16 +3303,12 @@ async function openLessonCancellation(
   if (!lesson) {
 
     alert(
-      "Não foi possível identificar esta aula."
+      "N\u00E3o foi poss\u00EDvel identificar esta aula."
     );
 
     return;
   }
 
-
-  // ===================================================
-  // DATA/HORA REAL DA AULA
-  // ===================================================
 
   const lessonDateTime =
     new Date(
@@ -3469,30 +3320,21 @@ async function openLessonCancellation(
       ":00"
     );
 
-
   const now =
     new Date();
 
-
-  // ===================================================
-  // AULA JÁ COMEÇOU
-  // ===================================================
 
   if (
     lessonDateTime <= now
   ) {
 
     alert(
-      "Essa aula já começou ou já ocorreu e não pode mais ser cancelada."
+      "Essa aula j\u00E1 come\u00E7ou ou j\u00E1 ocorreu e n\u00E3o pode mais ser cancelada."
     );
 
     return;
   }
 
-
-  // ===================================================
-  // ANTECEDÊNCIA
-  // ===================================================
 
   const minimumHours =
     Number(
@@ -3519,23 +3361,17 @@ async function openLessonCancellation(
     minimumHours;
 
 
-  // ===================================================
-  // MENSAGEM DE CONFIRMAÇÃO
-  // ===================================================
-
   let confirmationMessage;
 
 
-  if (
-    lateCancellation
-  ) {
+  if (lateCancellation) {
 
     confirmationMessage =
       "Tem certeza que deseja cancelar esta aula?\n\n" +
       "Faltam menos de " +
       minimumHours +
-      " horas para o início.\n\n" +
-      "Essa aula não poderá ser reposta depois.";
+      " horas para o in\u00EDcio.\n\n" +
+      "Essa aula n\u00E3o poder\u00E1 ser reposta depois.";
 
   }
 
@@ -3543,7 +3379,7 @@ async function openLessonCancellation(
 
     confirmationMessage =
       "Tem certeza que deseja cancelar esta aula?\n\n" +
-      "Uma reposição será liberada para você.";
+      "Uma reposi\u00E7\u00E3o ser\u00E1 liberada para voc\u00EA.";
 
   }
 
@@ -3558,10 +3394,6 @@ async function openLessonCancellation(
     return;
   }
 
-
-  // ===================================================
-  // CANCELAR NO BANCO
-  // ===================================================
 
   const {
     data: cancellationResult,
@@ -3590,16 +3422,12 @@ async function openLessonCancellation(
 
     alert(
       cancellationError.message ||
-      "Não foi possível cancelar esta aula."
+      "N\u00E3o foi poss\u00EDvel cancelar esta aula."
     );
 
     return;
   }
 
-
-  // ===================================================
-  // RESULTADO
-  // ===================================================
 
   if (
     cancellationResult ===
@@ -3608,7 +3436,7 @@ async function openLessonCancellation(
 
     alert(
       "Aula cancelada com sucesso.\n\n" +
-      "Uma reposição foi liberada para você."
+      "Uma reposi\u00E7\u00E3o foi liberada para voc\u00EA."
     );
 
   }
@@ -3620,7 +3448,7 @@ async function openLessonCancellation(
 
     alert(
       "Aula cancelada.\n\n" +
-      "Como o cancelamento foi feito sem a antecedência mínima, esta aula não poderá ser reposta."
+      "Como o cancelamento foi feito sem a anteced\u00EAncia m\u00EDnima, esta aula n\u00E3o poder\u00E1 ser reposta."
     );
 
   }
@@ -3634,13 +3462,10 @@ async function openLessonCancellation(
   }
 
 
-  // ===================================================
-  // ATUALIZAR AGENDA
-  // ===================================================
-
   await loadStudentWeeklySchedule();
 
 }
+
 
 // =====================================================
 // SELECIONAR REPOSI\xc7\xc3O
@@ -3673,36 +3498,20 @@ async function openMakeupSelection(
       )
     );
 
-    if (
+
+  if (
     !canBookMakeupOnDate(
       reservationDate
     )
   ) {
 
     alert(
-      "As reposições precisam ser marcadas até o dia anterior à aula."
+      "As reposi\u00E7\u00F5es precisam ser marcadas at\u00E9 o dia anterior \u00E0 aula."
     );
 
     return;
   }
-  
-    const reservationDateTime =
-    combineDateAndTime(
-      reservationDate,
-      slot.start_time
-    );
 
-
-  if (
-    reservationDateTime <= new Date()
-  ) {
-
-    alert(
-      "Não é possível marcar uma reposição em um horário que já passou."
-    );
-
-    return;
-  }
 
   const makeups =
     await getAvailableMakeups();
@@ -3944,10 +3753,6 @@ function getCompatibleMakeups(
       );
 
 
-    // ================================================
-    // REPOSIÇÃO DE 30 MINUTOS
-    // ================================================
-
     if (
       duration === 30
     ) {
@@ -3957,13 +3762,8 @@ function getCompatibleMakeups(
       );
 
       continue;
-
     }
 
-
-    // ================================================
-    // REPOSIÇÃO DE 60 MINUTOS
-    // ================================================
 
     if (
       duration === 60
@@ -3975,15 +3775,7 @@ function getCompatibleMakeups(
         );
 
 
-      /*
-       * Para uma reposição de 60 minutos,
-       * o bloco atual e o próximo bloco de
-       * 30 minutos precisam estar livres.
-       */
-
-      if (
-        nextSlot
-      ) {
+      if (nextSlot) {
 
         result.push(
           makeup
@@ -4875,8 +4667,9 @@ function getWeekDays() {
 // DATAS
 // =====================================================
 
+
 // =====================================================
-// ANTECEDÊNCIA MÍNIMA PARA REPOSIÇÃO
+// ANTECED\u00CANCIA M\u00CDNIMA PARA MARCAR REPOSI\u00C7\u00C3O
 // =====================================================
 
 function canBookMakeupOnDate(
@@ -4885,7 +4678,6 @@ function canBookMakeupOnDate(
 
   const today =
     new Date();
-
 
   today.setHours(
     0,
@@ -4900,7 +4692,6 @@ function canBookMakeupOnDate(
       reservationDate
     );
 
-
   targetDate.setHours(
     0,
     0,
@@ -4909,20 +4700,44 @@ function canBookMakeupOnDate(
   );
 
 
-  /*
-   * A reposição precisa ser marcada,
-   * no mínimo, no dia anterior.
-   *
-   * Hoje 17/08:
-   * 17/08 -> não pode
-   * 18/08 -> pode
-   * 19/08 -> pode
-   */
-
   return (
     targetDate > today
   );
+
 }
+
+
+// =====================================================
+// JUNTAR DATA + HOR\u00C1RIO
+// =====================================================
+
+function combineDateAndTime(
+  date,
+  time
+) {
+
+  const result =
+    new Date(date);
+
+  const parts =
+    normalizeTime(
+      time
+    ).split(":");
+
+
+  result.setHours(
+    Number(parts[0]),
+    Number(parts[1]),
+    0,
+    0
+  );
+
+
+  return result;
+
+}
+
+
 function formatDate(date) {
 
   return new Intl.DateTimeFormat(
@@ -5012,34 +4827,6 @@ function formatDateForDatabase(
   );
 }
 
-// =====================================================
-// JUNTAR DATA + HORÁRIO
-// =====================================================
-
-function combineDateAndTime(
-  date,
-  time
-) {
-
-  const result =
-    new Date(date);
-
-
-  const parts =
-    normalizeTime(time)
-      .split(":");
-
-
-  result.setHours(
-    Number(parts[0]),
-    Number(parts[1]),
-    0,
-    0
-  );
-
-
-  return result;
-}
 
 // =====================================================
 // HOR\xc1RIOS
