@@ -3246,6 +3246,641 @@ function normalizeStudentScheduleStatus(
 
 
 async function openLessonCancellation(
+  slot,
+  slotDate
+) {
+
+  const lessonDateDb =
+    formatDateForDatabase(
+      slotDate
+    );
+
+
+  // ===================================================
+  // IDENTIFICAR A AULA
+  // ===================================================
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_lesson_for_slot",
+      {
+        p_lesson_date:
+          lessonDateDb,
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          )
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao identificar aula:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Não foi possível identificar esta aula."
+    );
+
+    return;
+  }
+
+
+  const lesson =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if (!lesson) {
+
+    alert(
+      "Não foi possível identificar esta aula."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // DATA/HORA DA AULA
+  // ===================================================
+
+  const lessonDateTime =
+    new Date(
+      lesson.lesson_date +
+      "T" +
+      normalizeTime(
+        lesson.start_time
+      ) +
+      ":00"
+    );
+
+
+  const now =
+    new Date();
+
+
+  // ===================================================
+  // AULA JÁ COMEÇOU
+  // ===================================================
+
+  if (
+    lessonDateTime <= now
+  ) {
+
+    alert(
+      "Essa aula já começou ou já ocorreu e não pode mais ser cancelada."
+    );
+
+    return;
+  }
+
+
+  // ===================================================
+  // ANTECEDÊNCIA
+  // ===================================================
+
+  const minimumHours =
+    Number(
+      lesson.minimum_cancellation_hours ||
+      2
+    );
+
+
+  const hoursUntilLesson =
+    (
+      lessonDateTime.getTime()
+      - now.getTime()
+    )
+    /
+    (
+      1000 *
+      60 *
+      60
+    );
+
+
+  const lateCancellation =
+    hoursUntilLesson <
+    minimumHours;
+
+
+  // ===================================================
+  // ÁREA DO FORMULÁRIO
+  // ===================================================
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const warningText =
+    lateCancellation
+
+      ? `
+        <div
+          style="
+            margin-top:15px;
+            padding:15px;
+            border-radius:8px;
+            background:#fff3cd;
+          "
+        >
+          <strong>Atenção:</strong>
+          faltam menos de ${minimumHours} horas
+          para esta aula.
+
+          <br><br>
+
+          Se você cancelar agora,
+          <strong>
+            esta aula não poderá ser reposta depois.
+          </strong>
+        </div>
+      `
+
+      : `
+        <div
+          style="
+            margin-top:15px;
+            padding:15px;
+            border-radius:8px;
+            background:#eef5ff;
+          "
+        >
+          Como o cancelamento está sendo feito
+          com antecedência, uma reposição será
+          liberada para você.
+        </div>
+      `;
+
+
+  // ===================================================
+  // FORMULÁRIO
+  // ===================================================
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        ${
+          lateCancellation
+            ? "Cancelar aula"
+            : "Cancelar / adiar aula"
+        }
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          new Date(
+            lesson.lesson_date +
+            "T12:00:00"
+          )
+        )}
+      </p>
+
+
+      <p>
+        <strong>Horário:</strong>
+
+        ${normalizeTime(
+          lesson.start_time
+        )}
+
+        às
+
+        ${normalizeTime(
+          lesson.end_time
+        )}
+      </p>
+
+
+      ${warningText}
+
+
+      <div
+        style="
+          margin-top:20px;
+        "
+      >
+
+        <label
+          for="lessonCancellationMessage"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Mensagem para o professor
+
+          <span
+            style="
+              font-weight:normal;
+              color:#666;
+            "
+          >
+            (opcional)
+          </span>
+        </label>
+
+
+        <textarea
+          id="lessonCancellationMessage"
+          maxlength="1000"
+          rows="4"
+          placeholder="Ex.: Professor, surgiu um compromisso e não vou conseguir participar da aula..."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+            font-size:15px;
+          "
+        ></textarea>
+
+
+        <div
+          id="lessonCancellationCounter"
+          style="
+            margin-top:5px;
+            text-align:right;
+            font-size:12px;
+            color:#666;
+          "
+        >
+          0 / 1000
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          margin-top:20px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmLessonCancellationButton"
+        >
+          Confirmar cancelamento
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeLessonCancellationButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+
+      <p
+        id="lessonCancellationMessageResult"
+        style="margin-top:12px;"
+      ></p>
+
+    </div>
+
+  `;
+
+
+  // ===================================================
+  // CONTADOR DE CARACTERES
+  // ===================================================
+
+  const messageInput =
+    document.getElementById(
+      "lessonCancellationMessage"
+    );
+
+
+  const counter =
+    document.getElementById(
+      "lessonCancellationCounter"
+    );
+
+
+  if (
+    messageInput &&
+    counter
+  ) {
+
+    messageInput.addEventListener(
+      "input",
+      () => {
+
+        counter.textContent =
+          messageInput.value.length +
+          " / 1000";
+
+      }
+    );
+
+  }
+
+
+  // ===================================================
+  // CONFIRMAR
+  // ===================================================
+
+  const confirmButton =
+    document.getElementById(
+      "confirmLessonCancellationButton"
+    );
+
+
+  if (confirmButton) {
+
+    confirmButton.addEventListener(
+      "click",
+      () => {
+
+        confirmLessonCancellation(
+          slot,
+          lessonDateDb,
+          lateCancellation
+        );
+
+      }
+    );
+
+  }
+
+
+  // ===================================================
+  // VOLTAR
+  // ===================================================
+
+  const closeButton =
+    document.getElementById(
+      "closeLessonCancellationButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CONFIRMAR CANCELAMENTO / ADIAMENTO
+// =====================================================
+
+async function confirmLessonCancellation(
+  slot,
+  lessonDateDb,
+  lateCancellation
+) {
+
+  const input =
+    document.getElementById(
+      "lessonCancellationMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "confirmLessonCancellationButton"
+    );
+
+
+  const resultMessage =
+    document.getElementById(
+      "lessonCancellationMessageResult"
+    );
+
+
+  const studentMessage =
+    input
+      ? input.value.trim()
+      : "";
+
+
+  // ===================================================
+  // CONFIRMAÇÃO FINAL
+  // ===================================================
+
+  const confirmationMessage =
+    lateCancellation
+
+      ? (
+          "Tem certeza que deseja cancelar esta aula?\n\n" +
+          "Essa aula não poderá ser reposta depois."
+        )
+
+      : (
+          "Tem certeza que deseja cancelar esta aula?\n\n" +
+          "Uma reposição será liberada para você."
+        );
+
+
+  const confirmed =
+    window.confirm(
+      confirmationMessage
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Cancelando...";
+
+  }
+
+
+  // ===================================================
+  // CANCELAR + SALVAR MENSAGEM
+  // ===================================================
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "cancel_lesson_by_student_with_message",
+      {
+        p_lesson_date:
+          lessonDateDb,
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          ),
+
+        p_student_message:
+          studentMessage ||
+          null
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cancelar aula:",
+      error
+    );
+
+
+    if (resultMessage) {
+
+      resultMessage.textContent =
+        error.message ||
+        "Não foi possível cancelar a aula.";
+
+      resultMessage.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Confirmar cancelamento";
+
+    }
+
+
+    return;
+  }
+
+
+  // ===================================================
+  // RESULTADO
+  // ===================================================
+
+  if (
+    data ===
+    "cancelled_with_makeup"
+  ) {
+
+    alert(
+      "Aula cancelada com sucesso.\n\n" +
+      "Uma reposição foi liberada para você." +
+      (
+        studentMessage
+          ? "\n\nSua mensagem foi enviada ao professor."
+          : ""
+      )
+    );
+
+  }
+
+
+  else if (
+    data ===
+    "cancelled_without_makeup"
+  ) {
+
+    alert(
+      "Aula cancelada.\n\n" +
+      "Como o cancelamento foi feito sem a antecedência mínima, " +
+      "esta aula não poderá ser reposta." +
+      (
+        studentMessage
+          ? "\n\nSua mensagem foi enviada ao professor."
+          : ""
+      )
+    );
+
+  }
+
+
+  else {
+
+    alert(
+      "Aula cancelada com sucesso." +
+      (
+        studentMessage
+          ? "\n\nSua mensagem foi enviada ao professor."
+          : ""
+      )
+    );
+
+  }
+
+
+  // ===================================================
+  // FECHAR FORMULÁRIO
+  // ===================================================
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  // ===================================================
+  // ATUALIZAR AGENDA
+  // ===================================================
+
+  await loadStudentWeeklySchedule();
+
+}
 
 
 // =====================================================
