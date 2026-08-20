@@ -11,6 +11,7 @@
 let currentUser = null;
 let currentProfile = null;
 let currentStudentId = null;
+let currentTeacherStudents = [];
 
 let currentStudentSchedule = [];
 let selectedScheduleSlot = null;
@@ -357,6 +358,13 @@ function setStudentPage(page) {
           id="makeupSelectionArea"
           style="margin-top:20px;"
         ></div>
+
+<div
+  id="teacherScheduleEditArea"
+  style="
+    margin-top:20px;
+  "
+></div>
 
         <div class="schedule-legend">
           <span>\uD83D\uDFE2 Livre</span>
@@ -4884,6 +4892,15 @@ function setTeacherPage(page) {
 
       });
 
+ loadTeacherStudents()
+  .catch(error => {
+
+    console.error(
+      "Erro ao carregar alunos:",
+      error
+    );
+
+  });   
 
     loadTeacherWeeklySchedule()
       .catch(error => {
@@ -4898,6 +4915,7 @@ function setTeacherPage(page) {
 
     return;
   }
+  
   // ===================================================
   // DEMAIS P\xc1GINAS DO PROFESSOR
   // ===================================================
@@ -4942,6 +4960,42 @@ function setTeacherPage(page) {
     </div>
 
   `;
+}
+
+// =====================================================
+// ALUNOS DO PROFESSOR
+// =====================================================
+
+async function loadTeacherStudents() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_students"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar alunos:",
+      error
+    );
+
+    currentTeacherStudents = [];
+
+    return [];
+  }
+
+
+  currentTeacherStudents =
+    data || [];
+
+
+  return currentTeacherStudents;
+
 }
 
 // =====================================================
@@ -5181,6 +5235,63 @@ function renderTeacherWeeklySchedule(
   body.innerHTML =
     "";
 
+          // ===========================================
+          // EDITAR HORÁRIO FIXO
+          // ===========================================
+
+          if (
+            status.type === "free" ||
+            status.type === "lesson" ||
+            status.type === "unavailable"
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              "Clique para editar este horário.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherScheduleEditor(
+                  day.date,
+                  slot
+                );
+
+              }
+            );
+
+          }
+
+
+          else if (
+            status.type === "makeup"
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+            cell.title =
+              "Esta é uma reposição agendada.";
+
+          }
+
+
+          else if (
+            status.type === "cancelled"
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+            cell.title =
+              "Esta ocorrência foi cancelada.";
+
+          }  
 
   // ===================================================
   // LINHAS
@@ -5271,6 +5382,570 @@ function renderTeacherWeeklySchedule(
               ""
             ).trim();
 
+          // =====================================================
+// EDITAR HORÁRIO DO PROFESSOR
+// =====================================================
+
+async function openTeacherScheduleEditor(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const dayOfWeek =
+    (
+      (
+        date.getDay() + 6
+      ) % 7
+    ) + 1;
+
+
+  const currentStatus =
+    String(
+      slot.status || ""
+    ).toLowerCase();
+
+
+  const editableStatus =
+    currentStatus === "lesson"
+      ? "lesson"
+
+      : currentStatus ===
+        "unavailable"
+        ? "unavailable"
+
+        : "free";
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Editar horário
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          date
+        )}
+      </p>
+
+
+      <p>
+        <strong>Horário:</strong>
+
+        ${normalizeTime(
+          slot.start_time
+        )}
+
+        às
+
+        ${normalizeTime(
+          slot.end_time
+        )}
+      </p>
+
+
+      <!-- ==========================================
+           TIPO
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Tipo do horário
+        </label>
+
+
+        <select
+          id="teacherSlotStatus"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option
+            value="free"
+            ${
+              editableStatus === "free"
+                ? "selected"
+                : ""
+            }
+          >
+            Livre
+          </option>
+
+
+          <option
+            value="lesson"
+            ${
+              editableStatus === "lesson"
+                ? "selected"
+                : ""
+            }
+          >
+            Aula
+          </option>
+
+
+          <option
+            value="unavailable"
+            ${
+              editableStatus === "unavailable"
+                ? "selected"
+                : ""
+            }
+          >
+            Indisponível
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- ==========================================
+           ALUNO
+           ========================================== -->
+
+      <div
+        id="teacherSlotStudentArea"
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherSlotStudent"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Aluno
+        </label>
+
+
+        <select
+          id="teacherSlotStudent"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option value="">
+            Selecione um aluno
+          </option>
+
+
+          ${currentTeacherStudents
+            .map(
+              student => `
+
+                <option
+                  value="${student.student_id}"
+
+                  ${
+                    student.student_id ===
+                    slot.student_id
+
+                      ? "selected"
+                      : ""
+                  }
+                >
+
+                  ${escapeHtml(
+                    student.student_name
+                  )}
+
+                  — ${student.class_duration_minutes}
+                  min
+
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          A duração da aula é definida pelo
+          cadastro do aluno.
+        </p>
+
+      </div>
+
+
+      <!-- ==========================================
+           BOTÕES
+           ========================================== -->
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherSlotButton"
+        >
+          Salvar
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherSlotEditorButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherSlotMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherSlotStatus"
+    );
+
+
+  const studentArea =
+    document.getElementById(
+      "teacherSlotStudentArea"
+    );
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherSlotStudent"
+    );
+
+
+  // ===================================================
+  // MOSTRAR ALUNO SÓ QUANDO FOR AULA
+  // ===================================================
+
+  function updateStudentVisibility() {
+
+    if (!studentArea) {
+      return;
+    }
+
+
+    const isLesson =
+      statusSelect.value ===
+      "lesson";
+
+
+    studentArea.style.display =
+      isLesson
+        ? "block"
+        : "none";
+
+
+    if (
+      studentSelect
+    ) {
+
+      studentSelect.disabled =
+        !isLesson;
+
+    }
+
+  }
+
+
+  updateStudentVisibility();
+
+
+  statusSelect.addEventListener(
+    "change",
+    updateStudentVisibility
+  );
+
+
+  // ===================================================
+  // SALVAR
+  // ===================================================
+
+  document
+    .getElementById(
+      "saveTeacherSlotButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        saveTeacherWeeklySlot(
+          dayOfWeek,
+          slot.start_time
+        );
+
+      }
+    );
+
+
+  // ===================================================
+  // CANCELAR
+  // ===================================================
+
+  document
+    .getElementById(
+      "closeTeacherSlotEditorButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+}
+
+         // =====================================================
+// SALVAR HORÁRIO DO PROFESSOR
+// =====================================================
+
+async function saveTeacherWeeklySlot(
+  dayOfWeek,
+  startTime
+) {
+
+  const statusSelect =
+    document.getElementById(
+      "teacherSlotStatus"
+    );
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherSlotStudent"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherSlotButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherSlotMessage"
+    );
+
+
+  if (!statusSelect) {
+    return;
+  }
+
+
+  const status =
+    statusSelect.value;
+
+
+  const studentId =
+    status === "lesson"
+      ? studentSelect?.value || null
+      : null;
+
+
+  if (
+    status === "lesson" &&
+    !studentId
+  ) {
+
+    message.textContent =
+      "Selecione um aluno para a aula.";
+
+    message.style.color =
+      "red";
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "manage_weekly_slot",
+      {
+
+        p_day_of_week:
+          dayOfWeek,
+
+        p_start_time:
+          normalizeTime(
+            startTime
+          ),
+
+        p_status:
+          status,
+
+        p_student_id:
+          studentId
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar horário:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Não foi possível salvar o horário.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar";
+
+    }
+
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Horário atualizado com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  setTimeout(
+    () => {
+
+      const area =
+        document.getElementById(
+          "teacherScheduleEditArea"
+        );
+
+
+      if (area) {
+
+        area.innerHTML =
+          "";
+
+      }
+
+    },
+    500
+  );
+
+} 
 
           // ===========================================
           // LIVRE
