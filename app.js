@@ -3292,7 +3292,7 @@ async function openLessonCancellation(
 
     alert(
       error.message ||
-      "NÃ£o foi possÃ­vel identificar esta aula."
+      "N\u00E3o foi poss\u00EDvel identificar esta aula."
     );
 
     return;
@@ -3308,7 +3308,7 @@ async function openLessonCancellation(
   if (!lesson) {
 
     alert(
-      "NÃ£o foi possÃ­vel identificar esta aula."
+      "N\u00E3o foi poss\u00EDvel identificar esta aula."
     );
 
     return;
@@ -3335,7 +3335,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // AULA JÃ COMEÃ‡OU
+  // AULA J\u00C1 COME\u00C7OU
   // ===================================================
 
   if (
@@ -3343,7 +3343,7 @@ async function openLessonCancellation(
   ) {
 
     alert(
-      "Essa aula jÃ¡ comeÃ§ou ou jÃ¡ ocorreu e nÃ£o pode mais ser cancelada."
+      "Essa aula j\u00E1 come\u00E7ou ou j\u00E1 ocorreu e n\u00E3o pode mais ser cancelada."
     );
 
     return;
@@ -3351,7 +3351,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // ANTECEDÃŠNCIA
+  // ANTECED\u00CANCIA
   // ===================================================
 
   const minimumHours =
@@ -3380,7 +3380,7 @@ async function openLessonCancellation(
 
 
   // ===================================================
-  // ÃREA DO FORMULÃRIO
+  // \u00C1REA DO FORMUL\u00C1RIO
   // ===================================================
 
   const area =
@@ -3406,15 +3406,15 @@ async function openLessonCancellation(
             background:#fff3cd;
           "
         >
-          <strong>AtenÃ§Ã£o:</strong>
+          <strong>Aten\u00E7\u00E3o:</strong>
           faltam menos de ${minimumHours} horas
           para esta aula.
 
           <br><br>
 
-          Se vocÃª cancelar agora,
+          Se voc\u00EA cancelar agora,
           <strong>
-            esta aula nÃ£o poderÃ¡ ser reposta depois.
+            esta aula n\u00E3o poder\u00E1 ser reposta depois.
           </strong>
         </div>
       `
@@ -3428,15 +3428,15 @@ async function openLessonCancellation(
             background:#eef5ff;
           "
         >
-          Como o cancelamento estÃ¡ sendo feito
-          com antecedÃªncia, uma reposiÃ§Ã£o serÃ¡
-          liberada para vocÃª.
+          Como o cancelamento est\u00E1 sendo feito
+          com anteced\u00EAncia, uma reposi\u00E7\u00E3o ser\u00E1
+          liberada para voc\u00EA.
         </div>
       `;
 
 
   // ===================================================
-  // FORMULÃRIO
+  // FORMUL\u00C1RIO
   // ===================================================
 
   area.innerHTML = `
@@ -3465,13 +3465,13 @@ async function openLessonCancellation(
 
 
       <p>
-        <strong>HorÃ¡rio:</strong>
+        <strong>Hor\u00E1rio:</strong>
 
         ${normalizeTime(
           lesson.start_time
         )}
 
-        Ã s
+        \u00E0s
 
         ${normalizeTime(
           lesson.end_time
@@ -3513,7 +3513,7 @@ async function openLessonCancellation(
           id="lessonCancellationMessage"
           maxlength="1000"
           rows="4"
-          placeholder="Ex.: Professor, surgiu um compromisso e nÃ£o vou conseguir participar da aula..."
+          placeholder="Ex.: Professor, surgiu um compromisso e n\u00E3o vou conseguir participar da aula..."
           style="
             width:100%;
             box-sizing:border-box;
@@ -3706,7 +3706,7 @@ async function confirmLessonCancellation(
 
 
   // ===================================================
-  // CONFIRMAÃ‡ÃƒO FINAL
+  // CONFIRMA\u00C7\u00C3O FINAL
   // ===================================================
 
   const confirmationMessage =
@@ -3714,12 +3714,12 @@ async function confirmLessonCancellation(
 
       ? (
           "Tem certeza que deseja cancelar esta aula?\n\n" +
-          "Essa aula nÃ£o poderÃ¡ ser reposta depois."
+          "Essa aula n\u00E3o poder\u00E1 ser reposta depois."
         )
 
       : (
           "Tem certeza que deseja cancelar esta aula?\n\n" +
-          "Uma reposiÃ§Ã£o serÃ¡ liberada para vocÃª."
+          "Uma reposi\u00E7\u00E3o ser\u00E1 liberada para voc\u00EA."
         );
 
 
@@ -3783,7 +3783,7 @@ async function confirmLessonCancellation(
 
       resultMessage.textContent =
         error.message ||
-        "NÃ£o foi possÃ­vel cancelar a aula.";
+        "N\u00E3o foi poss\u00EDvel cancelar a aula.";
 
       resultMessage.style.color =
         "red";
@@ -3817,7 +3817,7 @@ async function confirmLessonCancellation(
 
     alert(
       "Aula cancelada com sucesso.\n\n" +
-      "Uma reposiÃ§Ã£o foi liberada para vocÃª." +
+      "Uma reposi\u00E7\u00E3o foi liberada para voc\u00EA." +
       (
         studentMessage
           ? "\n\nSua mensagem foi enviada ao professor."
@@ -3835,8 +3835,8 @@ async function confirmLessonCancellation(
 
     alert(
       "Aula cancelada.\n\n" +
-      "Como o cancelamento foi feito sem a antecedÃªncia mÃ­nima, " +
-      "esta aula nÃ£o poderÃ¡ ser reposta." +
+      "Como o cancelamento foi feito sem a anteced\u00EAncia m\u00EDnima, " +
+      "esta aula n\u00E3o poder\u00E1 ser reposta." +
       (
         studentMessage
           ? "\n\nSua mensagem foi enviada ao professor."
@@ -3862,7 +3862,7 @@ async function confirmLessonCancellation(
 
 
   // ===================================================
-  // FECHAR FORMULÃRIO
+  // FECHAR FORMUL\u00C1RIO
   // ===================================================
 
   const area =
@@ -4689,7 +4689,7 @@ function setTeacherPage(page) {
             class="secondary-button"
             id="teacherPreviousWeekButton"
           >
-            â† Semana anterior
+            \u2190 Semana anterior
           </button>
 
 
@@ -4707,7 +4707,7 @@ function setTeacherPage(page) {
             class="secondary-button"
             id="teacherNextWeekButton"
           >
-            PrÃ³xima semana â†’
+            Pr\u00F3xima semana \u2192
           </button>
 
         </div>
@@ -4765,23 +4765,23 @@ function setTeacherPage(page) {
         >
 
           <span>
-            ðŸŸ¢ Livre
+            \uD83D\uDFE2 Livre
           </span>
 
           <span>
-            ðŸ”µ Aula
+            \uD83D\uDD35 Aula
           </span>
 
           <span>
-            ðŸŸ£ ReposiÃ§Ã£o
+            \uD83D\uDFE3 Reposi\u00E7\u00E3o
           </span>
 
           <span>
-            ðŸŸ¡ Cancelada
+            \uD83D\uDFE1 Cancelada
           </span>
 
           <span>
-            âš« IndisponÃ­vel
+            \u26AB Indispon\u00EDvel
           </span>
 
         </div>
@@ -4849,7 +4849,7 @@ function setTeacherPage(page) {
 
 
     // =================================================
-    // PRÃ“XIMA SEMANA
+    // PR\u00D3XIMA SEMANA
     // =================================================
 
     const nextButton =
@@ -5088,7 +5088,7 @@ async function loadTeacherWeeklySchedule() {
         <tr>
 
           <td colspan="8">
-            NÃ£o foi possÃ­vel carregar a agenda.
+            N\u00E3o foi poss\u00EDvel carregar a agenda.
           </td>
 
         </tr>
@@ -5133,17 +5133,17 @@ function renderTeacherWeeklySchedule(days) {
 
   const dayNames = [
     "Segunda",
-    "TerÃ§a",
+    "Ter\u00E7a",
     "Quarta",
     "Quinta",
     "Sexta",
-    "SÃ¡bado",
+    "S\u00E1bado",
     "Domingo"
   ];
 
   head.innerHTML = `
     <tr>
-      <th>HorÃ¡rio</th>
+      <th>Hor\u00E1rio</th>
 
       ${days.map(
         (day, index) => `
@@ -5219,7 +5219,7 @@ function renderTeacherWeeklySchedule(days) {
       if (!slot) {
 
         cell.textContent =
-          "â€”";
+          "\u2014";
 
         cell.style.backgroundColor =
           "#eeeeee";
@@ -5302,7 +5302,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // REPOSIÃ‡ÃƒO
+      // REPOSI\u00C7\u00C3O
       // ===========================================
 
       else if (
@@ -5322,7 +5322,7 @@ function renderTeacherWeeklySchedule(days) {
           <br>
 
           <small>
-            ReposiÃ§Ã£o
+            Reposi\u00E7\u00E3o
           </small>
 
         `;
@@ -5372,7 +5372,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // INDISPONÃVEL
+      // INDISPON\u00CDVEL
       // ===========================================
 
       else if (
@@ -5381,7 +5381,7 @@ function renderTeacherWeeklySchedule(days) {
       ) {
 
         cell.textContent =
-          "IndisponÃ­vel";
+          "Indispon\u00EDvel";
 
         cell.style.backgroundColor =
           "#333333";
@@ -5419,7 +5419,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
       // ===========================================
-      // EDIÃ‡ÃƒO DA AGENDA FIXA
+      // EDI\u00C7\u00C3O DA AGENDA FIXA
       // ===========================================
 
       const todayForEdit =
@@ -5467,12 +5467,12 @@ function renderTeacherWeeklySchedule(days) {
           "default";
 
         cell.title =
-          "Semanas anteriores sÃ£o somente para consulta.";
+          "Semanas anteriores s\u00E3o somente para consulta.";
 
       }
 
 
-      // HOJE/FUTURO = EDITÃVEL
+      // HOJE/FUTURO = EDIT\u00C1VEL
 
       else if (
         isEditableStatus
@@ -5482,7 +5482,7 @@ function renderTeacherWeeklySchedule(days) {
           "pointer";
 
         cell.title =
-          "Clique para editar este horÃ¡rio fixo.";
+          "Clique para editar este hor\u00E1rio fixo.";
 
         cell.addEventListener(
           "click",
@@ -5507,7 +5507,7 @@ function renderTeacherWeeklySchedule(days) {
           "default";
 
         cell.title =
-          "Esta Ã© uma reposiÃ§Ã£o agendada.";
+          "Esta \u00E9 uma reposi\u00E7\u00E3o agendada.";
 
       }
 
@@ -5520,7 +5520,7 @@ function renderTeacherWeeklySchedule(days) {
           "default";
 
         cell.title =
-          "Esta ocorrÃªncia foi cancelada.";
+          "Esta ocorr\u00EAncia foi cancelada.";
 
       }
 
@@ -5548,7 +5548,7 @@ function renderTeacherWeeklySchedule(days) {
       <tr>
 
         <td colspan="8">
-          Nenhum horÃ¡rio cadastrado.
+          Nenhum hor\u00E1rio cadastrado.
         </td>
 
       </tr>
@@ -5629,7 +5629,7 @@ function normalizeTeacherScheduleStatus(
 
 
 // =====================================================
-// EDITAR HORÃRIO DO PROFESSOR
+// EDITAR HOR\u00C1RIO DO PROFESSOR
 // =====================================================
 
 async function openTeacherScheduleEditor(
@@ -5646,7 +5646,7 @@ async function openTeacherScheduleEditor(
   if (!area) {
 
     console.error(
-      "Ãrea de ediÃ§Ã£o da agenda do professor nÃ£o encontrada."
+      "\u00C1rea de edi\u00E7\u00E3o da agenda do professor n\u00E3o encontrada."
     );
 
     return;
@@ -5654,7 +5654,7 @@ async function openTeacherScheduleEditor(
 
 
   // ===================================================
-  // NÃƒO PERMITIR ALTERAÃ‡ÃƒO RETROATIVA
+  // N\u00C3O PERMITIR ALTERA\u00C7\u00C3O RETROATIVA
   // ===================================================
 
   const today =
@@ -5687,8 +5687,8 @@ async function openTeacherScheduleEditor(
   ) {
 
     alert(
-      "Semanas anteriores sÃ£o somente para consulta. " +
-      "AlteraÃ§Ãµes na agenda fixa nÃ£o podem modificar o passado."
+      "Semanas anteriores s\u00E3o somente para consulta. " +
+      "Altera\u00E7\u00F5es na agenda fixa n\u00E3o podem modificar o passado."
     );
 
     return;
@@ -5739,7 +5739,7 @@ async function openTeacherScheduleEditor(
     >
 
       <h3>
-        Editar horÃ¡rio fixo
+        Editar hor\u00E1rio fixo
       </h3>
 
 
@@ -5750,13 +5750,13 @@ async function openTeacherScheduleEditor(
 
 
       <p>
-        <strong>HorÃ¡rio:</strong>
+        <strong>Hor\u00E1rio:</strong>
 
         ${normalizeTime(
           slot.start_time
         )}
 
-        Ã s
+        \u00E0s
 
         ${normalizeTime(
           slot.end_time
@@ -5773,17 +5773,17 @@ async function openTeacherScheduleEditor(
       >
 
         <strong>
-          AlteraÃ§Ã£o da agenda fixa
+          Altera\u00E7\u00E3o da agenda fixa
         </strong>
 
         <br><br>
 
-        A mudanÃ§a entra em vigor hoje e vale
-        para as prÃ³ximas ocorrÃªncias deste horÃ¡rio.
+        A mudan\u00E7a entra em vigor hoje e vale
+        para as pr\u00F3ximas ocorr\u00EAncias deste hor\u00E1rio.
 
         <br>
 
-        Semanas e dias anteriores permanecerÃ£o
+        Semanas e dias anteriores permanecer\u00E3o
         registrados como estavam.
 
       </p>
@@ -5803,7 +5803,7 @@ async function openTeacherScheduleEditor(
             margin-bottom:8px;
           "
         >
-          Tipo do horÃ¡rio
+          Tipo do hor\u00E1rio
         </label>
 
 
@@ -5849,7 +5849,7 @@ async function openTeacherScheduleEditor(
                 : ""
             }
           >
-            IndisponÃ­vel
+            Indispon\u00EDvel
           </option>
 
         </select>
@@ -5910,7 +5910,7 @@ async function openTeacherScheduleEditor(
                     student.student_name
                   )}
 
-                  â€” ${student.class_duration_minutes} min
+                  \u2014 ${student.class_duration_minutes} min
 
                 </option>
 
@@ -5928,7 +5928,7 @@ async function openTeacherScheduleEditor(
             color:#666;
           "
         >
-          A duraÃ§Ã£o da aula Ã© definida pelo
+          A dura\u00E7\u00E3o da aula \u00E9 definida pelo
           cadastro do aluno.
         </p>
 
@@ -6074,7 +6074,7 @@ async function openTeacherScheduleEditor(
 
 
   // ===================================================
-  // BOTÃƒO REAGENDAR SOMENTE ESTA AULA
+  // BOT\u00C3O REAGENDAR SOMENTE ESTA AULA
   // ===================================================
 
   if (
@@ -6154,7 +6154,7 @@ async function openTeacherScheduleEditor(
 
 
    // =====================================================
-// REAGENDAR UMA ÃšNICA AULA
+// REAGENDAR UMA \u00DANICA AULA
 // =====================================================
 
 function openTeacherLessonMove(
@@ -6236,7 +6236,7 @@ function openTeacherLessonMove(
 
         ${formatDate(date)}
 
-        Ã s
+        \u00E0s
 
         ${normalizeTime(
           slot.start_time
@@ -6251,10 +6251,10 @@ function openTeacherLessonMove(
           color:#555;
         "
       >
-        Esta alteraÃ§Ã£o serÃ¡ feita somente
-        para esta ocorrÃªncia.
+        Esta altera\u00E7\u00E3o ser\u00E1 feita somente
+        para esta ocorr\u00EAncia.
 
-        A agenda fixa continuarÃ¡ igual.
+        A agenda fixa continuar\u00E1 igual.
       </p>
 
 
@@ -6298,7 +6298,7 @@ function openTeacherLessonMove(
 
 
       <!-- ==========================================
-           NOVO HORÃRIO
+           NOVO HOR\u00C1RIO
            ========================================== -->
 
       <div
@@ -6315,7 +6315,7 @@ function openTeacherLessonMove(
             margin-bottom:8px;
           "
         >
-          Novo horÃ¡rio
+          Novo hor\u00E1rio
         </label>
 
 
@@ -6340,9 +6340,9 @@ function openTeacherLessonMove(
             color:#666;
           "
         >
-          Use horÃ¡rios terminados em :00 ou :30.
-          O sistema verificarÃ¡ automaticamente se
-          todos os blocos necessÃ¡rios estÃ£o livres.
+          Use hor\u00E1rios terminados em :00 ou :30.
+          O sistema verificar\u00E1 automaticamente se
+          todos os blocos necess\u00E1rios est\u00E3o livres.
         </p>
 
       </div>
@@ -6489,7 +6489,7 @@ async function confirmTeacherLessonMove(
   if (!newTime) {
 
     message.textContent =
-      "Escolha o novo horÃ¡rio.";
+      "Escolha o novo hor\u00E1rio.";
 
     message.style.color =
       "red";
@@ -6510,7 +6510,7 @@ async function confirmTeacherLessonMove(
   ) {
 
     message.textContent =
-      "O horÃ¡rio precisa terminar em :00 ou :30.";
+      "O hor\u00E1rio precisa terminar em :00 ou :30.";
 
     message.style.color =
       "red";
@@ -6528,13 +6528,13 @@ async function confirmTeacherLessonMove(
         originalDate
       ) +
 
-      " Ã s " +
+      " \u00E0s " +
 
       normalizeTime(
         slot.start_time
       ) +
 
-      "\n\nâ†’\n\n" +
+      "\n\n\u2192\n\n" +
 
       formatDate(
         new Date(
@@ -6543,7 +6543,7 @@ async function confirmTeacherLessonMove(
         )
       ) +
 
-      " Ã s " +
+      " \u00E0s " +
 
       newTime
 
@@ -6613,7 +6613,7 @@ async function confirmTeacherLessonMove(
 
       message.textContent =
         error.message ||
-        "NÃ£o foi possÃ­vel reagendar a aula.";
+        "N\u00E3o foi poss\u00EDvel reagendar a aula.";
 
       message.style.color =
         "red";
@@ -6655,7 +6655,7 @@ async function confirmTeacherLessonMove(
 
   alert(
     "Aula reagendada com sucesso.\n\n" +
-    "A agenda fixa nÃ£o foi alterada e " +
+    "A agenda fixa n\u00E3o foi alterada e " +
     "o aluno recebeu um aviso."
   );
 
@@ -6663,7 +6663,7 @@ async function confirmTeacherLessonMove(
 
 
 // =====================================================
-// SALVAR HORÃRIO DO PROFESSOR
+// SALVAR HOR\u00C1RIO DO PROFESSOR
 // =====================================================
 
 async function saveTeacherWeeklySlot(
@@ -6793,7 +6793,7 @@ async function saveTeacherWeeklySlot(
   ) {
 
     console.error(
-      "Erro ao salvar horÃ¡rio:",
+      "Erro ao salvar hor\u00E1rio:",
       error
     );
 
@@ -6804,7 +6804,7 @@ async function saveTeacherWeeklySlot(
 
       message.textContent =
         error.message ||
-        "NÃ£o foi possÃ­vel salvar o horÃ¡rio.";
+        "N\u00E3o foi poss\u00EDvel salvar o hor\u00E1rio.";
 
       message.style.color =
         "red";
@@ -6849,7 +6849,7 @@ async function saveTeacherWeeklySlot(
 
 
   alert(
-    "HorÃ¡rio atualizado com sucesso."
+    "Hor\u00E1rio atualizado com sucesso."
   );
 
 }
@@ -6900,7 +6900,7 @@ async function loadTeacherCancellationMessages() {
       <div class="card">
 
         <strong>
-          NÃ£o foi possÃ­vel carregar
+          N\u00E3o foi poss\u00EDvel carregar
           os cancelamentos dos alunos.
         </strong>
 
@@ -6983,7 +6983,7 @@ async function loadTeacherCancellationMessages() {
               font-size:24px;
             "
           >
-            ðŸ“©
+            \uD83D\uDCE9
           </span>
 
 
@@ -7034,7 +7034,7 @@ async function loadTeacherCancellationMessages() {
 
 
   // ===================================================
-  // BOTÃ•ES MARCAR COMO LIDO
+  // BOT\u00D5ES MARCAR COMO LIDO
   // ===================================================
 
   document
@@ -7077,7 +7077,7 @@ function renderTeacherCancellationCard(
           )
         )
 
-      : "Data nÃ£o informada";
+      : "Data n\u00E3o informada";
 
 
   const start =
@@ -7169,7 +7169,7 @@ function renderTeacherCancellationCard(
 
         ${
           end
-            ? ` Ã s ${end}`
+            ? ` \u00E0s ${end}`
             : ""
         }
 
@@ -7179,13 +7179,13 @@ function renderTeacherCancellationCard(
       <p>
 
         <strong>
-          Gerou reposiÃ§Ã£o:
+          Gerou reposi\u00E7\u00E3o:
         </strong>
 
         ${
           generatedMakeup
-            ? "âœ… Sim"
-            : "âŒ NÃ£o"
+            ? "\u2705 Sim"
+            : "\u274C N\u00E3o"
         }
 
       </p>
@@ -7231,7 +7231,7 @@ function renderTeacherCancellationCard(
                   color:#666;
                 "
               >
-                O aluno nÃ£o deixou uma mensagem.
+                O aluno n\u00E3o deixou uma mensagem.
               </p>
 
             `
@@ -7273,7 +7273,7 @@ function renderTeacherCancellationCard(
           margin-top:15px;
         "
       >
-        âœ“ Marcar como lido
+        \u2713 Marcar como lido
       </button>
 
 
@@ -7350,7 +7350,7 @@ async function markTeacherCancellationAsRead(
 
       message.textContent =
         error.message ||
-        "NÃ£o foi possÃ­vel marcar como lido.";
+        "N\u00E3o foi poss\u00EDvel marcar como lido.";
 
       message.style.color =
         "red";
@@ -7364,7 +7364,7 @@ async function markTeacherCancellationAsRead(
         false;
 
       button.textContent =
-        "âœ“ Marcar como lido";
+        "\u2713 Marcar como lido";
 
     }
 
@@ -7375,7 +7375,7 @@ async function markTeacherCancellationAsRead(
 
   // Atualiza toda a caixa.
   // O cancelamento marcado desaparece porque
-  // o RPC agora retorna somente os nÃ£o lidos.
+  // o RPC agora retorna somente os n\u00E3o lidos.
 
   await loadTeacherCancellationMessages();
 
