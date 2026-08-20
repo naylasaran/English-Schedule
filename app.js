@@ -1351,6 +1351,80 @@ function renderHistoryLesson(
         )}
       </p>
 
+      ${
+        lesson.lesson_status ===
+        "cancelled"
+
+          ? `
+
+            <div
+              style="
+                margin-top:15px;
+                padding:15px;
+                background:#fff3cd;
+                border-radius:8px;
+              "
+            >
+
+              <strong>
+                Cancelamento
+              </strong>
+
+
+              <p>
+                <strong>
+                  Cancelado por:
+                </strong>
+
+                ${
+                  escapeHtml(
+                    lesson.cancelled_by ||
+                    "Não informado"
+                  )
+                }
+              </p>
+
+
+              <p>
+                <strong>
+                  Reposição gerada:
+                </strong>
+
+                ${
+                  lesson.generated_makeup
+                    ? "✅ Sim"
+                    : "❌ Não"
+                }
+              </p>
+
+
+              ${
+                lesson.cancellation_notes
+
+                  ? `
+
+                    <p>
+                      <strong>
+                        Detalhes:
+                      </strong>
+
+                      ${escapeHtml(
+                        lesson.cancellation_notes
+                      )}
+                    </p>
+
+                  `
+
+                  : ""
+              }
+
+            </div>
+
+          `
+
+          : ""
+      }
+
 
       <div
         style="
