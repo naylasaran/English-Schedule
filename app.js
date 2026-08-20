@@ -15,6 +15,10 @@ let currentStudentId = null;
 let currentStudentSchedule = [];
 let selectedScheduleSlot = null;
 let selectedWeekStart = getMonday(new Date());
+let selectedTeacherWeekStart =
+  getMonday(
+    new Date()
+  );
 
 
 // =====================================================
@@ -4645,36 +4649,230 @@ function setTeacherPage(page) {
     content.innerHTML = `
 
       <!-- ==========================================
-           CANCELAMENTOS / ADIAMENTOS
+           CANCELAMENTOS DOS ALUNOS
            ========================================== -->
 
       <div
         id="teacherCancellationNotices"
-        style="margin-bottom:20px;"
+        style="
+          margin-bottom:20px;
+        "
       >
         Carregando cancelamentos...
       </div>
 
 
       <!-- ==========================================
-           AGENDA
+           AGENDA SEMANAL
            ========================================== -->
 
       <div class="card">
 
         <h3>
-          Agenda
+          Agenda semanal
         </h3>
 
-        <p>
-          A agenda completa do professor
-          será exibida aqui.
-        </p>
+
+        <div
+          style="
+            display:flex;
+            justify-content:center;
+            gap:10px;
+            flex-wrap:wrap;
+            margin:20px 0;
+          "
+        >
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="teacherPreviousWeekButton"
+          >
+            ← Semana anterior
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="teacherCurrentWeekButton"
+          >
+            Semana atual
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="teacherNextWeekButton"
+          >
+            Próxima semana →
+          </button>
+
+        </div>
+
+
+        <div
+          id="teacherSelectedWeekLabel"
+          style="
+            text-align:center;
+            font-weight:bold;
+            margin-bottom:20px;
+          "
+        ></div>
+
+
+        <div class="schedule-wrapper">
+
+          <table class="schedule-table">
+
+            <thead
+              id="teacherScheduleHead"
+            ></thead>
+
+
+            <tbody
+              id="teacherScheduleBody"
+            >
+
+              <tr>
+
+                <td colspan="8">
+                  Carregando agenda...
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+
+        <div
+          class="schedule-legend"
+          style="
+            margin-top:20px;
+          "
+        >
+
+          <span>
+            🟢 Livre
+          </span>
+
+          <span>
+            🔵 Aula
+          </span>
+
+          <span>
+            🟣 Reposição
+          </span>
+
+          <span>
+            🟡 Cancelada
+          </span>
+
+          <span>
+            ⚫ Indisponível
+          </span>
+
+        </div>
 
       </div>
 
     `;
 
+
+    // =================================================
+    // SEMANA ANTERIOR
+    // =================================================
+
+    const previousButton =
+      document.getElementById(
+        "teacherPreviousWeekButton"
+      );
+
+
+    if (previousButton) {
+
+      previousButton.onclick =
+        async () => {
+
+          selectedTeacherWeekStart =
+            addDays(
+              selectedTeacherWeekStart,
+              -7
+            );
+
+
+          await loadTeacherWeeklySchedule();
+
+        };
+
+    }
+
+
+    // =================================================
+    // SEMANA ATUAL
+    // =================================================
+
+    const currentButton =
+      document.getElementById(
+        "teacherCurrentWeekButton"
+      );
+
+
+    if (currentButton) {
+
+      currentButton.onclick =
+        async () => {
+
+          selectedTeacherWeekStart =
+            getMonday(
+              new Date()
+            );
+
+
+          await loadTeacherWeeklySchedule();
+
+        };
+
+    }
+
+
+    // =================================================
+    // PRÓXIMA SEMANA
+    // =================================================
+
+    const nextButton =
+      document.getElementById(
+        "teacherNextWeekButton"
+      );
+
+
+    if (nextButton) {
+
+      nextButton.onclick =
+        async () => {
+
+          selectedTeacherWeekStart =
+            addDays(
+              selectedTeacherWeekStart,
+              7
+            );
+
+
+          await loadTeacherWeeklySchedule();
+
+        };
+
+    }
+
+
+    // =================================================
+    // CARREGAR
+    // =================================================
 
     loadTeacherCancellationMessages()
       .catch(error => {
@@ -4687,9 +4885,19 @@ function setTeacherPage(page) {
       });
 
 
+    loadTeacherWeeklySchedule()
+      .catch(error => {
+
+        console.error(
+          "Erro ao carregar agenda do professor:",
+          error
+        );
+
+      });
+
+
     return;
   }
-
   // ===================================================
   // DEMAIS P\xc1GINAS DO PROFESSOR
   // ===================================================
@@ -4734,6 +4942,614 @@ function setTeacherPage(page) {
     </div>
 
   `;
+}
+
+// =====================================================
+// AGENDA SEMANAL DO PROFESSOR
+// =====================================================
+
+async function loadTeacherWeeklySchedule() {
+
+  const body =
+    document.getElementById(
+      "teacherScheduleBody"
+    );
+
+
+  if (!body) {
+    return;
+  }
+
+
+  const label =
+    document.getElementById(
+      "teacherSelectedWeekLabel"
+    );
+
+
+  if (label) {
+
+    label.textContent =
+      formatWeekLabel(
+        selectedTeacherWeekStart
+      );
+
+  }
+
+
+  body.innerHTML = `
+
+    <tr>
+
+      <td colspan="8">
+        Carregando agenda...
+      </td>
+
+    </tr>
+
+  `;
+
+
+  // ===================================================
+  // CARREGAR OS 7 DIAS
+  // ===================================================
+
+  const days = [];
+
+
+  for (
+    let index = 0;
+    index < 7;
+    index++
+  ) {
+
+    const date =
+      addDays(
+        selectedTeacherWeekStart,
+        index
+      );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        "get_teacher_schedule",
+        {
+          p_date:
+            formatDateForDatabase(
+              date
+            )
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar dia da agenda:",
+        date,
+        error
+      );
+
+
+      body.innerHTML = `
+
+        <tr>
+
+          <td colspan="8">
+            Não foi possível carregar a agenda.
+          </td>
+
+        </tr>
+
+      `;
+
+
+      return;
+    }
+
+
+    days.push({
+
+      date,
+
+      schedule:
+        data || []
+
+    });
+
+  }
+
+
+  renderTeacherWeeklySchedule(
+    days
+  );
+
+}
+
+
+// =====================================================
+// RENDERIZAR AGENDA DO PROFESSOR
+// =====================================================
+
+function renderTeacherWeeklySchedule(
+  days
+) {
+
+  const head =
+    document.getElementById(
+      "teacherScheduleHead"
+    );
+
+
+  const body =
+    document.getElementById(
+      "teacherScheduleBody"
+    );
+
+
+  if (!head || !body) {
+    return;
+  }
+
+
+  const dayNames = [
+
+    "Segunda",
+    "Terça",
+    "Quarta",
+    "Quinta",
+    "Sexta",
+    "Sábado",
+    "Domingo"
+
+  ];
+
+
+  // ===================================================
+  // CABEÇALHO
+  // ===================================================
+
+  head.innerHTML = `
+
+    <tr>
+
+      <th>
+        Horário
+      </th>
+
+      ${days
+        .map(
+          (day, index) => `
+
+            <th>
+
+              ${dayNames[index]}
+
+              <br>
+
+              <small>
+                ${formatDate(
+                  day.date
+                )}
+              </small>
+
+            </th>
+
+          `
+        )
+        .join("")}
+
+    </tr>
+
+  `;
+
+
+  // ===================================================
+  // TODOS OS HORÁRIOS DA SEMANA
+  // ===================================================
+
+  const times =
+    new Set();
+
+
+  days.forEach(day => {
+
+    day.schedule.forEach(
+      slot => {
+
+        times.add(
+          normalizeTime(
+            slot.start_time
+          )
+        );
+
+      }
+    );
+
+  });
+
+
+  const sortedTimes =
+    Array
+      .from(times)
+      .sort();
+
+
+  body.innerHTML =
+    "";
+
+
+  // ===================================================
+  // LINHAS
+  // ===================================================
+
+  sortedTimes.forEach(
+    time => {
+
+      const row =
+        document.createElement(
+          "tr"
+        );
+
+
+      const timeCell =
+        document.createElement(
+          "td"
+        );
+
+
+      timeCell.textContent =
+        time;
+
+
+      row.appendChild(
+        timeCell
+      );
+
+
+      days.forEach(
+        day => {
+
+          const cell =
+            document.createElement(
+              "td"
+            );
+
+
+          cell.classList.add(
+            "schedule-cell"
+          );
+
+
+          const slot =
+            day.schedule.find(
+              item =>
+
+                normalizeTime(
+                  item.start_time
+                ) === time
+            );
+
+
+          // ===========================================
+          // HORÁRIO NÃO EXISTE
+          // ===========================================
+
+          if (!slot) {
+
+            cell.textContent =
+              "—";
+
+            cell.style.backgroundColor =
+              "#eeeeee";
+
+            cell.style.color =
+              "#777777";
+
+
+            row.appendChild(
+              cell
+            );
+
+
+            return;
+          }
+
+
+          const status =
+            normalizeTeacherScheduleStatus(
+              slot.status
+            );
+
+
+          const studentName =
+            String(
+              slot.student_name ||
+              ""
+            ).trim();
+
+
+          // ===========================================
+          // LIVRE
+          // ===========================================
+
+          if (
+            status.type ===
+            "free"
+          ) {
+
+            cell.textContent =
+              "Livre";
+
+            cell.style.backgroundColor =
+              "#dff5e3";
+
+            cell.style.color =
+              "#246b37";
+
+          }
+
+
+          // ===========================================
+          // AULA
+          // ===========================================
+
+          else if (
+            status.type ===
+            "lesson"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aula"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Aula
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#dcecff";
+
+            cell.style.color =
+              "#245a9a";
+
+          }
+
+
+          // ===========================================
+          // REPOSIÇÃO
+          // ===========================================
+
+          else if (
+            status.type ===
+            "makeup"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Reposição
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#eadcf8";
+
+            cell.style.color =
+              "#6f42c1";
+
+          }
+
+
+          // ===========================================
+          // CANCELADA
+          // ===========================================
+
+          else if (
+            status.type ===
+            "cancelled"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Cancelada
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#fff3cd";
+
+            cell.style.color =
+              "#856404";
+
+          }
+
+
+          // ===========================================
+          // INDISPONÍVEL
+          // ===========================================
+
+          else if (
+            status.type ===
+            "unavailable"
+          ) {
+
+            cell.textContent =
+              "Indisponível";
+
+            cell.style.backgroundColor =
+              "#333333";
+
+            cell.style.color =
+              "#ffffff";
+
+          }
+
+
+          // ===========================================
+          // OUTRA RESERVA
+          // ===========================================
+
+          else {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Reservado"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Reserva
+              </small>
+
+            `;
+
+          }
+
+
+          row.appendChild(
+            cell
+          );
+
+        }
+      );
+
+
+      body.appendChild(
+        row
+      );
+
+    }
+  );
+
+
+  if (
+    sortedTimes.length === 0
+  ) {
+
+    body.innerHTML = `
+
+      <tr>
+
+        <td colspan="8">
+          Nenhum horário cadastrado.
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+}
+
+
+// =====================================================
+// STATUS DA AGENDA DO PROFESSOR
+// =====================================================
+
+function normalizeTeacherScheduleStatus(
+  status
+) {
+
+  switch (
+    String(
+      status || ""
+    ).toLowerCase()
+  ) {
+
+    case "free":
+    case "available":
+
+      return {
+        type: "free"
+      };
+
+
+    case "lesson":
+
+      return {
+        type: "lesson"
+      };
+
+
+    case "makeup":
+
+      return {
+        type: "makeup"
+      };
+
+
+    case "cancelled":
+
+      return {
+        type: "cancelled"
+      };
+
+
+    case "unavailable":
+
+      return {
+        type: "unavailable"
+      };
+
+
+    case "reservation":
+
+      return {
+        type: "reservation"
+      };
+
+
+    default:
+
+      return {
+        type: "reservation"
+      };
+
+  }
+
 }
 
 // =====================================================
