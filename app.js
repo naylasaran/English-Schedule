@@ -6455,6 +6455,60 @@ function openTeacherLessonMove(
       </div>
 
 
+      <!-- ==========================================
+           DESTINO DO HORARIO ANTIGO
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherMoveOldSlotStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          O que fazer com o horario antigo?
+        </label>
+
+        <select
+          id="teacherMoveOldSlotStatus"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+          <option value="unavailable" selected>
+            Deixar indisponivel
+          </option>
+
+          <option value="free">
+            Deixar livre para outro aluno / reposicao
+          </option>
+        </select>
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          Por padrao, o horario antigo fica indisponivel.
+          Escolha Livre somente se quiser reutilizar esse horario.
+        </p>
+
+      </div>
+
+
       <div
         style="
           display:flex;
@@ -6553,6 +6607,12 @@ async function confirmTeacherLessonMove(
     );
 
 
+  const oldSlotStatusSelect =
+    document.getElementById(
+      "teacherMoveOldSlotStatus"
+    );
+
+
   const button =
     document.getElementById(
       "confirmTeacherLessonMoveButton"
@@ -6567,7 +6627,8 @@ async function confirmTeacherLessonMove(
 
   if (
     !dateInput ||
-    !timeInput
+    !timeInput ||
+    !oldSlotStatusSelect
   ) {
     return;
   }
@@ -6579,6 +6640,18 @@ async function confirmTeacherLessonMove(
 
   const newTime =
     timeInput.value;
+
+
+  const oldSlotStatus =
+    oldSlotStatusSelect.value === "free"
+      ? "free"
+      : "unavailable";
+
+
+  const oldSlotStatusLabel =
+    oldSlotStatus === "free"
+      ? "Livre"
+      : "Indisponivel";
 
 
   if (!newDate) {
@@ -6652,7 +6725,10 @@ async function confirmTeacherLessonMove(
 
       " \u00E0s " +
 
-      newTime
+      newTime +
+
+      "\n\nHorario antigo: " +
+      oldSlotStatusLabel
 
     );
 
@@ -6685,7 +6761,7 @@ async function confirmTeacherLessonMove(
     error
   } =
     await supabaseClient.rpc(
-      "move_lesson_occurrence",
+      "move_lesson_occurrence_with_option",
       {
 
         p_from_date:
@@ -6702,7 +6778,10 @@ async function confirmTeacherLessonMove(
           newDate,
 
         p_to_start:
-          newTime
+          newTime,
+
+        p_old_slot_status:
+          oldSlotStatus
 
       }
     );
