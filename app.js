@@ -5445,7 +5445,7 @@ async function loadTeacherSubjectCatalog() {
 
   document
     .querySelectorAll(
-      ".teacher-subject-toggle-button"
+      ".teacher-subject-delete-button"
     )
     .forEach(button => {
 
@@ -5453,10 +5453,9 @@ async function loadTeacherSubjectCatalog() {
         "click",
         () => {
 
-          setTeacherSubjectActive(
+          deleteTeacherSubject(
             button.dataset.subjectId,
-            button.dataset.active ===
-              "true"
+            button.dataset.subjectName
           );
 
         }
@@ -5668,17 +5667,17 @@ function renderTeacherSubjectCard(
 
           <button
             type="button"
-            class="secondary-button teacher-subject-toggle-button"
+            class="secondary-button teacher-subject-delete-button"
             data-subject-id="${subject.subject_id}"
-            data-active="${isActive
-              ? "false"
-              : "true"}"
+            data-subject-name="${escapeHtml(
+              subject.subject_name
+            )}"
+            style="
+              border-color:#c0392b;
+              color:#c0392b;
+            "
           >
-            ${
-              isActive
-                ? "Desativar materia"
-                : "Reativar materia"
-            }
+            Excluir materia
           </button>
 
         </div>
@@ -6014,43 +6013,59 @@ async function saveNewTeacherSubject() {
 // ATIVAR / DESATIVAR MATERIA
 // =====================================================
 
-async function setTeacherSubjectActive(
+async function deleteTeacherSubject(
   subjectId,
-  active
+  subjectName
 ) {
+
+  const confirmed =
+    window.confirm(
+
+      "Excluir a materia \"" +
+      String(
+        subjectName || ""
+      ) +
+      "\"?\n\n" +
+      "Ela deixara de aparecer para novas aulas e planejamentos.\n" +
+      "O historico das aulas antigas sera preservado."
+
+    );
+
+  if (!confirmed) {
+    return;
+  }
 
   const {
     error
   } =
     await supabaseClient.rpc(
-      "set_teacher_subject_active",
+      "delete_teacher_subject",
       {
         p_subject_id:
-          subjectId,
-
-        p_active:
-          active
+          subjectId
       }
     );
-
 
   if (error) {
 
     console.error(
-      "Erro ao alterar materia:",
+      "Erro ao excluir materia:",
       error
     );
 
     alert(
       error.message ||
-      "Nao foi possivel alterar a materia."
+      "Nao foi possivel excluir a materia."
     );
 
     return;
   }
 
-
   await loadTeacherSubjectCatalog();
+
+  alert(
+    "Materia excluida com sucesso."
+  );
 
 }
 
