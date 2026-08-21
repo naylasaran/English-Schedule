@@ -2795,6 +2795,9 @@ function formatMakeupSource(source) {
     case "student_cancellation":
       return "Cancelamento de aula";
 
+    case "teacher_cancellation":
+      return "Cancelamento do professor";
+
     default:
       return (
         source ||
@@ -6265,6 +6268,63 @@ async function openTeacherScheduleEditor(
 
 
   // ===================================================
+  // CANCELAR SOMENTE ESTA AULA
+  // ===================================================
+
+  if (
+    currentStatus === "lesson" &&
+    closeButton &&
+    closeButton.parentElement
+  ) {
+
+    const cancelLessonButton =
+      document.createElement(
+        "button"
+      );
+
+
+    cancelLessonButton.type =
+      "button";
+
+
+    cancelLessonButton.className =
+      "secondary-button";
+
+
+    cancelLessonButton.textContent =
+      "Cancelar somente esta aula";
+
+
+    cancelLessonButton.style.borderColor =
+      "#c0392b";
+
+
+    cancelLessonButton.style.color =
+      "#c0392b";
+
+
+    closeButton.parentElement.insertBefore(
+      cancelLessonButton,
+      closeButton
+    );
+
+
+    cancelLessonButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherLessonCancellation(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
+  // ===================================================
   // AGENDAR REPOSICAO EM HORARIO LIVRE
   // ===================================================
 
@@ -7086,6 +7146,539 @@ async function cancelTeacherMakeupReservation(
    // =====================================================
 // REAGENDAR UMA \u00DANICA AULA
 // =====================================================
+
+
+// =====================================================
+// PROFESSOR - CANCELAR UMA UNICA AULA
+// =====================================================
+
+function openTeacherLessonCancellation(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const studentName =
+    String(
+      slot.student_name ||
+      "Aluno"
+    );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #c0392b;
+      "
+    >
+
+      <h3>
+        Cancelar somente esta aula
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+
+        ${escapeHtml(
+          studentName
+        )}
+      </p>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(date)}
+      </p>
+
+
+      <p>
+        <strong>Hor\u00E1rio:</strong>
+
+        ${normalizeTime(
+          slot.start_time
+        )}
+
+        \u00E0s
+
+        ${normalizeTime(
+          slot.end_time
+        )}
+      </p>
+
+
+      <div
+        style="
+          margin-top:15px;
+          padding:15px;
+          border-radius:8px;
+          background:#fff3cd;
+        "
+      >
+
+        <strong>
+          Esta a\u00E7\u00E3o cancela apenas esta ocorr\u00EAncia.
+        </strong>
+
+        <br><br>
+
+        A agenda fixa das semanas seguintes n\u00E3o ser\u00E1 alterada.
+
+        <br><br>
+
+        Uma reposi\u00E7\u00E3o ser\u00E1 liberada automaticamente
+        para o aluno.
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherCancelLessonReason"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Justificativa para o aluno
+
+          <span
+            style="
+              font-weight:normal;
+              color:#666;
+            "
+          >
+            (opcional)
+          </span>
+
+        </label>
+
+
+        <textarea
+          id="teacherCancelLessonReason"
+          maxlength="1000"
+          rows="4"
+          placeholder="Ex.: Tive um compromisso e n\u00E3o conseguirei realizar esta aula."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+            font-size:15px;
+          "
+        ></textarea>
+
+
+        <div
+          id="teacherCancelLessonReasonCounter"
+          style="
+            margin-top:5px;
+            text-align:right;
+            font-size:12px;
+            color:#666;
+          "
+        >
+          0 / 1000
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherCancelLessonOldSlotStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Como fica este hor\u00E1rio nesta data?
+        </label>
+
+
+        <select
+          id="teacherCancelLessonOldSlotStatus"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option
+            value="unavailable"
+            selected
+          >
+            Indispon\u00EDvel somente nesta data
+          </option>
+
+
+          <option
+            value="free"
+          >
+            Livre somente nesta data
+          </option>
+
+        </select>
+
+
+        <p
+          style="
+            margin-top:8px;
+            font-size:13px;
+            color:#666;
+          "
+        >
+          Nas semanas seguintes, a aula fixa permanece normalmente.
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmTeacherLessonCancellationButton"
+          style="
+            background:#c0392b;
+          "
+        >
+          Confirmar cancelamento
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="backTeacherLessonCancellationButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherLessonCancellationMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const reasonInput =
+    document.getElementById(
+      "teacherCancelLessonReason"
+    );
+
+
+  const reasonCounter =
+    document.getElementById(
+      "teacherCancelLessonReasonCounter"
+    );
+
+
+  if (
+    reasonInput &&
+    reasonCounter
+  ) {
+
+    reasonInput.addEventListener(
+      "input",
+      () => {
+
+        reasonCounter.textContent =
+          reasonInput.value.length +
+          " / 1000";
+
+      }
+    );
+
+  }
+
+
+  const confirmButton =
+    document.getElementById(
+      "confirmTeacherLessonCancellationButton"
+    );
+
+
+  if (confirmButton) {
+
+    confirmButton.addEventListener(
+      "click",
+      () => {
+
+        confirmTeacherLessonCancellation(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
+  const backButton =
+    document.getElementById(
+      "backTeacherLessonCancellationButton"
+    );
+
+
+  if (backButton) {
+
+    backButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherScheduleEditor(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// PROFESSOR - CONFIRMAR CANCELAMENTO DE UMA AULA
+// =====================================================
+
+async function confirmTeacherLessonCancellation(
+  date,
+  slot
+) {
+
+  const reasonInput =
+    document.getElementById(
+      "teacherCancelLessonReason"
+    );
+
+
+  const oldSlotSelect =
+    document.getElementById(
+      "teacherCancelLessonOldSlotStatus"
+    );
+
+
+  const button =
+    document.getElementById(
+      "confirmTeacherLessonCancellationButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherLessonCancellationMessage"
+    );
+
+
+  if (!oldSlotSelect) {
+    return;
+  }
+
+
+  const reason =
+    reasonInput
+      ? reasonInput.value.trim()
+      : "";
+
+
+  const oldSlotStatus =
+    oldSlotSelect.value === "free"
+      ? "free"
+      : "unavailable";
+
+
+  const confirmed =
+    window.confirm(
+
+      "Confirmar cancelamento desta aula?\n\n" +
+
+      formatDate(date) +
+
+      " \u00E0s " +
+
+      normalizeTime(
+        slot.start_time
+      ) +
+
+      "\n\nUma reposi\u00E7\u00E3o ser\u00E1 liberada para o aluno." +
+
+      (
+        oldSlotStatus === "free"
+          ? "\nO hor\u00E1rio ficar\u00E1 livre somente nesta data."
+          : "\nO hor\u00E1rio ficar\u00E1 indispon\u00EDvel somente nesta data."
+      ) +
+
+      (
+        reason
+          ? "\n\nJustificativa: " + reason
+          : ""
+      )
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Cancelando...";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "teacher_cancel_lesson_occurrence",
+      {
+
+        p_lesson_date:
+          formatDateForDatabase(
+            date
+          ),
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          ),
+
+        p_old_slot_status:
+          oldSlotStatus,
+
+        p_reason:
+          reason || null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cancelar aula pelo professor:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "N\u00E3o foi poss\u00EDvel cancelar esta aula.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Confirmar cancelamento";
+
+    }
+
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    "Aula cancelada com sucesso.\n\n" +
+    "Uma reposi\u00E7\u00E3o foi liberada para o aluno e " +
+    "a agenda fixa das semanas seguintes foi preservada."
+  );
+
+}
+
 
 function openTeacherLessonMove(
   date,
