@@ -6089,6 +6089,27 @@ async function openTeacherScheduleEditor(
         </button>
 
 
+        ${
+          currentStatus === "lesson"
+            ? `
+
+              <button
+                type="button"
+                class="secondary-button"
+                id="cancelSingleTeacherLessonButton"
+                style="
+                  border-color:#c0392b;
+                  color:#c0392b;
+                "
+              >
+                Cancelar somente esta aula
+              </button>
+
+            `
+            : ""
+        }
+
+
         <button
           type="button"
           class="secondary-button"
@@ -6269,47 +6290,20 @@ async function openTeacherScheduleEditor(
 
   // ===================================================
   // CANCELAR SOMENTE ESTA AULA
+  // O botao ja faz parte do HTML do editor.
   // ===================================================
 
-  if (
-    currentStatus === "lesson" &&
-    closeButton &&
-    closeButton.parentElement
-  ) {
-
-    const cancelLessonButton =
-      document.createElement(
-        "button"
-      );
-
-
-    cancelLessonButton.type =
-      "button";
-
-
-    cancelLessonButton.className =
-      "secondary-button";
-
-
-    cancelLessonButton.textContent =
-      "Cancelar somente esta aula";
-
-
-    cancelLessonButton.style.borderColor =
-      "#c0392b";
-
-
-    cancelLessonButton.style.color =
-      "#c0392b";
-
-
-    closeButton.parentElement.insertBefore(
-      cancelLessonButton,
-      closeButton
+  const cancelSingleLessonButton =
+    document.getElementById(
+      "cancelSingleTeacherLessonButton"
     );
 
 
-    cancelLessonButton.addEventListener(
+  if (
+    cancelSingleLessonButton
+  ) {
+
+    cancelSingleLessonButton.addEventListener(
       "click",
       () => {
 
