@@ -12,6 +12,8 @@ let currentUser = null;
 let currentProfile = null;
 let currentStudentId = null;
 let currentTeacherStudents = [];
+let currentTeacherPlans = [];
+let editingTeacherPlanId = null;
 
 let currentStudentSchedule = [];
 let selectedScheduleSlot = null;
@@ -5003,6 +5005,372 @@ function setTeacherPage(page) {
 
 
   // ===================================================
+  // PLANEJAMENTO
+  // ===================================================
+
+  if (page === "planning") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h3
+              style="
+                margin-bottom:6px;
+              "
+            >
+              Planejamento
+            </h3>
+
+            <p
+              style="
+                margin:0;
+              "
+            >
+              Planeje materia, conteudo e observacoes
+              antes da aula.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="newTeacherPlanButton"
+          >
+            + Novo planejamento
+          </button>
+
+        </div>
+
+
+        <div
+          id="teacherPlanningFormArea"
+          style="
+            display:none;
+            margin-top:20px;
+            padding:18px;
+            border-radius:10px;
+            background:#f7f7f7;
+          "
+        >
+
+          <h4
+            id="teacherPlanningFormTitle"
+            style="
+              margin-top:0;
+            "
+          >
+            Novo planejamento
+          </h4>
+
+
+          <div
+            style="
+              display:grid;
+              gap:15px;
+            "
+          >
+
+            <div>
+
+              <label
+                for="teacherPlanningStudent"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Aluno
+              </label>
+
+              <select
+                id="teacherPlanningStudent"
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+                <option value="">
+                  Carregando alunos...
+                </option>
+              </select>
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="teacherPlanningDate"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Data
+              </label>
+
+              <input
+                id="teacherPlanningDate"
+                type="date"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="teacherPlanningSubject"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Materia
+              </label>
+
+              <select
+                id="teacherPlanningSubject"
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+                <option value="">
+                  Carregando materias...
+                </option>
+              </select>
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="teacherPlanningContent"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Conteudo
+              </label>
+
+              <select
+                id="teacherPlanningContent"
+                disabled
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+                <option value="">
+                  Selecione a materia primeiro
+                </option>
+              </select>
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="teacherPlanningNotes"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Observacoes / objetivo da aula
+              </label>
+
+              <textarea
+                id="teacherPlanningNotes"
+                rows="5"
+                maxlength="3000"
+                placeholder="Ex.: revisar Simple Past, corrigir exercicios e praticar perguntas..."
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                  resize:vertical;
+                  font-family:inherit;
+                "
+              ></textarea>
+
+            </div>
+
+          </div>
+
+
+          <div
+            style="
+              display:flex;
+              gap:10px;
+              flex-wrap:wrap;
+              margin-top:18px;
+            "
+          >
+
+            <button
+              type="button"
+              class="action-button"
+              id="saveTeacherPlanButton"
+            >
+              Salvar planejamento
+            </button>
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="cancelTeacherPlanFormButton"
+            >
+              Cancelar
+            </button>
+
+          </div>
+
+
+          <p
+            id="teacherPlanningFormMessage"
+            style="
+              margin-top:10px;
+            "
+          ></p>
+
+        </div>
+
+
+        <div
+          id="teacherPlanningList"
+          style="
+            margin-top:22px;
+          "
+        >
+          Carregando planejamentos...
+        </div>
+
+      </div>
+
+    `;
+
+
+    const newButton =
+      document.getElementById(
+        "newTeacherPlanButton"
+      );
+
+
+    if (newButton) {
+
+      newButton.addEventListener(
+        "click",
+        () => {
+
+          openTeacherPlanningForm();
+
+        }
+      );
+
+    }
+
+
+    const saveButton =
+      document.getElementById(
+        "saveTeacherPlanButton"
+      );
+
+
+    if (saveButton) {
+
+      saveButton.addEventListener(
+        "click",
+        saveTeacherPlanning
+      );
+
+    }
+
+
+    const cancelButton =
+      document.getElementById(
+        "cancelTeacherPlanFormButton"
+      );
+
+
+    if (cancelButton) {
+
+      cancelButton.addEventListener(
+        "click",
+        closeTeacherPlanningForm
+      );
+
+    }
+
+
+    const subjectSelect =
+      document.getElementById(
+        "teacherPlanningSubject"
+      );
+
+
+    if (subjectSelect) {
+
+      subjectSelect.addEventListener(
+        "change",
+        async () => {
+
+          await loadTeacherPlanningContents(
+            subjectSelect.value
+          );
+
+        }
+      );
+
+    }
+
+
+    loadTeacherPlanningPage();
+
+    return;
+  }
+
+
+  // ===================================================
   // AGENDA DO PROFESSOR
   // ===================================================
 
@@ -5321,6 +5689,1040 @@ function setTeacherPage(page) {
 
   `;
 }
+
+// =====================================================
+// PLANEJAMENTO DO PROFESSOR
+// =====================================================
+
+async function loadTeacherPlanningPage() {
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const subjects =
+    await getTeacherSubjectsForRecord();
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherPlanningStudent"
+    );
+
+
+  if (studentSelect) {
+
+    studentSelect.innerHTML = `
+
+      <option value="">
+        Selecione um aluno
+      </option>
+
+      ${currentTeacherStudents
+        .map(
+          student => `
+
+            <option
+              value="${student.student_id}"
+            >
+              ${escapeHtml(
+                student.student_name
+              )}
+            </option>
+
+          `
+        )
+        .join("")}
+
+    `;
+
+  }
+
+
+  const subjectSelect =
+    document.getElementById(
+      "teacherPlanningSubject"
+    );
+
+
+  if (subjectSelect) {
+
+    subjectSelect.innerHTML = `
+
+      <option value="">
+        Selecione uma materia
+      </option>
+
+      ${subjects
+        .map(
+          subject => `
+
+            <option
+              value="${subject.subject_id}"
+            >
+              ${escapeHtml(
+                subject.subject_name
+              )}
+            </option>
+
+          `
+        )
+        .join("")}
+
+    `;
+
+  }
+
+
+  const today =
+    new Date();
+
+
+  const fromDate =
+    addDays(
+      today,
+      -30
+    );
+
+
+  const toDate =
+    addDays(
+      today,
+      120
+    );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_lesson_plans",
+      {
+        p_from_date:
+          formatDateForDatabase(
+            fromDate
+          ),
+
+        p_to_date:
+          formatDateForDatabase(
+            toDate
+          )
+      }
+    );
+
+
+  const container =
+    document.getElementById(
+      "teacherPlanningList"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar planejamentos:",
+      error
+    );
+
+
+    if (container) {
+
+      container.innerHTML = `
+
+        <p>
+          Nao foi possivel carregar os planejamentos.
+        </p>
+
+      `;
+
+    }
+
+
+    return;
+  }
+
+
+  currentTeacherPlans =
+    data || [];
+
+
+  renderTeacherPlanningList();
+
+}
+
+
+// =====================================================
+// LISTA DE PLANEJAMENTOS
+// =====================================================
+
+function renderTeacherPlanningList() {
+
+  const container =
+    document.getElementById(
+      "teacherPlanningList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (
+    currentTeacherPlans.length === 0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+        Nenhum planejamento encontrado.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:14px;
+      "
+    >
+
+      ${currentTeacherPlans
+        .map(
+          renderTeacherPlanCard
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".edit-teacher-plan-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          editTeacherPlan(
+            button.dataset.planId
+          );
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".cancel-teacher-plan-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          cancelTeacherPlan(
+            button.dataset.planId
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD DE PLANEJAMENTO
+// =====================================================
+
+function renderTeacherPlanCard(
+  plan
+) {
+
+  const status =
+    String(
+      plan.status || ""
+    ).toLowerCase();
+
+
+  let statusLabel =
+    plan.status || "";
+
+
+  let background =
+    "#ffffff";
+
+
+  if (
+    status === "planned"
+  ) {
+
+    statusLabel =
+      "Planejado";
+
+    background =
+      "#eef5ff";
+
+  }
+
+  else if (
+    status === "completed"
+  ) {
+
+    statusLabel =
+      "Concluido";
+
+    background =
+      "#e8f5e9";
+
+  }
+
+  else if (
+    status === "cancelled"
+  ) {
+
+    statusLabel =
+      "Cancelado";
+
+    background =
+      "#f2f2f2";
+
+  }
+
+
+  return `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:${background};
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:15px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:18px;
+            "
+          >
+            ${escapeHtml(
+              plan.student_name
+            )}
+          </strong>
+
+          <p
+            style="
+              margin:6px 0 0;
+            "
+          >
+            ${formatDate(
+              new Date(
+                plan.planned_date +
+                "T12:00:00"
+              )
+            )}
+          </p>
+
+        </div>
+
+
+        <strong>
+          ${escapeHtml(
+            statusLabel
+          )}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:14px;
+        "
+      >
+
+        <p>
+          <strong>Materia:</strong>
+          ${escapeHtml(
+            plan.subject_name ||
+            "Nao informada"
+          )}
+        </p>
+
+        <p>
+          <strong>Conteudo:</strong>
+          ${escapeHtml(
+            plan.content_title ||
+            "Nao informado"
+          )}
+        </p>
+
+        <p>
+          <strong>Observacoes:</strong>
+          ${escapeHtml(
+            plan.notes ||
+            "Nenhuma observacao."
+          )}
+        </p>
+
+      </div>
+
+
+      ${
+        status === "planned"
+
+          ? `
+
+            <div
+              style="
+                display:flex;
+                gap:8px;
+                flex-wrap:wrap;
+                margin-top:14px;
+              "
+            >
+
+              <button
+                type="button"
+                class="secondary-button edit-teacher-plan-button"
+                data-plan-id="${plan.plan_id}"
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                class="secondary-button cancel-teacher-plan-button"
+                data-plan-id="${plan.plan_id}"
+                style="
+                  border-color:#c0392b;
+                  color:#c0392b;
+                "
+              >
+                Cancelar planejamento
+              </button>
+
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// ABRIR FORMULARIO
+// =====================================================
+
+async function openTeacherPlanningForm(
+  plan = null
+) {
+
+  const area =
+    document.getElementById(
+      "teacherPlanningFormArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  editingTeacherPlanId =
+    plan
+      ? plan.plan_id
+      : null;
+
+
+  area.style.display =
+    "block";
+
+
+  const title =
+    document.getElementById(
+      "teacherPlanningFormTitle"
+    );
+
+
+  if (title) {
+
+    title.textContent =
+      plan
+        ? "Editar planejamento"
+        : "Novo planejamento";
+
+  }
+
+
+  const studentSelect =
+    document.getElementById(
+      "teacherPlanningStudent"
+    );
+
+
+  const dateInput =
+    document.getElementById(
+      "teacherPlanningDate"
+    );
+
+
+  const subjectSelect =
+    document.getElementById(
+      "teacherPlanningSubject"
+    );
+
+
+  const notes =
+    document.getElementById(
+      "teacherPlanningNotes"
+    );
+
+
+  if (studentSelect) {
+
+    studentSelect.value =
+      plan
+        ? plan.student_id
+        : "";
+
+  }
+
+
+  if (dateInput) {
+
+    dateInput.value =
+      plan
+        ? plan.planned_date
+        : formatDateForDatabase(
+            new Date()
+          );
+
+  }
+
+
+  if (subjectSelect) {
+
+    subjectSelect.value =
+      plan &&
+      plan.subject_id
+        ? plan.subject_id
+        : "";
+
+  }
+
+
+  if (notes) {
+
+    notes.value =
+      plan
+        ? plan.notes || ""
+        : "";
+
+  }
+
+
+  await loadTeacherPlanningContents(
+    plan &&
+    plan.subject_id
+      ? plan.subject_id
+      : "",
+    plan
+      ? plan.content_id
+      : null
+  );
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// CONTEUDOS DO FORMULARIO
+// =====================================================
+
+async function loadTeacherPlanningContents(
+  subjectId,
+  selectedContentId = null
+) {
+
+  const select =
+    document.getElementById(
+      "teacherPlanningContent"
+    );
+
+
+  if (!select) {
+    return;
+  }
+
+
+  if (!subjectId) {
+
+    select.disabled =
+      true;
+
+    select.innerHTML = `
+
+      <option value="">
+        Selecione a materia primeiro
+      </option>
+
+    `;
+
+
+    return;
+  }
+
+
+  select.disabled =
+    true;
+
+  select.innerHTML = `
+
+    <option value="">
+      Carregando...
+    </option>
+
+  `;
+
+
+  const contents =
+    await getTeacherContentsForRecord(
+      subjectId
+    );
+
+
+  select.innerHTML = `
+
+    <option value="">
+      Nao informado
+    </option>
+
+    ${contents
+      .map(
+        item => `
+
+          <option
+            value="${item.content_id}"
+            ${
+              String(
+                item.content_id
+              ) ===
+              String(
+                selectedContentId || ""
+              )
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHtml(
+              item.content_title
+            )}
+          </option>
+
+        `
+      )
+      .join("")}
+
+  `;
+
+
+  select.disabled =
+    false;
+
+}
+
+
+// =====================================================
+// FECHAR FORMULARIO
+// =====================================================
+
+function closeTeacherPlanningForm() {
+
+  editingTeacherPlanId =
+    null;
+
+
+  const area =
+    document.getElementById(
+      "teacherPlanningFormArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+  }
+
+
+  const message =
+    document.getElementById(
+      "teacherPlanningFormMessage"
+    );
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+}
+
+
+// =====================================================
+// EDITAR PLANEJAMENTO
+// =====================================================
+
+function editTeacherPlan(
+  planId
+) {
+
+  const plan =
+    currentTeacherPlans.find(
+      item =>
+        String(
+          item.plan_id
+        ) ===
+        String(
+          planId
+        )
+    );
+
+
+  if (!plan) {
+    return;
+  }
+
+
+  openTeacherPlanningForm(
+    plan
+  );
+
+}
+
+
+// =====================================================
+// SALVAR PLANEJAMENTO
+// =====================================================
+
+async function saveTeacherPlanning() {
+
+  const studentSelect =
+    document.getElementById(
+      "teacherPlanningStudent"
+    );
+
+
+  const dateInput =
+    document.getElementById(
+      "teacherPlanningDate"
+    );
+
+
+  const subjectSelect =
+    document.getElementById(
+      "teacherPlanningSubject"
+    );
+
+
+  const contentSelect =
+    document.getElementById(
+      "teacherPlanningContent"
+    );
+
+
+  const notes =
+    document.getElementById(
+      "teacherPlanningNotes"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherPlanningFormMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherPlanButton"
+    );
+
+
+  const studentId =
+    studentSelect
+      ? studentSelect.value
+      : "";
+
+
+  const plannedDate =
+    dateInput
+      ? dateInput.value
+      : "";
+
+
+  const subjectId =
+    subjectSelect
+      ? subjectSelect.value || null
+      : null;
+
+
+  const contentId =
+    contentSelect
+      ? contentSelect.value || null
+      : null;
+
+
+  if (!studentId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione um aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (!plannedDate) {
+
+    if (message) {
+
+      message.textContent =
+        "Escolha a data do planejamento.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (!subjectId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione a materia.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_lesson_plan",
+      {
+        p_plan_id:
+          editingTeacherPlanId,
+
+        p_student_id:
+          studentId,
+
+        p_planned_date:
+          plannedDate,
+
+        p_subject_id:
+          subjectId,
+
+        p_content_id:
+          contentId,
+
+        p_notes:
+          notes
+            ? notes.value.trim() || null
+            : null
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar planejamento:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o planejamento.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar planejamento";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar planejamento";
+
+  }
+
+
+  closeTeacherPlanningForm();
+
+  await loadTeacherPlanningPage();
+
+}
+
+
+// =====================================================
+// CANCELAR PLANEJAMENTO
+// =====================================================
+
+async function cancelTeacherPlan(
+  planId
+) {
+
+  const confirmed =
+    window.confirm(
+      "Cancelar este planejamento?\n\n" +
+      "Ele continuara registrado no historico como cancelado."
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "cancel_teacher_lesson_plan",
+      {
+        p_plan_id:
+          planId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cancelar planejamento:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Nao foi possivel cancelar o planejamento."
+    );
+
+    return;
+  }
+
+
+  await loadTeacherPlanningPage();
+
+}
+
 
 // =====================================================
 // CATALOGO DE MATERIAS DO PROFESSOR
@@ -7836,6 +9238,51 @@ async function openTeacherAttendanceManager(
     "makeup";
 
 
+  let occurrencePlan =
+    null;
+
+
+  if (!isMakeup) {
+
+    const {
+      data: planData,
+      error: planError
+    } =
+      await supabaseClient.rpc(
+        "get_teacher_plan_for_occurrence",
+        {
+          p_student_id:
+            occurrence.student_id,
+
+          p_date:
+            occurrence.lesson_date
+        }
+      );
+
+
+    if (planError) {
+
+      console.warn(
+        "Nao foi possivel carregar o planejamento da aula:",
+        planError
+      );
+
+    }
+
+    else {
+
+      occurrencePlan =
+        Array.isArray(
+          planData
+        )
+          ? planData[0] || null
+          : planData || null;
+
+    }
+
+  }
+
+
   const currentStatus =
     String(
       occurrence.attendance_status ||
@@ -7850,17 +9297,29 @@ async function openTeacherAttendanceManager(
 
   const teacherNotes =
     occurrence.teacher_notes ||
-    "";
+    (
+      occurrencePlan
+        ? occurrencePlan.notes || ""
+        : ""
+    );
 
 
   const selectedSubjectId =
     occurrence.subject_id ||
-    "";
+    (
+      occurrencePlan
+        ? occurrencePlan.subject_id || ""
+        : ""
+    );
 
 
   const selectedContentId =
     occurrence.content_id ||
-    "";
+    (
+      occurrencePlan
+        ? occurrencePlan.content_id || ""
+        : ""
+    );
 
 
   const initialContents =
@@ -8009,6 +9468,33 @@ async function openTeacherAttendanceManager(
                 )
               )}
 
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        occurrencePlan
+
+          ? `
+
+            <div
+              style="
+                margin-top:15px;
+                padding:12px;
+                border-radius:8px;
+                background:#e8f5e9;
+              "
+            >
+              <strong>
+                Planejamento carregado:
+              </strong>
+
+              os campos de materia, conteudo e observacoes
+              foram preenchidos automaticamente.
             </div>
 
           `
