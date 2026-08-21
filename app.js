@@ -2883,36 +2883,6 @@ async function loadStudentWeeklySchedule() {
   currentStudentSchedule = data || [];
 
   let weeklyMakeupReservations = [];
-  let weeklyLessonHistory = [];
-
-  const {
-    data: lessonHistoryData,
-    error: lessonHistoryError
-  } =
-    await supabaseClient.rpc(
-      "get_my_week_lesson_records",
-      {
-        p_week_start:
-          weekStart
-      }
-    );
-
-  if (lessonHistoryError) {
-
-    console.warn(
-      "Nao foi possivel carregar o historico da semana:",
-      lessonHistoryError
-    );
-
-  }
-
-  else {
-
-    weeklyLessonHistory =
-      lessonHistoryData || [];
-
-  }
-
 
   if (currentStudentId) {
 
@@ -2950,8 +2920,7 @@ async function loadStudentWeeklySchedule() {
 
   renderStudentWeeklySchedule(
     currentStudentSchedule,
-    weeklyMakeupReservations,
-    weeklyLessonHistory
+    weeklyMakeupReservations
   );
 }
 
@@ -2963,8 +2932,7 @@ async function loadStudentWeeklySchedule() {
 
 function renderStudentWeeklySchedule(
   schedule,
-  makeupReservations = [],
-  lessonHistoryRecords = []
+  makeupReservations = []
 ) {
 
   const head =
@@ -3103,55 +3071,6 @@ function renderStudentWeeklySchedule(
           );
 
 
-        const lessonHistory =
-          lessonHistoryRecords.find(
-            record => {
-
-              if (
-                String(
-                  record.lesson_date
-                ) !==
-                slotDateDb
-              ) {
-                return false;
-              }
-
-              const recordStart =
-                timeToMinutes(
-                  record.start_time
-                );
-
-              const recordEnd =
-                timeToMinutes(
-                  record.end_time
-                );
-
-              const slotStart =
-                timeToMinutes(
-                  slot.start_time
-                );
-
-              const slotEnd =
-                timeToMinutes(
-                  slot.end_time
-                );
-
-              return (
-                recordStart < slotEnd &&
-                recordEnd > slotStart
-              );
-
-            }
-          );
-
-        const historyDisplay =
-          lessonHistory
-            ? getStudentAgendaHistoryDisplay(
-                lessonHistory
-              )
-            : null;
-
-
         const ownMakeupReservation =
           makeupReservations.find(
             reservation => {
@@ -3199,23 +3118,19 @@ function renderStudentWeeklySchedule(
 
 
         const status =
-          historyDisplay
+          ownMakeupReservation
 
-            ? historyDisplay
+            ? {
+                className:
+                  "own-makeup",
 
-            : ownMakeupReservation
+                label:
+                  "Minha reposi\u00E7\u00E3o"
+              }
 
-              ? {
-                  className:
-                    "own-makeup",
-
-                  label:
-                    "Minha reposi\u00E7\u00E3o"
-                }
-
-              : normalizeStudentScheduleStatus(
-                  slot.status
-                );
+            : normalizeStudentScheduleStatus(
+                slot.status
+              );
 
 
         cell.classList.add(
@@ -3227,64 +3142,10 @@ function renderStudentWeeklySchedule(
 
 
         // =============================================
-        // HISTORICO DA AULA
-        // =============================================
-
-        if (
-          historyDisplay &&
-          lessonHistory
-        ) {
-
-          cell.style.backgroundColor =
-            historyDisplay.background;
-
-          cell.style.color =
-            historyDisplay.color;
-
-          cell.style.fontWeight =
-            "bold";
-
-          cell.style.cursor =
-            "pointer";
-
-          cell.innerHTML = `
-
-            <strong>
-              ${escapeHtml(
-                historyDisplay.label
-              )}
-            </strong>
-
-            <br>
-
-            <small>
-              Ver registro
-            </small>
-
-          `;
-
-          cell.title =
-            "Clique para ver o registro desta aula.";
-
-          cell.addEventListener(
-            "click",
-            () => {
-
-              openStudentAgendaLessonHistory(
-                lessonHistory
-              );
-
-            }
-          );
-
-        }
-
-
-        // =============================================
         // MINHA REPOSI\u00C7\u00C3O
         // =============================================
 
-        else if (
+        if (
           status.className ===
           "own-makeup"
         ) {
@@ -3433,279 +3294,6 @@ function renderStudentWeeklySchedule(
 
 // =====================================================
 // ENCONTRAR HOR\xc1RIO
-// =====================================================
-// HISTORICO DA AULA NA AGENDA DO ALUNO
-// =====================================================
-
-function getStudentAgendaHistoryDisplay(
-  record
-) {
-
-  const attendance =
-    String(
-      record.attendance_status ||
-      ""
-    ).toLowerCase();
-
-
-  if (
-    record.lesson_status ===
-    "cancelled"
-  ) {
-
-    return {
-      className:
-        "student-history",
-      label:
-        "Aula cancelada",
-      background:
-        "#fff3cd",
-      color:
-        "#856404"
-    };
-
-  }
-
-
-  switch (
-    attendance
-  ) {
-
-    case "present":
-
-      return {
-        className:
-          "student-history",
-        label:
-          "Presente",
-        background:
-          "#dcecff",
-        color:
-          "#245a9a"
-      };
-
-
-    case "absent":
-
-      return {
-        className:
-          "student-history",
-        label:
-          "Falta sem justificativa",
-        background:
-          "#f8d7da",
-        color:
-          "#842029"
-      };
-
-
-    case "justified_absence":
-
-      return {
-        className:
-          "student-history",
-        label:
-          "Falta justificada",
-        background:
-          "#fff3cd",
-        color:
-          "#856404"
-      };
-
-
-    case "makeup":
-
-      return {
-        className:
-          "student-history",
-        label:
-          "Reposicao realizada",
-        background:
-          "#eadcf8",
-        color:
-          "#6f42c1"
-      };
-
-
-    default:
-
-      if (
-        record.lesson_status ===
-        "completed"
-      ) {
-
-        return {
-          className:
-            "student-history",
-          label:
-            "Aula realizada",
-          background:
-            "#dcecff",
-          color:
-            "#245a9a"
-        };
-
-      }
-
-
-      return null;
-
-  }
-
-}
-
-
-function openStudentAgendaLessonHistory(
-  record
-) {
-
-  const area =
-    document.getElementById(
-      "makeupSelectionArea"
-    );
-
-
-  if (!area) {
-    return;
-  }
-
-
-  const attendance =
-    record.attendance_status
-      ? formatAttendanceStatus(
-          record.attendance_status
-        )
-      : (
-          record.lesson_status ===
-          "cancelled"
-            ? "Aula cancelada"
-            : "Nao registrado"
-        );
-
-
-  area.innerHTML = `
-
-    <div
-      class="card"
-      style="
-        border-left:5px solid #2f6fed;
-      "
-    >
-
-      <h3>
-        Registro da aula
-      </h3>
-
-      <p>
-        <strong>Data:</strong>
-        ${formatDate(
-          new Date(
-            record.lesson_date +
-            "T12:00:00"
-          )
-        )}
-      </p>
-
-      <p>
-        <strong>Horario:</strong>
-        ${normalizeTime(
-          record.start_time
-        )}
-        as
-        ${normalizeTime(
-          record.end_time
-        )}
-      </p>
-
-      <p>
-        <strong>Presenca:</strong>
-        ${escapeHtml(
-          attendance
-        )}
-      </p>
-
-      <p>
-        <strong>Materia:</strong>
-        ${escapeHtml(
-          record.subject_name ||
-          "Nao informada"
-        )}
-      </p>
-
-      <p>
-        <strong>Conteudo:</strong>
-        ${escapeHtml(
-          record.content_title ||
-          "Nao informado"
-        )}
-      </p>
-
-      <div
-        style="
-          margin-top:15px;
-          padding:15px;
-          background:#f7f7f7;
-          border-radius:8px;
-        "
-      >
-
-        <strong>
-          Observacoes do professor
-        </strong>
-
-        <p
-          style="
-            white-space:pre-wrap;
-            margin-bottom:0;
-          "
-        >
-          ${escapeHtml(
-            record.teacher_notes ||
-            "Nenhuma observacao registrada."
-          )}
-        </p>
-
-      </div>
-
-      <button
-        type="button"
-        class="secondary-button"
-        id="closeStudentAgendaHistoryButton"
-        style="
-          margin-top:15px;
-        "
-      >
-        Fechar
-      </button>
-
-    </div>
-
-  `;
-
-
-  const closeButton =
-    document.getElementById(
-      "closeStudentAgendaHistoryButton"
-    );
-
-
-  if (closeButton) {
-
-    closeButton.addEventListener(
-      "click",
-      () => {
-
-        area.innerHTML =
-          "";
-
-      }
-    );
-
-  }
-
-}
-
-
 // =====================================================
 
 function findScheduleSlot(
@@ -5187,6 +4775,234 @@ function setTeacherPage(page) {
   }
 
   // ===================================================
+  // MATERIAS / CONTEUDOS
+  // ===================================================
+
+  if (page === "subjects") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h3
+              style="
+                margin-bottom:6px;
+              "
+            >
+              Materias e conteudos
+            </h3>
+
+            <p
+              style="
+                margin:0;
+              "
+            >
+              Organize as materias e os conteudos
+              usados nas aulas e planejamentos.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="openNewTeacherSubjectButton"
+          >
+            + Nova materia
+          </button>
+
+        </div>
+
+
+        <div
+          id="newTeacherSubjectArea"
+          style="
+            display:none;
+            margin-top:18px;
+            padding:15px;
+            background:#f7f7f7;
+            border-radius:10px;
+          "
+        >
+
+          <label
+            for="newTeacherSubjectName"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:8px;
+            "
+          >
+            Nome da materia
+          </label>
+
+
+          <input
+            id="newTeacherSubjectName"
+            type="text"
+            maxlength="120"
+            placeholder="Ex.: Ingles"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:11px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+
+          <div
+            style="
+              display:flex;
+              gap:10px;
+              flex-wrap:wrap;
+              margin-top:12px;
+            "
+          >
+
+            <button
+              type="button"
+              class="action-button"
+              id="saveNewTeacherSubjectButton"
+            >
+              Salvar materia
+            </button>
+
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="cancelNewTeacherSubjectButton"
+            >
+              Cancelar
+            </button>
+
+          </div>
+
+
+          <p
+            id="newTeacherSubjectMessage"
+            style="
+              margin-top:10px;
+            "
+          ></p>
+
+        </div>
+
+
+        <div
+          id="teacherSubjectCatalog"
+          style="
+            margin-top:20px;
+          "
+        >
+          Carregando materias...
+        </div>
+
+      </div>
+
+    `;
+
+
+    const openButton =
+      document.getElementById(
+        "openNewTeacherSubjectButton"
+      );
+
+
+    if (openButton) {
+
+      openButton.addEventListener(
+        "click",
+        () => {
+
+          const area =
+            document.getElementById(
+              "newTeacherSubjectArea"
+            );
+
+
+          if (area) {
+
+            area.style.display =
+              "block";
+
+          }
+
+        }
+      );
+
+    }
+
+
+    const cancelButton =
+      document.getElementById(
+        "cancelNewTeacherSubjectButton"
+      );
+
+
+    if (cancelButton) {
+
+      cancelButton.addEventListener(
+        "click",
+        () => {
+
+          const area =
+            document.getElementById(
+              "newTeacherSubjectArea"
+            );
+
+
+          if (area) {
+
+            area.style.display =
+              "none";
+
+          }
+
+        }
+      );
+
+    }
+
+
+    const saveButton =
+      document.getElementById(
+        "saveNewTeacherSubjectButton"
+      );
+
+
+    if (saveButton) {
+
+      saveButton.addEventListener(
+        "click",
+        saveNewTeacherSubject
+      );
+
+    }
+
+
+    loadTeacherSubjectCatalog();
+
+    return;
+  }
+
+
+  // ===================================================
   // AGENDA DO PROFESSOR
   // ===================================================
 
@@ -5505,6 +5321,875 @@ function setTeacherPage(page) {
 
   `;
 }
+
+// =====================================================
+// CATALOGO DE MATERIAS DO PROFESSOR
+// =====================================================
+
+async function loadTeacherSubjectCatalog() {
+
+  const container =
+    document.getElementById(
+      "teacherSubjectCatalog"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "Carregando materias...";
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_subject_catalog"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar materias:",
+      error
+    );
+
+
+    container.innerHTML = `
+
+      <p>
+        Nao foi possivel carregar as materias.
+      </p>
+
+    `;
+
+
+    return;
+  }
+
+
+  const subjects =
+    data || [];
+
+
+  if (subjects.length === 0) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+        Nenhuma materia cadastrada.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const cards = [];
+
+
+  for (
+    const subject of subjects
+  ) {
+
+    const {
+      data: contents,
+      error: contentError
+    } =
+      await supabaseClient.rpc(
+        "get_teacher_content_catalog",
+        {
+          p_subject_id:
+            subject.subject_id
+        }
+      );
+
+
+    if (contentError) {
+
+      console.error(
+        "Erro ao carregar conteudos:",
+        contentError
+      );
+
+    }
+
+
+    cards.push(
+      renderTeacherSubjectCard(
+        subject,
+        contents || []
+      )
+    );
+
+  }
+
+
+  container.innerHTML =
+    cards.join("");
+
+
+  document
+    .querySelectorAll(
+      ".teacher-subject-toggle-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          setTeacherSubjectActive(
+            button.dataset.subjectId,
+            button.dataset.active ===
+              "true"
+          );
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".open-new-teacher-content-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const area =
+            document.getElementById(
+              "new-content-" +
+              button.dataset.subjectId
+            );
+
+
+          if (area) {
+
+            area.style.display =
+              "block";
+
+          }
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".cancel-new-teacher-content-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const area =
+            document.getElementById(
+              "new-content-" +
+              button.dataset.subjectId
+            );
+
+
+          if (area) {
+
+            area.style.display =
+              "none";
+
+          }
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".save-new-teacher-content-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          saveNewTeacherContent(
+            button.dataset.subjectId
+          );
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".teacher-content-toggle-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          setTeacherContentActive(
+            button.dataset.contentId,
+            button.dataset.active ===
+              "true"
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD DE MATERIA
+// =====================================================
+
+function renderTeacherSubjectCard(
+  subject,
+  contents
+) {
+
+  const isActive =
+    subject.active === true;
+
+
+  return `
+
+    <div
+      style="
+        border:1px solid #ddd;
+        border-radius:12px;
+        padding:18px;
+        margin-bottom:16px;
+        background:${isActive
+          ? "#ffffff"
+          : "#f2f2f2"};
+        opacity:${isActive
+          ? "1"
+          : "0.75"};
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h4
+            style="
+              margin:0;
+              font-size:20px;
+            "
+          >
+            ${escapeHtml(
+              subject.subject_name
+            )}
+          </h4>
+
+
+          <small>
+            ${
+              isActive
+                ? "Materia ativa"
+                : "Materia desativada"
+            }
+            -
+            ${Number(
+              subject.content_count || 0
+            )}
+            conteudo(s)
+          </small>
+
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+          "
+        >
+
+          ${
+            isActive
+
+              ? `
+
+                <button
+                  type="button"
+                  class="secondary-button open-new-teacher-content-button"
+                  data-subject-id="${subject.subject_id}"
+                >
+                  + Conteudo
+                </button>
+
+              `
+
+              : ""
+          }
+
+
+          <button
+            type="button"
+            class="secondary-button teacher-subject-toggle-button"
+            data-subject-id="${subject.subject_id}"
+            data-active="${isActive
+              ? "false"
+              : "true"}"
+          >
+            ${
+              isActive
+                ? "Desativar materia"
+                : "Reativar materia"
+            }
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="new-content-${subject.subject_id}"
+        style="
+          display:none;
+          margin-top:15px;
+          padding:15px;
+          border-radius:8px;
+          background:#eef5ff;
+        "
+      >
+
+        <label
+          for="new-content-title-${subject.subject_id}"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Novo conteudo de
+          ${escapeHtml(
+            subject.subject_name
+          )}
+        </label>
+
+
+        <input
+          type="text"
+          id="new-content-title-${subject.subject_id}"
+          maxlength="200"
+          placeholder="Ex.: Simple Past"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+
+        <div
+          style="
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            margin-top:10px;
+          "
+        >
+
+          <button
+            type="button"
+            class="action-button save-new-teacher-content-button"
+            data-subject-id="${subject.subject_id}"
+          >
+            Salvar conteudo
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button cancel-new-teacher-content-button"
+            data-subject-id="${subject.subject_id}"
+          >
+            Cancelar
+          </button>
+
+        </div>
+
+
+        <p
+          id="new-content-message-${subject.subject_id}"
+          style="
+            margin-top:8px;
+          "
+        ></p>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:16px;
+        "
+      >
+
+        <strong>
+          Conteudos
+        </strong>
+
+
+        ${
+          contents.length === 0
+
+            ? `
+
+              <p
+                style="
+                  color:#666;
+                "
+              >
+                Nenhum conteudo cadastrado.
+              </p>
+
+            `
+
+            : `
+
+              <div
+                style="
+                  display:grid;
+                  gap:8px;
+                  margin-top:10px;
+                "
+              >
+
+                ${contents
+                  .map(
+                    content => {
+
+                      const contentActive =
+                        content.active ===
+                        true;
+
+
+                      return `
+
+                        <div
+                          style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:10px;
+                            padding:10px 12px;
+                            border:1px solid #e2e2e2;
+                            border-radius:8px;
+                            background:${contentActive
+                              ? "#ffffff"
+                              : "#eeeeee"};
+                          "
+                        >
+
+                          <span
+                            style="
+                              ${
+                                contentActive
+                                  ? ""
+                                  : "text-decoration:line-through;color:#777;"
+                              }
+                            "
+                          >
+                            ${escapeHtml(
+                              content.content_title
+                            )}
+                          </span>
+
+
+                          <button
+                            type="button"
+                            class="secondary-button teacher-content-toggle-button"
+                            data-content-id="${content.content_id}"
+                            data-active="${contentActive
+                              ? "false"
+                              : "true"}"
+                          >
+                            ${
+                              contentActive
+                                ? "Desativar"
+                                : "Reativar"
+                            }
+                          </button>
+
+                        </div>
+
+                      `;
+
+                    }
+                  )
+                  .join("")}
+
+              </div>
+
+            `
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// NOVA MATERIA
+// =====================================================
+
+async function saveNewTeacherSubject() {
+
+  const input =
+    document.getElementById(
+      "newTeacherSubjectName"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveNewTeacherSubjectButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "newTeacherSubjectMessage"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const name =
+    input.value.trim();
+
+
+  if (!name) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite o nome da materia.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_subject",
+      {
+        p_name:
+          name
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar materia:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar a materia.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar materia";
+
+    }
+
+
+    return;
+  }
+
+
+  input.value =
+    "";
+
+
+  const area =
+    document.getElementById(
+      "newTeacherSubjectArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+  }
+
+
+  await loadTeacherSubjectCatalog();
+
+}
+
+
+// =====================================================
+// ATIVAR / DESATIVAR MATERIA
+// =====================================================
+
+async function setTeacherSubjectActive(
+  subjectId,
+  active
+) {
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "set_teacher_subject_active",
+      {
+        p_subject_id:
+          subjectId,
+
+        p_active:
+          active
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao alterar materia:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Nao foi possivel alterar a materia."
+    );
+
+    return;
+  }
+
+
+  await loadTeacherSubjectCatalog();
+
+}
+
+
+// =====================================================
+// NOVO CONTEUDO
+// =====================================================
+
+async function saveNewTeacherContent(
+  subjectId
+) {
+
+  const input =
+    document.getElementById(
+      "new-content-title-" +
+      subjectId
+    );
+
+
+  const message =
+    document.getElementById(
+      "new-content-message-" +
+      subjectId
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const title =
+    input.value.trim();
+
+
+  if (!title) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite o nome do conteudo.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_content",
+      {
+        p_subject_id:
+          subjectId,
+
+        p_title:
+          title
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar conteudo:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o conteudo.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  await loadTeacherSubjectCatalog();
+
+}
+
+
+// =====================================================
+// ATIVAR / DESATIVAR CONTEUDO
+// =====================================================
+
+async function setTeacherContentActive(
+  contentId,
+  active
+) {
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "set_teacher_content_active",
+      {
+        p_content_id:
+          contentId,
+
+        p_active:
+          active
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao alterar conteudo:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Nao foi possivel alterar o conteudo."
+    );
+
+    return;
+  }
+
+
+  await loadTeacherSubjectCatalog();
+
+}
+
 
 // =====================================================
 // ALUNOS DO PROFESSOR
