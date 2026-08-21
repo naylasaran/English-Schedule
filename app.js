@@ -2510,6 +2510,286 @@ function renderMakeupCard(makeup) {
 // CANCELAR REPOSI\u00C7\u00C3O DO ALUNO
 // =====================================================
 
+async function openStudentMakeupFromAgenda(
+  reservation
+) {
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (
+    !area ||
+    !reservation
+  ) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Carregando reposicao...
+      </h3>
+
+    </div>
+
+  `;
+
+
+  let makeup =
+    null;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_makeups"
+    );
+
+
+  if (!error) {
+
+    makeup =
+      (data || []).find(
+        item =>
+          String(
+            item.makeup_id
+          ) ===
+          String(
+            reservation.makeup_id
+          )
+      ) || null;
+
+  }
+
+
+  const sourceLabel =
+    makeup
+      ? formatMakeupSource(
+          makeup.source
+        )
+      : "Nao informado";
+
+
+  let sourceLessonHtml =
+    "";
+
+
+  if (
+    makeup &&
+    makeup.source_lesson_date
+  ) {
+
+    sourceLessonHtml = `
+
+      <p>
+        <strong>Aula de origem:</strong>
+
+        ${formatDate(
+          new Date(
+            makeup.source_lesson_date +
+            "T12:00:00"
+          )
+        )}
+
+        -
+
+        ${normalizeTime(
+          makeup.source_lesson_start_time
+        )}
+
+        as
+
+        ${normalizeTime(
+          makeup.source_lesson_end_time
+        )}
+      </p>
+
+    `;
+
+  }
+
+
+  const reservationDate =
+    new Date(
+      reservation.reservation_date +
+      "T12:00:00"
+    );
+
+
+  const reservationDateTime =
+    new Date(
+      reservation.reservation_date +
+      "T" +
+      normalizeTime(
+        reservation.start_time
+      ) +
+      ":00"
+    );
+
+
+  const futureReservation =
+    reservationDateTime >
+    new Date();
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #6f42c1;
+      "
+    >
+
+      <h3>
+        Minha reposicao
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          reservationDate
+        )}
+      </p>
+
+
+      <p>
+        <strong>Horario:</strong>
+
+        ${normalizeTime(
+          reservation.start_time
+        )}
+
+        as
+
+        ${normalizeTime(
+          reservation.end_time
+        )}
+      </p>
+
+
+      <p>
+        <strong>Origem:</strong>
+
+        ${escapeHtml(
+          sourceLabel
+        )}
+      </p>
+
+
+      ${sourceLessonHtml}
+
+
+      ${
+        futureReservation
+
+          ? `
+
+            <button
+              type="button"
+              class="danger-button cancel-makeup-button"
+              data-reservation-id="${reservation.id}"
+              id="agendaCancelMakeupButton"
+            >
+              Cancelar reposicao
+            </button>
+
+
+            <p
+              id="cancel-makeup-message-${reservation.id}"
+              style="
+                margin-top:10px;
+              "
+            ></p>
+
+          `
+
+          : `
+
+            <p>
+              Esta reposicao ja ocorreu ou ja comecou.
+            </p>
+
+          `
+      }
+
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="closeStudentMakeupAgendaButton"
+        style="
+          margin-top:12px;
+          margin-left:8px;
+        "
+      >
+        Fechar
+      </button>
+
+    </div>
+
+  `;
+
+
+  const cancelButton =
+    document.getElementById(
+      "agendaCancelMakeupButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        cancelStudentMakeup(
+          reservation.id
+        );
+
+      }
+    );
+
+  }
+
+
+  const closeButton =
+    document.getElementById(
+      "closeStudentMakeupAgendaButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CANCELAR REPOSICAO DO ALUNO
+// =====================================================
+
 async function cancelStudentMakeup(
   reservationId
 ) {
@@ -2885,6 +3165,38 @@ async function loadStudentWeeklySchedule() {
   currentStudentSchedule = data || [];
 
   let weeklyMakeupReservations = [];
+  let weeklyLessonHistory = [];
+
+
+  const {
+    data: lessonHistoryData,
+    error: lessonHistoryError
+  } =
+    await supabaseClient.rpc(
+      "get_my_week_lesson_records",
+      {
+        p_week_start:
+          weekStart
+      }
+    );
+
+
+  if (lessonHistoryError) {
+
+    console.warn(
+      "Nao foi possivel carregar o historico da semana:",
+      lessonHistoryError
+    );
+
+  }
+
+  else {
+
+    weeklyLessonHistory =
+      lessonHistoryData || [];
+
+  }
+
 
   if (currentStudentId) {
 
@@ -2922,7 +3234,8 @@ async function loadStudentWeeklySchedule() {
 
   renderStudentWeeklySchedule(
     currentStudentSchedule,
-    weeklyMakeupReservations
+    weeklyMakeupReservations,
+    weeklyLessonHistory
   );
 }
 
@@ -2934,7 +3247,8 @@ async function loadStudentWeeklySchedule() {
 
 function renderStudentWeeklySchedule(
   schedule,
-  makeupReservations = []
+  makeupReservations = [],
+  lessonHistoryRecords = []
 ) {
 
   const head =
@@ -3073,6 +3387,58 @@ function renderStudentWeeklySchedule(
           );
 
 
+        const lessonHistory =
+          lessonHistoryRecords.find(
+            record => {
+
+              if (
+                String(
+                  record.lesson_date
+                ) !==
+                slotDateDb
+              ) {
+                return false;
+              }
+
+
+              const recordStart =
+                timeToMinutes(
+                  record.start_time
+                );
+
+              const recordEnd =
+                timeToMinutes(
+                  record.end_time
+                );
+
+              const slotStart =
+                timeToMinutes(
+                  slot.start_time
+                );
+
+              const slotEnd =
+                timeToMinutes(
+                  slot.end_time
+                );
+
+
+              return (
+                recordStart < slotEnd &&
+                recordEnd > slotStart
+              );
+
+            }
+          );
+
+
+        const historyDisplay =
+          lessonHistory
+            ? getStudentAgendaHistoryDisplay(
+                lessonHistory
+              )
+            : null;
+
+
         const ownMakeupReservation =
           makeupReservations.find(
             reservation => {
@@ -3120,19 +3486,23 @@ function renderStudentWeeklySchedule(
 
 
         const status =
-          ownMakeupReservation
+          historyDisplay
 
-            ? {
-                className:
-                  "own-makeup",
+            ? historyDisplay
 
-                label:
-                  "Minha reposi\u00E7\u00E3o"
-              }
+            : ownMakeupReservation
 
-            : normalizeStudentScheduleStatus(
-                slot.status
-              );
+              ? {
+                  className:
+                    "own-makeup",
+
+                  label:
+                    "Minha reposi\u00E7\u00E3o"
+                }
+
+              : normalizeStudentScheduleStatus(
+                  slot.status
+                );
 
 
         cell.classList.add(
@@ -3144,10 +3514,65 @@ function renderStudentWeeklySchedule(
 
 
         // =============================================
-        // MINHA REPOSI\u00C7\u00C3O
+        // HISTORICO DA AULA
         // =============================================
 
         if (
+          historyDisplay &&
+          lessonHistory
+        ) {
+
+          cell.style.backgroundColor =
+            historyDisplay.background;
+
+          cell.style.color =
+            historyDisplay.color;
+
+          cell.style.fontWeight =
+            "bold";
+
+          cell.style.cursor =
+            "pointer";
+
+          cell.innerHTML = `
+
+            <strong>
+              ${escapeHtml(
+                historyDisplay.label
+              )}
+            </strong>
+
+            <br>
+
+            <small>
+              Ver registro
+            </small>
+
+          `;
+
+          cell.title =
+            "Clique para ver o registro desta aula.";
+
+
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openStudentAgendaLessonHistory(
+                lessonHistory
+              );
+
+            }
+          );
+
+        }
+
+
+        // =============================================
+        // MINHA REPOSI\u00C7\u00C3O
+        // =============================================
+
+        else if (
           status.className ===
           "own-makeup"
         ) {
@@ -3162,10 +3587,36 @@ function renderStudentWeeklySchedule(
             "bold";
 
           cell.style.cursor =
-            "default";
+            "pointer";
+
+          cell.innerHTML = `
+
+            <strong>
+              Minha reposicao
+            </strong>
+
+            <br>
+
+            <small>
+              Ver detalhes
+            </small>
+
+          `;
 
           cell.title =
-            "Esta \u00E9 a sua reposi\u00E7\u00E3o.";
+            "Clique para ver os detalhes da sua reposicao.";
+
+
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openStudentMakeupFromAgenda(
+                ownMakeupReservation
+              );
+
+            }
+          );
 
         }
 
@@ -3296,6 +3747,294 @@ function renderStudentWeeklySchedule(
 
 // =====================================================
 // ENCONTRAR HOR\xc1RIO
+// =====================================================
+// HISTORICO DA AULA NA AGENDA DO ALUNO
+// =====================================================
+
+function getStudentAgendaHistoryDisplay(
+  record
+) {
+
+  const attendance =
+    String(
+      record.attendance_status ||
+      ""
+    ).toLowerCase();
+
+
+  if (
+    record.lesson_status ===
+    "cancelled"
+  ) {
+
+    return {
+      className:
+        "student-history",
+      label:
+        "Aula cancelada",
+      background:
+        "#fff3cd",
+      color:
+        "#856404"
+    };
+
+  }
+
+
+  switch (
+    attendance
+  ) {
+
+    case "present":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "\u2705 Presente",
+        background:
+          "#dcecff",
+        color:
+          "#245a9a"
+      };
+
+
+    case "absent":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "\u274C Falta sem justificativa",
+        background:
+          "#f8d7da",
+        color:
+          "#842029"
+      };
+
+
+    case "justified_absence":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "\u26A0\uFE0F Falta justificada",
+        background:
+          "#fff3cd",
+        color:
+          "#856404"
+      };
+
+
+    case "makeup":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "\uD83D\uDD04 Reposicao realizada",
+        background:
+          "#eadcf8",
+        color:
+          "#6f42c1"
+      };
+
+
+    default:
+
+      if (
+        record.lesson_status ===
+        "completed"
+      ) {
+
+        return {
+          className:
+            "student-history",
+          label:
+            "Aula realizada",
+          background:
+            "#dcecff",
+          color:
+            "#245a9a"
+        };
+
+      }
+
+
+      return null;
+
+  }
+
+}
+
+
+function openStudentAgendaLessonHistory(
+  record
+) {
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const attendance =
+    record.attendance_status
+      ? formatAttendanceStatus(
+          record.attendance_status
+        )
+      : (
+          record.lesson_status ===
+          "cancelled"
+            ? "Aula cancelada"
+            : "Nao registrado"
+        );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Registro da aula
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          new Date(
+            record.lesson_date +
+            "T12:00:00"
+          )
+        )}
+      </p>
+
+
+      <p>
+        <strong>Horario:</strong>
+
+        ${normalizeTime(
+          record.start_time
+        )}
+
+        as
+
+        ${normalizeTime(
+          record.end_time
+        )}
+      </p>
+
+
+      <p>
+        <strong>Presenca:</strong>
+
+        ${escapeHtml(
+          attendance
+        )}
+      </p>
+
+
+      <p>
+        <strong>Materia:</strong>
+
+        ${escapeHtml(
+          record.subject_name ||
+          "Nao informada"
+        )}
+      </p>
+
+
+      <p>
+        <strong>Conteudo:</strong>
+
+        ${escapeHtml(
+          record.content_title ||
+          "Nao informado"
+        )}
+      </p>
+
+
+      <div
+        style="
+          margin-top:15px;
+          padding:15px;
+          background:#f7f7f7;
+          border-radius:8px;
+        "
+      >
+
+        <strong>
+          Observacoes do professor
+        </strong>
+
+
+        <p
+          style="
+            white-space:pre-wrap;
+            margin-bottom:0;
+          "
+        >
+          ${escapeHtml(
+            record.teacher_notes ||
+            "Nenhuma observacao registrada."
+          )}
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="closeStudentAgendaHistoryButton"
+        style="
+          margin-top:15px;
+        "
+      >
+        Fechar
+      </button>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeStudentAgendaHistoryButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
 // =====================================================
 
 function findScheduleSlot(
@@ -5005,6 +5744,184 @@ function setTeacherPage(page) {
 
 
   // ===================================================
+  // PRESENCA / FALTAS
+  // ===================================================
+
+  if (page === "attendance") {
+
+    const now =
+      new Date();
+
+    const monthValue =
+      String(
+        now.getFullYear()
+      ) +
+      "-" +
+      String(
+        now.getMonth() + 1
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Presenca / Faltas
+        </h3>
+
+
+        <p>
+          Consulte os registros das aulas,
+          filtre por mes ou aluno e corrija
+          um registro quando necessario.
+        </p>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+            gap:12px;
+            margin-top:18px;
+          "
+        >
+
+          <div>
+
+            <label
+              for="teacherAttendanceMonth"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:8px;
+              "
+            >
+              Mes
+            </label>
+
+            <input
+              type="month"
+              id="teacherAttendanceMonth"
+              value="${monthValue}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+
+          <div>
+
+            <label
+              for="teacherAttendanceStudentFilter"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:8px;
+              "
+            >
+              Aluno
+            </label>
+
+            <select
+              id="teacherAttendanceStudentFilter"
+              style="
+                width:100%;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+              <option value="">
+                Todos os alunos
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="teacherAttendanceSummary"
+          style="
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <div
+          id="teacherAttendanceReportList"
+          style="
+            margin-top:20px;
+          "
+        >
+          Carregando registros...
+        </div>
+
+
+        <div
+          id="teacherScheduleEditArea"
+          style="
+            margin-top:20px;
+          "
+        ></div>
+
+      </div>
+
+    `;
+
+
+    const monthInput =
+      document.getElementById(
+        "teacherAttendanceMonth"
+      );
+
+
+    const studentFilter =
+      document.getElementById(
+        "teacherAttendanceStudentFilter"
+      );
+
+
+    if (monthInput) {
+
+      monthInput.addEventListener(
+        "change",
+        loadTeacherAttendanceReport
+      );
+
+    }
+
+
+    if (studentFilter) {
+
+      studentFilter.addEventListener(
+        "change",
+        loadTeacherAttendanceReport
+      );
+
+    }
+
+
+    loadTeacherAttendancePage();
+
+    return;
+  }
+
+
+  // ===================================================
   // PLANEJAMENTO
   // ===================================================
 
@@ -5691,6 +6608,704 @@ function setTeacherPage(page) {
 }
 
 // =====================================================
+// RELATORIO DE PRESENCA / FALTAS
+// =====================================================
+
+async function loadTeacherAttendancePage() {
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const studentFilter =
+    document.getElementById(
+      "teacherAttendanceStudentFilter"
+    );
+
+
+  if (studentFilter) {
+
+    studentFilter.innerHTML = `
+
+      <option value="">
+        Todos os alunos
+      </option>
+
+      ${currentTeacherStudents
+        .map(
+          student => `
+
+            <option
+              value="${student.student_id}"
+            >
+              ${escapeHtml(
+                student.student_name
+              )}
+            </option>
+
+          `
+        )
+        .join("")}
+
+    `;
+
+  }
+
+
+  await loadTeacherAttendanceReport();
+
+}
+
+
+// =====================================================
+// INTERVALO DO MES
+// =====================================================
+
+function getTeacherAttendanceMonthRange(
+  monthValue
+) {
+
+  const parts =
+    String(
+      monthValue || ""
+    ).split("-");
+
+
+  const year =
+    Number(
+      parts[0]
+    );
+
+
+  const month =
+    Number(
+      parts[1]
+    );
+
+
+  if (
+    !year ||
+    !month
+  ) {
+
+    const now =
+      new Date();
+
+
+    return {
+
+      from:
+        new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1,
+          12
+        ),
+
+      to:
+        new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          12
+        )
+
+    };
+
+  }
+
+
+  return {
+
+    from:
+      new Date(
+        year,
+        month - 1,
+        1,
+        12
+      ),
+
+    to:
+      new Date(
+        year,
+        month,
+        0,
+        12
+      )
+
+  };
+
+}
+
+
+// =====================================================
+// CARREGAR RELATORIO
+// =====================================================
+
+async function loadTeacherAttendanceReport() {
+
+  const list =
+    document.getElementById(
+      "teacherAttendanceReportList"
+    );
+
+
+  const summary =
+    document.getElementById(
+      "teacherAttendanceSummary"
+    );
+
+
+  const monthInput =
+    document.getElementById(
+      "teacherAttendanceMonth"
+    );
+
+
+  const studentFilter =
+    document.getElementById(
+      "teacherAttendanceStudentFilter"
+    );
+
+
+  if (
+    !list ||
+    !monthInput
+  ) {
+    return;
+  }
+
+
+  list.innerHTML =
+    "Carregando registros...";
+
+
+  const range =
+    getTeacherAttendanceMonthRange(
+      monthInput.value
+    );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_attendance_report",
+      {
+
+        p_from_date:
+          formatDateForDatabase(
+            range.from
+          ),
+
+        p_to_date:
+          formatDateForDatabase(
+            range.to
+          ),
+
+        p_student_id:
+          studentFilter &&
+          studentFilter.value
+            ? studentFilter.value
+            : null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar relatorio de presenca:",
+      error
+    );
+
+
+    list.innerHTML = `
+
+      <p>
+        Nao foi possivel carregar os registros.
+      </p>
+
+    `;
+
+
+    if (summary) {
+
+      summary.innerHTML =
+        "";
+
+    }
+
+
+    return;
+  }
+
+
+  const records =
+    data || [];
+
+
+  renderTeacherAttendanceSummary(
+    records
+  );
+
+
+  renderTeacherAttendanceReport(
+    records
+  );
+
+}
+
+
+// =====================================================
+// RESUMO
+// =====================================================
+
+function renderTeacherAttendanceSummary(
+  records
+) {
+
+  const container =
+    document.getElementById(
+      "teacherAttendanceSummary"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const counters = {
+
+    present: 0,
+    absent: 0,
+    justified_absence: 0,
+    makeup: 0,
+    cancelled: 0
+
+  };
+
+
+  records.forEach(
+    record => {
+
+      const attendance =
+        String(
+          record.attendance_status ||
+          ""
+        ).toLowerCase();
+
+
+      if (
+        attendance &&
+        Object.prototype.hasOwnProperty.call(
+          counters,
+          attendance
+        )
+      ) {
+
+        counters[
+          attendance
+        ] += 1;
+
+      }
+
+
+      else if (
+        record.lesson_status ===
+        "cancelled"
+      ) {
+
+        counters.cancelled +=
+          1;
+
+      }
+
+    }
+  );
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:10px;
+      "
+    >
+
+      ${renderTeacherAttendanceStatCard(
+        "Presentes",
+        counters.present
+      )}
+
+      ${renderTeacherAttendanceStatCard(
+        "Faltas sem justificativa",
+        counters.absent
+      )}
+
+      ${renderTeacherAttendanceStatCard(
+        "Faltas justificadas",
+        counters.justified_absence
+      )}
+
+      ${renderTeacherAttendanceStatCard(
+        "Reposicoes realizadas",
+        counters.makeup
+      )}
+
+      ${renderTeacherAttendanceStatCard(
+        "Canceladas",
+        counters.cancelled
+      )}
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// CARD DE CONTAGEM
+// =====================================================
+
+function renderTeacherAttendanceStatCard(
+  label,
+  value
+) {
+
+  return `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          font-size:13px;
+          color:#666;
+        "
+      >
+        ${escapeHtml(
+          label
+        )}
+      </div>
+
+
+      <div
+        style="
+          font-size:25px;
+          font-weight:bold;
+          margin-top:5px;
+        "
+      >
+        ${Number(
+          value || 0
+        )}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// LISTA DE REGISTROS
+// =====================================================
+
+function renderTeacherAttendanceReport(
+  records
+) {
+
+  const container =
+    document.getElementById(
+      "teacherAttendanceReportList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (
+    records.length === 0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+        Nenhum registro encontrado neste periodo.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:12px;
+      "
+    >
+
+      ${records
+        .map(
+          renderTeacherAttendanceReportCard
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".edit-attendance-report-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const date =
+            new Date(
+              button.dataset.lessonDate +
+              "T12:00:00"
+            );
+
+
+          openTeacherAttendanceManager(
+            date,
+            {
+              start_time:
+                button.dataset.startTime
+            }
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD DO REGISTRO
+// =====================================================
+
+function renderTeacherAttendanceReportCard(
+  record
+) {
+
+  const status =
+    record.attendance_status
+      ? formatTeacherAttendanceShort(
+          record.attendance_status
+        )
+      : (
+          record.lesson_status ===
+          "cancelled"
+            ? "Aula cancelada"
+            : "Sem registro de presenca"
+        );
+
+
+  return `
+
+    <div
+      style="
+        padding:16px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:17px;
+            "
+          >
+            ${escapeHtml(
+              record.student_name
+            )}
+          </strong>
+
+          <div
+            style="
+              margin-top:5px;
+              color:#555;
+            "
+          >
+            ${formatDate(
+              new Date(
+                record.lesson_date +
+                "T12:00:00"
+              )
+            )}
+            -
+            ${normalizeTime(
+              record.start_time
+            )}
+            as
+            ${normalizeTime(
+              record.end_time
+            )}
+          </div>
+
+        </div>
+
+
+        <strong>
+          ${escapeHtml(
+            status
+          )}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:12px;
+        "
+      >
+
+        <p>
+          <strong>Materia:</strong>
+          ${escapeHtml(
+            record.subject_name ||
+            "Nao informada"
+          )}
+        </p>
+
+        <p>
+          <strong>Conteudo:</strong>
+          ${escapeHtml(
+            record.content_title ||
+            "Nao informado"
+          )}
+        </p>
+
+        ${
+          record.attendance_notes
+
+            ? `
+
+              <p>
+                <strong>
+                  Observacao de presenca:
+                </strong>
+                ${escapeHtml(
+                  record.attendance_notes
+                )}
+              </p>
+
+            `
+
+            : ""
+        }
+
+        ${
+          record.teacher_notes
+
+            ? `
+
+              <p>
+                <strong>
+                  Observacoes da aula:
+                </strong>
+                ${escapeHtml(
+                  record.teacher_notes
+                )}
+              </p>
+
+            `
+
+            : ""
+        }
+
+      </div>
+
+
+      ${
+        record.lesson_status !==
+        "cancelled"
+
+          ? `
+
+            <button
+              type="button"
+              class="secondary-button edit-attendance-report-button"
+              data-lesson-date="${record.lesson_date}"
+              data-start-time="${normalizeTime(
+                record.start_time
+              )}"
+              style="
+                margin-top:10px;
+              "
+            >
+              Editar registro
+            </button>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
 // PLANEJAMENTO DO PROFESSOR
 // =====================================================
 
@@ -6141,7 +7756,7 @@ function renderTeacherPlanCard(
                   color:#c0392b;
                 "
               >
-                Cancelar planejamento
+                Excluir planejamento
               </button>
 
             </div>
@@ -6681,8 +8296,8 @@ async function cancelTeacherPlan(
 
   const confirmed =
     window.confirm(
-      "Cancelar este planejamento?\n\n" +
-      "Ele continuara registrado no historico como cancelado."
+      "Excluir este planejamento?\n\n" +
+      "Ele sera removido da lista."
     );
 
 
@@ -6695,7 +8310,7 @@ async function cancelTeacherPlan(
     error
   } =
     await supabaseClient.rpc(
-      "cancel_teacher_lesson_plan",
+      "delete_teacher_lesson_plan",
       {
         p_plan_id:
           planId
@@ -6706,13 +8321,13 @@ async function cancelTeacherPlan(
   if (error) {
 
     console.error(
-      "Erro ao cancelar planejamento:",
+      "Erro ao excluir planejamento:",
       error
     );
 
     alert(
       error.message ||
-      "Nao foi possivel cancelar o planejamento."
+      "Nao foi possivel excluir o planejamento."
     );
 
     return;
@@ -10522,6 +12137,17 @@ async function saveTeacherAttendance(
 
 
   await loadTeacherWeeklySchedule();
+
+
+  if (
+    document.getElementById(
+      "teacherAttendanceReportList"
+    )
+  ) {
+
+    await loadTeacherAttendanceReport();
+
+  }
 
 
   alert(
