@@ -7185,6 +7185,68 @@ function createStudentAccessAuthClient() {
 
 
 // =====================================================
+// FINALIZAR PROFILE + STUDENT
+// =====================================================
+
+async function finishStudentRegistration(
+  authUserId,
+  name,
+  email,
+  duration
+) {
+
+  return await supabaseClient.rpc(
+    "register_student_from_auth",
+    {
+
+      p_auth_user_id:
+        authUserId,
+
+      p_name:
+        name,
+
+      p_email:
+        email,
+
+      p_class_duration_minutes:
+        duration
+
+    }
+  );
+
+}
+
+
+// =====================================================
+// RECUPERAR UMA TENTATIVA PARCIAL
+// =====================================================
+
+async function recoverExistingStudentAccess(
+  name,
+  email,
+  duration
+) {
+
+  return await supabaseClient.rpc(
+    "recover_student_from_auth_email",
+    {
+
+      p_name:
+        name,
+
+      p_email:
+        email,
+
+      p_class_duration_minutes:
+        duration
+
+    }
+  );
+
+}
+
+
+// =====================================================
 // SALVAR NOVO ALUNO
 // =====================================================
 
@@ -7452,10 +7514,87 @@ async function saveNewStudentWithAccess() {
     );
 
 
-    showError(
-      authError.message ||
-      "Nao foi possivel criar o acesso do aluno."
-    );
+    const authErrorText =
+      String(
+        authError.message || ""
+      ).toLowerCase();
+
+
+    const looksLikeExistingUser =
+      authErrorText.includes(
+        "already registered"
+      ) ||
+      authErrorText.includes(
+        "already exists"
+      ) ||
+      authErrorText.includes(
+        "user already"
+      );
+
+
+    if (looksLikeExistingUser) {
+
+      if (message) {
+
+        message.textContent =
+          "Este acesso ja existe no Auth. Tentando concluir o cadastro do aluno...";
+
+        message.style.color =
+          "#555";
+
+      }
+
+
+      const {
+        error: recoveryError
+      } =
+        await recoverExistingStudentAccess(
+          name,
+          email,
+          duration
+        );
+
+
+      if (!recoveryError) {
+
+        await completeStudentRegistrationUi(
+          nameInput,
+          emailInput,
+          passwordInput,
+          confirmInput,
+          durationSelect,
+          button,
+          message,
+          email,
+          false
+        );
+
+
+        return;
+      }
+
+
+      console.error(
+        "Erro ao recuperar acesso existente:",
+        recoveryError
+      );
+
+
+      showError(
+        recoveryError.message ||
+        "Este e-mail ja possui um acesso cadastrado."
+      );
+
+    }
+
+    else {
+
+      showError(
+        authError.message ||
+        "Nao foi possivel criar o acesso do aluno."
+      );
+
+    }
 
 
     if (button) {
@@ -7506,7 +7645,8 @@ async function saveNewStudentWithAccess() {
 
   // Em configuracoes que ocultam a existencia
   // de usuarios ja cadastrados, Supabase pode
-  // retornar identities vazio.
+  // retornar identities vazio. Neste caso, tentamos
+  // concluir um cadastro parcial anterior.
   if (
     Array.isArray(
       authUser.identities
@@ -7515,20 +7655,67 @@ async function saveNewStudentWithAccess() {
       0
   ) {
 
-    showError(
-      "Este e-mail ja possui um acesso cadastrado."
-    );
+    if (message) {
 
+      message.textContent =
+        "Este acesso ja existe no Auth. Tentando concluir o cadastro do aluno...";
 
-    if (button) {
-
-      button.disabled =
-        false;
-
-      button.textContent =
-        "Criar aluno e acesso";
+      message.style.color =
+        "#555";
 
     }
+
+
+    const {
+      error: recoveryError
+    } =
+      await recoverExistingStudentAccess(
+        name,
+        email,
+        duration
+      );
+
+
+    if (recoveryError) {
+
+      console.error(
+        "Erro ao recuperar acesso existente:",
+        recoveryError
+      );
+
+
+      showError(
+        recoveryError.message ||
+        "Este e-mail ja possui um acesso cadastrado."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar aluno e acesso";
+
+      }
+
+
+      return;
+    }
+
+
+    await completeStudentRegistrationUi(
+      nameInput,
+      emailInput,
+      passwordInput,
+      confirmInput,
+      durationSelect,
+      button,
+      message,
+      email,
+      false
+    );
 
 
     return;
@@ -7546,20 +7733,11 @@ async function saveNewStudentWithAccess() {
   const {
     error: studentError
   } =
-    await supabaseClient.rpc(
-      "register_student_from_auth",
-      {
-
-        p_auth_user_id:
-          authUser.id,
-
-        p_name:
-          name,
-
-        p_class_duration_minutes:
-          duration
-
-      }
+    await finishStudentRegistration(
+      authUser.id,
+      name,
+      email,
+      duration
     );
 
 
@@ -7595,6 +7773,39 @@ async function saveNewStudentWithAccess() {
   }
 
 
+  await completeStudentRegistrationUi(
+    nameInput,
+    emailInput,
+    passwordInput,
+    confirmInput,
+    durationSelect,
+    button,
+    message,
+    email,
+    Boolean(
+      authData.session
+    )
+  );
+
+}
+
+
+// =====================================================
+// FINALIZAR INTERFACE APOS CADASTRO
+// =====================================================
+
+async function completeStudentRegistrationUi(
+  nameInput,
+  emailInput,
+  passwordInput,
+  confirmInput,
+  durationSelect,
+  button,
+  message,
+  email,
+  hasSession
+) {
+
   nameInput.value =
     "";
 
@@ -7616,7 +7827,7 @@ async function saveNewStudentWithAccess() {
     message.innerHTML = `
 
       <strong>
-        Aluno e acesso criados com sucesso.
+        Aluno e acesso cadastrados com sucesso.
       </strong>
 
       <br>
@@ -7629,7 +7840,7 @@ async function saveNewStudentWithAccess() {
       <br>
 
       ${
-        authData.session
+        hasSession
 
           ? "O acesso ja pode ser usado para login."
 
@@ -7647,9 +7858,9 @@ async function saveNewStudentWithAccess() {
   await loadTeacherStudentOverview();
 
 
-  // Atualiza tambem a lista usada por agenda e planejamento.
   currentTeacherStudents =
     [];
+
 
   await loadTeacherStudents();
 
