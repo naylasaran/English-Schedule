@@ -5169,6 +5169,12 @@ async function loadTeacherWeeklySchedule() {
       );
 
 
+    const dateDb =
+      formatDateForDatabase(
+        date
+      );
+
+
     const {
       data,
       error
@@ -5177,9 +5183,7 @@ async function loadTeacherWeeklySchedule() {
         "get_teacher_schedule",
         {
           p_date:
-            formatDateForDatabase(
-              date
-            )
+            dateDb
         }
       );
 
@@ -5210,9 +5214,85 @@ async function loadTeacherWeeklySchedule() {
     }
 
 
+    const {
+      data: attendanceData,
+      error: attendanceError
+    } =
+      await supabaseClient.rpc(
+        "get_teacher_attendance_for_date",
+        {
+          p_date:
+            dateDb
+        }
+      );
+
+
+    if (attendanceError) {
+
+      console.warn(
+        "N\u00E3o foi poss\u00EDvel carregar os registros de presen\u00E7a do dia:",
+        date,
+        attendanceError
+      );
+
+    }
+
+
+    const attendanceList =
+      attendanceData || [];
+
+
+    const schedule =
+      (data || []).map(
+        slot => {
+
+          const slotStart =
+            timeToMinutes(
+              slot.start_time
+            );
+
+          const slotEnd =
+            timeToMinutes(
+              slot.end_time
+            );
+
+
+          const attendance =
+            attendanceList.find(
+              item => {
+
+                const itemStart =
+                  timeToMinutes(
+                    item.start_time
+                  );
+
+                const itemEnd =
+                  timeToMinutes(
+                    item.end_time
+                  );
+
+
+                return (
+                  itemStart < slotEnd &&
+                  itemEnd > slotStart
+                );
+
+              }
+            ) || null;
+
+
+          return {
+            ...slot,
+            attendance
+          };
+
+        }
+      );
+
+
     days.push({
       date,
-      schedule: data || []
+      schedule
     });
 
   }
@@ -5237,9 +5317,11 @@ function renderTeacherWeeklySchedule(days) {
   const body =
     document.getElementById("teacherScheduleBody");
 
+
   if (!head || !body) {
     return;
   }
+
 
   const dayNames = [
     "Segunda",
@@ -5251,428 +5333,638 @@ function renderTeacherWeeklySchedule(days) {
     "Domingo"
   ];
 
-  head.innerHTML = `
-    <tr>
-      <th>Hor\u00E1rio</th>
 
-      ${days.map(
-        (day, index) => `
-          <th>
-            ${dayNames[index]}
-            <br>
-            <small>
-              ${formatDate(day.date)}
-            </small>
-          </th>
-        `
-      ).join("")}
+  head.innerHTML = `
+
+    <tr>
+
+      <th>
+        Hor\u00E1rio
+      </th>
+
+      ${days
+        .map(
+          (day, index) => `
+
+            <th>
+
+              ${dayNames[index]}
+
+              <br>
+
+              <small>
+                ${formatDate(day.date)}
+              </small>
+
+            </th>
+
+          `
+        )
+        .join("")}
 
     </tr>
+
   `;
+
 
   const times =
     new Set();
 
-  days.forEach(day => {
 
-    day.schedule.forEach(slot => {
+  days.forEach(
+    day => {
 
-      times.add(
-        normalizeTime(
-          slot.start_time
-        )
+      day.schedule.forEach(
+        slot => {
+
+          times.add(
+            normalizeTime(
+              slot.start_time
+            )
+          );
+
+        }
       );
 
-    });
+    }
+  );
 
-  });
 
   const sortedTimes =
     Array
       .from(times)
       .sort();
 
-  body.innerHTML = "";
 
-  sortedTimes.forEach(time => {
+  body.innerHTML =
+    "";
 
-    const row =
-      document.createElement("tr");
 
-    const timeCell =
-      document.createElement("td");
+  sortedTimes.forEach(
+    time => {
 
-    timeCell.textContent =
-      time;
-
-    row.appendChild(
-      timeCell
-    );
-
-    days.forEach(day => {
-
-      const cell =
-        document.createElement("td");
-
-      cell.classList.add(
-        "schedule-cell"
-      );
-
-      const slot =
-        day.schedule.find(
-          item =>
-            normalizeTime(
-              item.start_time
-            ) === time
-        );
-
-      if (!slot) {
-
-        cell.textContent =
-          "\u2014";
-
-        cell.style.backgroundColor =
-          "#eeeeee";
-
-        cell.style.color =
-          "#777777";
-
-        row.appendChild(
-          cell
-        );
-
-        return;
-      }
-
-      const status =
-        normalizeTeacherScheduleStatus(
-          slot.status
-        );
-
-      const studentName =
-        String(
-          slot.student_name || ""
-        ).trim();
-
-
-      // ===========================================
-      // LIVRE
-      // ===========================================
-
-      if (
-        status.type ===
-        "free"
-      ) {
-
-        cell.textContent =
-          "Livre";
-
-        cell.style.backgroundColor =
-          "#dff5e3";
-
-        cell.style.color =
-          "#246b37";
-
-      }
-
-
-      // ===========================================
-      // AULA
-      // ===========================================
-
-      else if (
-        status.type ===
-        "lesson"
-      ) {
-
-        cell.innerHTML = `
-
-          <strong>
-            ${escapeHtml(
-              studentName ||
-              "Aula"
-            )}
-          </strong>
-
-          <br>
-
-          <small>
-            Aula
-          </small>
-
-        `;
-
-        cell.style.backgroundColor =
-          "#dcecff";
-
-        cell.style.color =
-          "#245a9a";
-
-      }
-
-
-      // ===========================================
-      // REPOSI\u00C7\u00C3O
-      // ===========================================
-
-      else if (
-        status.type ===
-        "makeup"
-      ) {
-
-        cell.innerHTML = `
-
-          <strong>
-            ${escapeHtml(
-              studentName ||
-              "Aluno"
-            )}
-          </strong>
-
-          <br>
-
-          <small>
-            Reposi\u00E7\u00E3o
-          </small>
-
-        `;
-
-        cell.style.backgroundColor =
-          "#eadcf8";
-
-        cell.style.color =
-          "#6f42c1";
-
-      }
-
-
-      // ===========================================
-      // CANCELADA
-      // ===========================================
-
-      else if (
-        status.type ===
-        "cancelled"
-      ) {
-
-        cell.innerHTML = `
-
-          <strong>
-            ${escapeHtml(
-              studentName ||
-              "Aluno"
-            )}
-          </strong>
-
-          <br>
-
-          <small>
-            Cancelada
-          </small>
-
-        `;
-
-        cell.style.backgroundColor =
-          "#fff3cd";
-
-        cell.style.color =
-          "#856404";
-
-      }
-
-
-      // ===========================================
-      // INDISPON\u00CDVEL
-      // ===========================================
-
-      else if (
-        status.type ===
-        "unavailable"
-      ) {
-
-        cell.textContent =
-          "Indispon\u00EDvel";
-
-        cell.style.backgroundColor =
-          "#333333";
-
-        cell.style.color =
-          "#ffffff";
-
-      }
-
-
-      // ===========================================
-      // OUTRA RESERVA
-      // ===========================================
-
-      else {
-
-        cell.innerHTML = `
-
-          <strong>
-            ${escapeHtml(
-              studentName ||
-              "Reservado"
-            )}
-          </strong>
-
-          <br>
-
-          <small>
-            Reserva
-          </small>
-
-        `;
-
-      }
-
-
-      // ===========================================
-      // EDI\u00C7\u00C3O DA AGENDA FIXA
-      // ===========================================
-
-      const todayForEdit =
-        new Date();
-
-      todayForEdit.setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      const cellDateForEdit =
-        new Date(
-          day.date
-        );
-
-      cellDateForEdit.setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      const isPastDate =
-        cellDateForEdit <
-        todayForEdit;
-
-      const isEditableStatus =
-        (
-          status.type === "free" ||
-          status.type === "lesson" ||
-          status.type === "unavailable"
+      const row =
+        document.createElement(
+          "tr"
         );
 
 
-      // PASSADO = SOMENTE CONSULTA
-
-      if (
-        isEditableStatus &&
-        isPastDate
-      ) {
-
-        cell.style.cursor =
-          "default";
-
-        cell.title =
-          "Semanas anteriores s\u00E3o somente para consulta.";
-
-      }
-
-
-      // HOJE/FUTURO = EDIT\u00C1VEL
-
-      else if (
-        isEditableStatus
-      ) {
-
-        cell.style.cursor =
-          "pointer";
-
-        cell.title =
-          "Clique para editar este hor\u00E1rio fixo.";
-
-        cell.addEventListener(
-          "click",
-          () => {
-
-            openTeacherScheduleEditor(
-              day.date,
-              slot
-            );
-
-          }
+      const timeCell =
+        document.createElement(
+          "td"
         );
 
-      }
 
-
-      else if (
-        status.type === "makeup"
-      ) {
-
-        if (isPastDate) {
-
-          cell.style.cursor =
-            "default";
-
-          cell.title =
-            "Esta reposi\u00E7\u00E3o j\u00E1 ocorreu.";
-
-        }
-
-        else {
-
-          cell.style.cursor =
-            "pointer";
-
-          cell.title =
-            "Clique para gerenciar esta reposi\u00E7\u00E3o.";
-
-          cell.addEventListener(
-            "click",
-            () => {
-
-              openTeacherMakeupReservationManager(
-                day.date,
-                slot
-              );
-
-            }
-          );
-
-        }
-
-      }
-
-
-      else if (
-        status.type === "cancelled"
-      ) {
-
-        cell.style.cursor =
-          "default";
-
-        cell.title =
-          "Esta ocorr\u00EAncia foi cancelada.";
-
-      }
+      timeCell.textContent =
+        time;
 
 
       row.appendChild(
-        cell
+        timeCell
       );
 
-    });
+
+      days.forEach(
+        day => {
+
+          const cell =
+            document.createElement(
+              "td"
+            );
 
 
-    body.appendChild(
-      row
-    );
+          cell.classList.add(
+            "schedule-cell"
+          );
 
-  });
+
+          const slot =
+            day.schedule.find(
+              item =>
+                normalizeTime(
+                  item.start_time
+                ) === time
+            );
+
+
+          if (!slot) {
+
+            cell.textContent =
+              "\u2014";
+
+            cell.style.backgroundColor =
+              "#eeeeee";
+
+            cell.style.color =
+              "#777777";
+
+
+            row.appendChild(
+              cell
+            );
+
+
+            return;
+          }
+
+
+          const status =
+            normalizeTeacherScheduleStatus(
+              slot.status
+            );
+
+
+          const attendance =
+            slot.attendance ||
+            null;
+
+
+          const attendanceStatus =
+            attendance
+              ? String(
+                  attendance.attendance_status ||
+                  ""
+                ).toLowerCase()
+              : "";
+
+
+          const completedMakeup =
+            Boolean(
+              attendance &&
+              attendance.occurrence_type ===
+                "makeup" &&
+              attendanceStatus ===
+                "makeup"
+            );
+
+
+          const studentName =
+            String(
+              (
+                attendance &&
+                attendance.student_name
+              )
+              ||
+              slot.student_name
+              ||
+              ""
+            ).trim();
+
+
+          // ===========================================
+          // REPOSICAO JA REALIZADA
+          // ===========================================
+
+          if (completedMakeup) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Reposi\u00E7\u00E3o realizada
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#eadcf8";
+
+            cell.style.color =
+              "#6f42c1";
+
+          }
+
+
+          // ===========================================
+          // LIVRE
+          // ===========================================
+
+          else if (
+            status.type ===
+            "free"
+          ) {
+
+            cell.textContent =
+              "Livre";
+
+            cell.style.backgroundColor =
+              "#dff5e3";
+
+            cell.style.color =
+              "#246b37";
+
+          }
+
+
+          // ===========================================
+          // AULA
+          // ===========================================
+
+          else if (
+            status.type ===
+            "lesson"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aula"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Aula
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#dcecff";
+
+            cell.style.color =
+              "#245a9a";
+
+          }
+
+
+          // ===========================================
+          // REPOSICAO
+          // ===========================================
+
+          else if (
+            status.type ===
+            "makeup"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Reposi\u00E7\u00E3o
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#eadcf8";
+
+            cell.style.color =
+              "#6f42c1";
+
+          }
+
+
+          // ===========================================
+          // CANCELADA
+          // ===========================================
+
+          else if (
+            status.type ===
+            "cancelled"
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Cancelada
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#fff3cd";
+
+            cell.style.color =
+              "#856404";
+
+          }
+
+
+          // ===========================================
+          // INDISPONIVEL
+          // ===========================================
+
+          else if (
+            status.type ===
+            "unavailable"
+          ) {
+
+            cell.textContent =
+              "Indispon\u00EDvel";
+
+            cell.style.backgroundColor =
+              "#333333";
+
+            cell.style.color =
+              "#ffffff";
+
+          }
+
+
+          // ===========================================
+          // OUTRA RESERVA
+          // ===========================================
+
+          else {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  "Reservado"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Reserva
+              </small>
+
+            `;
+
+          }
+
+
+          // ===========================================
+          // MOSTRAR PRESENCA JA REGISTRADA
+          // ===========================================
+
+          if (
+            attendance &&
+            !completedMakeup
+          ) {
+
+            const badge =
+              document.createElement(
+                "div"
+              );
+
+
+            badge.style.marginTop =
+              "5px";
+
+            badge.style.fontSize =
+              "12px";
+
+            badge.style.fontWeight =
+              "bold";
+
+
+            badge.textContent =
+              formatTeacherAttendanceShort(
+                attendanceStatus
+              );
+
+
+            cell.appendChild(
+              badge
+            );
+
+          }
+
+
+          // ===========================================
+          // DATA / HORARIO
+          // ===========================================
+
+          const todayForEdit =
+            new Date();
+
+
+          todayForEdit.setHours(
+            0,
+            0,
+            0,
+            0
+          );
+
+
+          const cellDateForEdit =
+            new Date(
+              day.date
+            );
+
+
+          cellDateForEdit.setHours(
+            0,
+            0,
+            0,
+            0
+          );
+
+
+          const isPastDate =
+            cellDateForEdit <
+            todayForEdit;
+
+
+          const isOccurrence =
+            (
+              status.type === "lesson" ||
+              status.type === "makeup" ||
+              completedMakeup ||
+              Boolean(attendance)
+            );
+
+
+          const occurrenceFinished =
+            isOccurrence
+
+              ? isTeacherOccurrenceFinished(
+                  day.date,
+                  slot,
+                  day.schedule
+                )
+
+              : false;
+
+
+          // ===========================================
+          // AULA / REPOSICAO JA ENCERRADA
+          // ===========================================
+
+          if (
+            isOccurrence &&
+            (
+              occurrenceFinished ||
+              Boolean(attendance)
+            )
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              attendance
+
+                ? "Clique para revisar o registro desta aula."
+
+                : "Clique para registrar presen\u00E7a / falta.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherAttendanceManager(
+                  day.date,
+                  slot
+                );
+
+              }
+            );
+
+          }
+
+
+          // ===========================================
+          // AGENDA FIXA - HOJE / FUTURO
+          // ===========================================
+
+          else if (
+            (
+              status.type === "free" ||
+              status.type === "lesson" ||
+              status.type === "unavailable"
+            )
+            &&
+            !isPastDate
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              "Clique para editar este hor\u00E1rio.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherScheduleEditor(
+                  day.date,
+                  slot
+                );
+
+              }
+            );
+
+          }
+
+
+          // ===========================================
+          // REPOSICAO FUTURA
+          // ===========================================
+
+          else if (
+            status.type === "makeup"
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              "Clique para gerenciar esta reposi\u00E7\u00E3o.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherMakeupReservationManager(
+                  day.date,
+                  slot
+                );
+
+              }
+            );
+
+          }
+
+
+          // ===========================================
+          // PASSADO SEM AULA
+          // ===========================================
+
+          else if (isPastDate) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Semanas anteriores s\u00E3o somente para consulta.";
+
+          }
+
+
+          else if (
+            status.type === "cancelled"
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Esta ocorr\u00EAncia foi cancelada.";
+
+          }
+
+
+          row.appendChild(
+            cell
+          );
+
+        }
+      );
+
+
+      body.appendChild(
+        row
+      );
+
+    }
+  );
 
 
   if (
@@ -5692,6 +5984,1062 @@ function renderTeacherWeeklySchedule(days) {
     `;
 
   }
+
+}
+
+
+
+// =====================================================
+// PRESENCA / FALTAS DIRETO NA AGENDA DO PROFESSOR
+// =====================================================
+
+function formatTeacherAttendanceShort(
+  status
+) {
+
+  switch (
+    String(
+      status || ""
+    ).toLowerCase()
+  ) {
+
+    case "present":
+      return "\u2705 Presente";
+
+    case "absent":
+      return "\u274C Falta";
+
+    case "justified_absence":
+      return "\u26A0\uFE0F Falta justificada";
+
+    case "makeup":
+      return "\u2705 Reposi\u00E7\u00E3o realizada";
+
+    default:
+      return "";
+
+  }
+
+}
+
+
+// =====================================================
+// DESCOBRIR SE A OCORRENCIA JA TERMINOU
+// =====================================================
+
+function isTeacherOccurrenceFinished(
+  date,
+  slot,
+  schedule
+) {
+
+  if (
+    slot.attendance &&
+    slot.attendance.end_time
+  ) {
+
+    return (
+      combineDateAndTime(
+        date,
+        slot.attendance.end_time
+      )
+      <=
+      new Date()
+    );
+
+  }
+
+
+  let occurrenceStart =
+    timeToMinutes(
+      slot.start_time
+    );
+
+
+  let occurrenceEnd =
+    timeToMinutes(
+      slot.end_time
+    );
+
+
+  const normalizedStatus =
+    normalizeTeacherScheduleStatus(
+      slot.status
+    ).type;
+
+
+  // ===================================================
+  // REPOSICAO:
+  // TODAS AS CELULAS DA MESMA RESERVA
+  // ===================================================
+
+  if (
+    normalizedStatus === "makeup" &&
+    slot.reservation_id
+  ) {
+
+    schedule
+      .filter(
+        item =>
+          item.reservation_id ===
+          slot.reservation_id
+      )
+      .forEach(
+        item => {
+
+          occurrenceStart =
+            Math.min(
+              occurrenceStart,
+              timeToMinutes(
+                item.start_time
+              )
+            );
+
+
+          occurrenceEnd =
+            Math.max(
+              occurrenceEnd,
+              timeToMinutes(
+                item.end_time
+              )
+            );
+
+        }
+      );
+
+  }
+
+
+  // ===================================================
+  // AULA REGULAR:
+  // JUNTAR APENAS BLOCOS CONTIGUOS DO MESMO ALUNO
+  // ===================================================
+
+  else if (
+    normalizedStatus === "lesson" &&
+    slot.student_id
+  ) {
+
+    let changed =
+      true;
+
+
+    while (changed) {
+
+      changed =
+        false;
+
+
+      schedule.forEach(
+        item => {
+
+          const itemStatus =
+            normalizeTeacherScheduleStatus(
+              item.status
+            ).type;
+
+
+          if (
+            itemStatus !== "lesson" ||
+            item.student_id !==
+              slot.student_id
+          ) {
+            return;
+          }
+
+
+          const itemStart =
+            timeToMinutes(
+              item.start_time
+            );
+
+
+          const itemEnd =
+            timeToMinutes(
+              item.end_time
+            );
+
+
+          if (
+            itemEnd === occurrenceStart
+          ) {
+
+            occurrenceStart =
+              itemStart;
+
+            changed =
+              true;
+
+          }
+
+
+          if (
+            itemStart === occurrenceEnd
+          ) {
+
+            occurrenceEnd =
+              itemEnd;
+
+            changed =
+              true;
+
+          }
+
+        }
+      );
+
+    }
+
+  }
+
+
+  const endTime =
+    minutesToTime(
+      occurrenceEnd
+    );
+
+
+  return (
+    combineDateAndTime(
+      date,
+      endTime
+    )
+    <=
+    new Date()
+  );
+
+}
+
+
+// =====================================================
+// ABRIR REGISTRO DE PRESENCA
+// =====================================================
+
+async function openTeacherAttendanceManager(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Carregando registro da aula...
+      </h3>
+
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_occurrence_for_attendance",
+      {
+
+        p_date:
+          formatDateForDatabase(
+            date
+          ),
+
+        p_start_time:
+          normalizeTime(
+            slot.start_time
+          )
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar registro da aula:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Registro da aula
+        </h3>
+
+        <p>
+          ${
+            escapeHtml(
+              error.message ||
+              "N\u00E3o foi poss\u00EDvel carregar esta aula."
+            )
+          }
+        </p>
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherAttendanceButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+    `;
+
+
+    const closeButton =
+      document.getElementById(
+        "closeTeacherAttendanceButton"
+      );
+
+
+    if (closeButton) {
+
+      closeButton.onclick =
+        () => {
+
+          area.innerHTML =
+            "";
+
+        };
+
+    }
+
+
+    return;
+  }
+
+
+  const occurrence =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if (!occurrence) {
+
+    area.innerHTML = `
+
+      <div class="card">
+        <p>
+          N\u00E3o foi poss\u00EDvel identificar esta aula.
+        </p>
+      </div>
+
+    `;
+
+    return;
+  }
+
+
+  const isMakeup =
+    occurrence.occurrence_type ===
+    "makeup";
+
+
+  const currentStatus =
+    String(
+      occurrence.attendance_status ||
+      ""
+    ).toLowerCase();
+
+
+  const attendanceNotes =
+    occurrence.attendance_notes ||
+    "";
+
+
+  const teacherNotes =
+    occurrence.teacher_notes ||
+    "";
+
+
+  const statusOptions =
+    isMakeup
+
+      ? `
+
+        <option
+          value="makeup"
+          selected
+        >
+          Reposi\u00E7\u00E3o realizada
+        </option>
+
+      `
+
+      : `
+
+        <option value="">
+          Selecione
+        </option>
+
+        <option
+          value="present"
+          ${
+            currentStatus === "present"
+              ? "selected"
+              : ""
+          }
+        >
+          Presente
+        </option>
+
+        <option
+          value="absent"
+          ${
+            currentStatus === "absent"
+              ? "selected"
+              : ""
+          }
+        >
+          Falta
+        </option>
+
+        <option
+          value="justified_absence"
+          ${
+            currentStatus ===
+            "justified_absence"
+              ? "selected"
+              : ""
+          }
+        >
+          Falta justificada
+        </option>
+
+      `;
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        ${
+          isMakeup
+            ? "Registrar reposi\u00E7\u00E3o"
+            : "Registrar aula"
+        }
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+
+        ${escapeHtml(
+          occurrence.student_name ||
+          "Aluno"
+        )}
+      </p>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          new Date(
+            occurrence.lesson_date +
+            "T12:00:00"
+          )
+        )}
+      </p>
+
+
+      <p>
+        <strong>Hor\u00E1rio:</strong>
+
+        ${normalizeTime(
+          occurrence.start_time
+        )}
+
+        \u00E0s
+
+        ${normalizeTime(
+          occurrence.end_time
+        )}
+      </p>
+
+
+      ${
+        currentStatus
+
+          ? `
+
+            <div
+              style="
+                margin-top:15px;
+                padding:12px;
+                border-radius:8px;
+                background:#eef5ff;
+              "
+            >
+
+              <strong>
+                Registro atual:
+              </strong>
+
+              ${escapeHtml(
+                formatTeacherAttendanceShort(
+                  currentStatus
+                )
+              )}
+
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherAttendanceStatus"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          ${
+            isMakeup
+              ? "Situa\u00E7\u00E3o"
+              : "Presen\u00E7a"
+          }
+        </label>
+
+
+        <select
+          id="teacherAttendanceStatus"
+          ${
+            isMakeup
+              ? "disabled"
+              : ""
+          }
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          ${statusOptions}
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="teacherAttendanceWarning"
+        style="
+          margin-top:12px;
+        "
+      ></div>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherAttendanceNotes"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Observa\u00E7\u00E3o sobre presen\u00E7a / falta
+        </label>
+
+
+        <textarea
+          id="teacherAttendanceNotes"
+          rows="3"
+          maxlength="1000"
+          placeholder="Ex.: aluno avisou que estava doente..."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+          "
+        >${escapeHtml(
+          attendanceNotes
+        )}</textarea>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherLessonNotes"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Observa\u00E7\u00F5es da aula
+        </label>
+
+
+        <textarea
+          id="teacherLessonNotes"
+          rows="4"
+          maxlength="3000"
+          placeholder="Ex.: desempenho, pontos de aten\u00E7\u00E3o, orienta\u00E7\u00F5es..."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+          "
+        >${escapeHtml(
+          teacherNotes
+        )}</textarea>
+
+      </div>
+
+
+      ${
+        isMakeup
+
+          ? `
+
+            <div
+              style="
+                margin-top:15px;
+                padding:12px;
+                border-radius:8px;
+                background:#f3e8ff;
+              "
+            >
+              Ao salvar, a reposi\u00E7\u00E3o ser\u00E1 marcada
+              como realizada e deixar\u00E1 de ficar pendente.
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherAttendanceButton"
+        >
+          Salvar registro
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherAttendanceButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherAttendanceMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherAttendanceStatus"
+    );
+
+
+  const warning =
+    document.getElementById(
+      "teacherAttendanceWarning"
+    );
+
+
+  function updateAttendanceWarning() {
+
+    if (
+      !statusSelect ||
+      !warning
+    ) {
+      return;
+    }
+
+
+    if (
+      statusSelect.value ===
+      "absent"
+    ) {
+
+      warning.innerHTML = `
+
+        <div
+          style="
+            padding:12px;
+            border-radius:8px;
+            background:#fff3cd;
+          "
+        >
+          <strong>Falta:</strong>
+          ao salvar, o sistema gerar\u00E1
+          automaticamente uma reposi\u00E7\u00E3o
+          para o aluno conforme as regras cadastradas.
+        </div>
+
+      `;
+
+    }
+
+
+    else if (
+      statusSelect.value ===
+      "justified_absence"
+    ) {
+
+      warning.innerHTML = `
+
+        <div
+          style="
+            padding:12px;
+            border-radius:8px;
+            background:#eef5ff;
+          "
+        >
+          A falta ser\u00E1 registrada como justificada.
+        </div>
+
+      `;
+
+    }
+
+
+    else {
+
+      warning.innerHTML =
+        "";
+
+    }
+
+  }
+
+
+  updateAttendanceWarning();
+
+
+  if (
+    statusSelect &&
+    !isMakeup
+  ) {
+
+    statusSelect.addEventListener(
+      "change",
+      updateAttendanceWarning
+    );
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherAttendanceButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherAttendance(
+          date,
+          slot,
+          isMakeup
+        );
+
+      }
+    );
+
+  }
+
+
+  const closeButton =
+    document.getElementById(
+      "closeTeacherAttendanceButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// SALVAR REGISTRO DE PRESENCA
+// =====================================================
+
+async function saveTeacherAttendance(
+  date,
+  slot,
+  isMakeup
+) {
+
+  const statusSelect =
+    document.getElementById(
+      "teacherAttendanceStatus"
+    );
+
+
+  const attendanceNotes =
+    document.getElementById(
+      "teacherAttendanceNotes"
+    );
+
+
+  const teacherNotes =
+    document.getElementById(
+      "teacherLessonNotes"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherAttendanceButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherAttendanceMessage"
+    );
+
+
+  const status =
+    isMakeup
+      ? "makeup"
+      : (
+          statusSelect
+            ? statusSelect.value
+            : ""
+        );
+
+
+  if (!status) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione a presen\u00E7a do aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    status === "absent"
+  ) {
+
+    const confirmed =
+      window.confirm(
+
+        "Confirmar falta?\n\n" +
+        "Uma reposi\u00E7\u00E3o ser\u00E1 gerada automaticamente para o aluno."
+
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_occurrence_attendance",
+      {
+
+        p_date:
+          formatDateForDatabase(
+            date
+          ),
+
+        p_start_time:
+          normalizeTime(
+            slot.start_time
+          ),
+
+        p_attendance_status:
+          status,
+
+        p_attendance_notes:
+          attendanceNotes
+            ? attendanceNotes.value.trim() || null
+            : null,
+
+        p_teacher_notes:
+          teacherNotes
+            ? teacherNotes.value.trim() || null
+            : null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar presen\u00E7a:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "N\u00E3o foi poss\u00EDvel salvar o registro.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar registro";
+
+    }
+
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    isMakeup
+      ? "Reposi\u00E7\u00E3o registrada como realizada."
+      : "Registro da aula salvo com sucesso."
+  );
 
 }
 
