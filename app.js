@@ -5557,17 +5557,291 @@ function setTeacherPage(page) {
           </div>
 
 
-          <input
-            type="search"
-            id="teacherStudentSearch"
-            placeholder="Buscar aluno..."
+          <div
             style="
-              min-width:240px;
-              padding:10px 12px;
-              border:1px solid #ccc;
-              border-radius:8px;
+              display:flex;
+              gap:10px;
+              align-items:center;
+              flex-wrap:wrap;
             "
           >
+
+            <button
+              type="button"
+              class="action-button"
+              id="openRegisterStudentButton"
+            >
+              + Cadastrar aluno
+            </button>
+
+
+            <input
+              type="search"
+              id="teacherStudentSearch"
+              placeholder="Buscar aluno..."
+              style="
+                min-width:240px;
+                padding:10px 12px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="teacherStudentRegistrationArea"
+          style="
+            display:none;
+            margin-top:20px;
+            padding:18px;
+            background:#f7f7f7;
+            border-radius:10px;
+          "
+        >
+
+          <h4
+            style="
+              margin-top:0;
+            "
+          >
+            Cadastrar aluno e acesso
+          </h4>
+
+
+          <p
+            style="
+              margin-top:0;
+              color:#555;
+            "
+          >
+            O aluno sera cadastrado no sistema e recebera
+            um acesso com e-mail e senha.
+          </p>
+
+
+          <div
+            style="
+              display:grid;
+              grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+              gap:14px;
+            "
+          >
+
+            <div>
+
+              <label
+                for="newStudentName"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Nome do aluno
+              </label>
+
+              <input
+                id="newStudentName"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="Nome completo"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="newStudentEmail"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                E-mail de acesso
+              </label>
+
+              <input
+                id="newStudentEmail"
+                type="email"
+                autocomplete="off"
+                placeholder="aluno@email.com"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="newStudentPassword"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Senha inicial
+              </label>
+
+              <input
+                id="newStudentPassword"
+                type="password"
+                minlength="6"
+                autocomplete="new-password"
+                placeholder="Minimo de 6 caracteres"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="newStudentPasswordConfirm"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Confirmar senha
+              </label>
+
+              <input
+                id="newStudentPasswordConfirm"
+                type="password"
+                minlength="6"
+                autocomplete="new-password"
+                placeholder="Digite a senha novamente"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="newStudentDuration"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Duracao da aula
+              </label>
+
+              <select
+                id="newStudentDuration"
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+                <option value="60">
+                  60 minutos
+                </option>
+
+                <option value="30">
+                  30 minutos
+                </option>
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div
+            style="
+              margin-top:14px;
+              padding:12px;
+              background:#eef5ff;
+              border-radius:8px;
+              font-size:13px;
+            "
+          >
+            A senha nao sera salva nas tabelas do ERP.
+            Ela e enviada diretamente ao Supabase Auth.
+            Se a confirmacao de e-mail estiver ativada
+            no projeto, o aluno precisara confirmar o
+            e-mail antes do primeiro login.
+          </div>
+
+
+          <div
+            style="
+              display:flex;
+              gap:10px;
+              flex-wrap:wrap;
+              margin-top:16px;
+            "
+          >
+
+            <button
+              type="button"
+              class="action-button"
+              id="saveNewStudentButton"
+            >
+              Criar aluno e acesso
+            </button>
+
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="cancelNewStudentButton"
+            >
+              Cancelar
+            </button>
+
+          </div>
+
+
+          <p
+            id="newStudentMessage"
+            style="
+              margin-top:12px;
+            "
+          ></p>
 
         </div>
 
@@ -5592,6 +5866,54 @@ function setTeacherPage(page) {
       </div>
 
     `;
+
+
+    const openRegisterButton =
+      document.getElementById(
+        "openRegisterStudentButton"
+      );
+
+
+    if (openRegisterButton) {
+
+      openRegisterButton.addEventListener(
+        "click",
+        openRegisterStudentForm
+      );
+
+    }
+
+
+    const saveNewStudentButton =
+      document.getElementById(
+        "saveNewStudentButton"
+      );
+
+
+    if (saveNewStudentButton) {
+
+      saveNewStudentButton.addEventListener(
+        "click",
+        saveNewStudentWithAccess
+      );
+
+    }
+
+
+    const cancelNewStudentButton =
+      document.getElementById(
+        "cancelNewStudentButton"
+      );
+
+
+    if (cancelNewStudentButton) {
+
+      cancelNewStudentButton.addEventListener(
+        "click",
+        closeRegisterStudentForm
+      );
+
+    }
 
 
     const searchInput =
@@ -6719,6 +7041,630 @@ function setTeacherPage(page) {
 // =====================================================
 
 let teacherStudentOverviewData = [];
+
+
+// =====================================================
+// CADASTRAR ALUNO + ACESSO
+// =====================================================
+
+function openRegisterStudentForm() {
+
+  const area =
+    document.getElementById(
+      "teacherStudentRegistrationArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  const nameInput =
+    document.getElementById(
+      "newStudentName"
+    );
+
+
+  if (nameInput) {
+
+    nameInput.focus();
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// FECHAR CADASTRO
+// =====================================================
+
+function closeRegisterStudentForm() {
+
+  const area =
+    document.getElementById(
+      "teacherStudentRegistrationArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+  }
+
+
+  const message =
+    document.getElementById(
+      "newStudentMessage"
+    );
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+}
+
+
+// =====================================================
+// CLIENTE DE AUTH SEPARADO
+//
+// IMPORTANTE:
+// esse cliente NAO persiste sessao.
+// Assim, criar o login do aluno nao desloga o professor.
+// =====================================================
+
+function createStudentAccessAuthClient() {
+
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !==
+      "function"
+  ) {
+
+    throw new Error(
+      "Biblioteca do Supabase nao encontrada."
+    );
+
+  }
+
+
+  const url =
+    supabaseClient.supabaseUrl;
+
+
+  const key =
+    supabaseClient.supabaseKey;
+
+
+  if (
+    !url ||
+    !key
+  ) {
+
+    throw new Error(
+      "Nao foi possivel acessar a configuracao do Supabase."
+    );
+
+  }
+
+
+  return window.supabase.createClient(
+    url,
+    key,
+    {
+      auth: {
+        persistSession:
+          false,
+
+        autoRefreshToken:
+          false,
+
+        detectSessionInUrl:
+          false
+      }
+    }
+  );
+
+}
+
+
+// =====================================================
+// SALVAR NOVO ALUNO
+// =====================================================
+
+async function saveNewStudentWithAccess() {
+
+  const nameInput =
+    document.getElementById(
+      "newStudentName"
+    );
+
+
+  const emailInput =
+    document.getElementById(
+      "newStudentEmail"
+    );
+
+
+  const passwordInput =
+    document.getElementById(
+      "newStudentPassword"
+    );
+
+
+  const confirmInput =
+    document.getElementById(
+      "newStudentPasswordConfirm"
+    );
+
+
+  const durationSelect =
+    document.getElementById(
+      "newStudentDuration"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveNewStudentButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "newStudentMessage"
+    );
+
+
+  if (
+    !nameInput ||
+    !emailInput ||
+    !passwordInput ||
+    !confirmInput ||
+    !durationSelect
+  ) {
+    return;
+  }
+
+
+  const name =
+    nameInput.value.trim();
+
+
+  const email =
+    emailInput.value
+      .trim()
+      .toLowerCase();
+
+
+  const password =
+    passwordInput.value;
+
+
+  const confirmPassword =
+    confirmInput.value;
+
+
+  const duration =
+    Number(
+      durationSelect.value
+    );
+
+
+  function showError(
+    text
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        text;
+
+      message.style.color =
+        "red";
+
+    }
+
+  }
+
+
+  if (!name) {
+
+    showError(
+      "Digite o nome do aluno."
+    );
+
+    return;
+  }
+
+
+  if (
+    !email ||
+    !email.includes("@")
+  ) {
+
+    showError(
+      "Digite um e-mail valido."
+    );
+
+    return;
+  }
+
+
+  if (
+    password.length < 6
+  ) {
+
+    showError(
+      "A senha precisa ter pelo menos 6 caracteres."
+    );
+
+    return;
+  }
+
+
+  if (
+    password !==
+    confirmPassword
+  ) {
+
+    showError(
+      "As senhas nao coincidem."
+    );
+
+    return;
+  }
+
+
+  if (
+    duration !== 30 &&
+    duration !== 60
+  ) {
+
+    showError(
+      "Selecione uma duracao valida."
+    );
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+
+      "Criar o aluno \"" +
+      name +
+      "\" e o acesso " +
+      email +
+      "?"
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Criando acesso...";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Criando usuario de acesso...";
+
+    message.style.color =
+      "#555";
+
+  }
+
+
+  let authClient;
+
+
+  try {
+
+    authClient =
+      createStudentAccessAuthClient();
+
+  }
+
+  catch (
+    error
+  ) {
+
+    showError(
+      error.message ||
+      "Nao foi possivel iniciar o cadastro."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    data: authData,
+    error: authError
+  } =
+    await authClient.auth.signUp({
+
+      email,
+
+      password,
+
+      options: {
+
+        data: {
+          name:
+            name,
+
+          role:
+            "student"
+        }
+
+      }
+
+    });
+
+
+  if (authError) {
+
+    console.error(
+      "Erro ao criar acesso do aluno:",
+      authError
+    );
+
+
+    showError(
+      authError.message ||
+      "Nao foi possivel criar o acesso do aluno."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  const authUser =
+    authData
+      ? authData.user
+      : null;
+
+
+  if (
+    !authUser ||
+    !authUser.id
+  ) {
+
+    showError(
+      "O Supabase nao retornou o usuario criado."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  // Em configuracoes que ocultam a existencia
+  // de usuarios ja cadastrados, Supabase pode
+  // retornar identities vazio.
+  if (
+    Array.isArray(
+      authUser.identities
+    ) &&
+    authUser.identities.length ===
+      0
+  ) {
+
+    showError(
+      "Este e-mail ja possui um acesso cadastrado."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Acesso criado. Finalizando cadastro do aluno...";
+
+  }
+
+
+  const {
+    error: studentError
+  } =
+    await supabaseClient.rpc(
+      "register_student_from_auth",
+      {
+
+        p_auth_user_id:
+          authUser.id,
+
+        p_name:
+          name,
+
+        p_class_duration_minutes:
+          duration
+
+      }
+    );
+
+
+  if (studentError) {
+
+    console.error(
+      "Erro ao vincular aluno ao acesso:",
+      studentError
+    );
+
+
+    showError(
+      "O acesso foi criado no Supabase, mas o cadastro do aluno falhou: " +
+      (
+        studentError.message ||
+        "erro desconhecido"
+      )
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  nameInput.value =
+    "";
+
+  emailInput.value =
+    "";
+
+  passwordInput.value =
+    "";
+
+  confirmInput.value =
+    "";
+
+  durationSelect.value =
+    "60";
+
+
+  if (message) {
+
+    message.innerHTML = `
+
+      <strong>
+        Aluno e acesso criados com sucesso.
+      </strong>
+
+      <br>
+
+      E-mail:
+      ${escapeHtml(
+        email
+      )}
+
+      <br>
+
+      ${
+        authData.session
+
+          ? "O acesso ja pode ser usado para login."
+
+          : "Se a confirmacao de e-mail estiver ativada, o aluno deve confirmar o e-mail antes do primeiro login."
+      }
+
+    `;
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  await loadTeacherStudentOverview();
+
+
+  // Atualiza tambem a lista usada por agenda e planejamento.
+  currentTeacherStudents =
+    [];
+
+  await loadTeacherStudents();
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Criar aluno e acesso";
+
+  }
+
+}
 
 
 // =====================================================
