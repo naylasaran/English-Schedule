@@ -4552,7 +4552,7 @@ async function confirmRealReservation(
     error
   } =
     await supabaseClient.rpc(
-      "reserve_makeup",
+      "reserve_makeup_v2",
       {
         p_makeup_id:
           makeupId,
@@ -5610,11 +5610,37 @@ function renderTeacherWeeklySchedule(days) {
         status.type === "makeup"
       ) {
 
-        cell.style.cursor =
-          "default";
+        if (isPastDate) {
 
-        cell.title =
-          "Esta \u00E9 uma reposi\u00E7\u00E3o agendada.";
+          cell.style.cursor =
+            "default";
+
+          cell.title =
+            "Esta reposi\u00E7\u00E3o j\u00E1 ocorreu.";
+
+        }
+
+        else {
+
+          cell.style.cursor =
+            "pointer";
+
+          cell.title =
+            "Clique para gerenciar esta reposi\u00E7\u00E3o.";
+
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openTeacherMakeupReservationManager(
+                day.date,
+                slot
+              );
+
+            }
+          );
+
+        }
 
       }
 
@@ -6237,6 +6263,64 @@ async function openTeacherScheduleEditor(
   }
 
 
+
+  // ===================================================
+  // AGENDAR REPOSICAO EM HORARIO LIVRE
+  // ===================================================
+
+  if (
+    currentStatus === "free" &&
+    closeButton &&
+    closeButton.parentElement
+  ) {
+
+    const makeupButton =
+      document.createElement(
+        "button"
+      );
+
+
+    makeupButton.type =
+      "button";
+
+
+    makeupButton.className =
+      "secondary-button";
+
+
+    makeupButton.textContent =
+      "Agendar reposi\u00E7\u00E3o neste hor\u00E1rio";
+
+
+    makeupButton.style.borderColor =
+      "#6f42c1";
+
+
+    makeupButton.style.color =
+      "#6f42c1";
+
+
+    closeButton.parentElement.insertBefore(
+      makeupButton,
+      closeButton
+    );
+
+
+    makeupButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherMakeupBooking(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
   // ===================================================
   // FECHAR
   // ===================================================
@@ -6256,6 +6340,745 @@ async function openTeacherScheduleEditor(
     );
 
   }
+
+}
+
+
+
+// =====================================================
+// PROFESSOR - AGENDAR REPOSICAO
+// =====================================================
+
+async function openTeacherMakeupBooking(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_available_makeups"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar reposi\u00E7\u00F5es dispon\u00EDveis:",
+      error
+    );
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Agendar reposi\u00E7\u00E3o
+        </h3>
+
+        <p>
+          N\u00E3o foi poss\u00EDvel carregar as reposi\u00E7\u00F5es dispon\u00EDveis.
+        </p>
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherMakeupBookingButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+    `;
+
+
+    const back =
+      document.getElementById(
+        "closeTeacherMakeupBookingButton"
+      );
+
+
+    if (back) {
+
+      back.addEventListener(
+        "click",
+        () => {
+
+          openTeacherScheduleEditor(
+            date,
+            slot
+          );
+
+        }
+      );
+
+    }
+
+
+    return;
+  }
+
+
+  const makeups =
+    data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #6f42c1;
+      "
+    >
+
+      <h3>
+        Agendar reposi\u00E7\u00E3o
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+        ${formatDate(date)}
+      </p>
+
+
+      <p>
+        <strong>Hor\u00E1rio:</strong>
+        ${normalizeTime(
+          slot.start_time
+        )}
+      </p>
+
+
+      ${
+        makeups.length === 0
+
+          ? `
+
+            <div
+              style="
+                padding:15px;
+                background:#f7f7f7;
+                border-radius:8px;
+                margin-top:15px;
+              "
+            >
+              Nenhuma reposi\u00E7\u00E3o dispon\u00EDvel para os alunos.
+            </div>
+
+          `
+
+          : `
+
+            <div
+              style="
+                margin-top:18px;
+              "
+            >
+
+              <label
+                for="teacherMakeupSelect"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Reposi\u00E7\u00E3o
+              </label>
+
+
+              <select
+                id="teacherMakeupSelect"
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+                <option value="">
+                  Selecione
+                </option>
+
+
+                ${makeups
+                  .map(
+                    makeup => `
+
+                      <option
+                        value="${makeup.makeup_id}"
+                      >
+                        ${escapeHtml(
+                          makeup.student_name ||
+                          "Aluno"
+                        )}
+                        \u2014 ${makeup.duration_minutes} min
+                        \u2014 ${escapeHtml(
+                          formatMakeupSource(
+                            makeup.source
+                          )
+                        )}
+                      </option>
+
+                    `
+                  )
+                  .join("")}
+
+              </select>
+
+
+              <p
+                style="
+                  margin-top:8px;
+                  font-size:13px;
+                  color:#666;
+                "
+              >
+                Para uma reposi\u00E7\u00E3o de 60 minutos,
+                os dois blocos de 30 minutos precisam estar livres.
+              </p>
+
+            </div>
+
+          `
+      }
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        ${
+          makeups.length > 0
+
+            ? `
+
+              <button
+                type="button"
+                class="action-button"
+                id="confirmTeacherMakeupBookingButton"
+              >
+                Agendar reposi\u00E7\u00E3o
+              </button>
+
+            `
+
+            : ""
+        }
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="backTeacherMakeupBookingButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherMakeupBookingMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const confirmButton =
+    document.getElementById(
+      "confirmTeacherMakeupBookingButton"
+    );
+
+
+  if (confirmButton) {
+
+    confirmButton.addEventListener(
+      "click",
+      () => {
+
+        confirmTeacherMakeupBooking(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+
+  const backButton =
+    document.getElementById(
+      "backTeacherMakeupBookingButton"
+    );
+
+
+  if (backButton) {
+
+    backButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherScheduleEditor(
+          date,
+          slot
+        );
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// PROFESSOR - CONFIRMAR REPOSICAO
+// =====================================================
+
+async function confirmTeacherMakeupBooking(
+  date,
+  slot
+) {
+
+  const select =
+    document.getElementById(
+      "teacherMakeupSelect"
+    );
+
+
+  const button =
+    document.getElementById(
+      "confirmTeacherMakeupBookingButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherMakeupBookingMessage"
+    );
+
+
+  if (!select) {
+    return;
+  }
+
+
+  const makeupId =
+    select.value;
+
+
+  if (!makeupId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione uma reposi\u00E7\u00E3o.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Agendando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "teacher_reserve_makeup",
+      {
+
+        p_makeup_id:
+          makeupId,
+
+        p_reservation_date:
+          formatDateForDatabase(
+            date
+          ),
+
+        p_start_time:
+          normalizeTime(
+            slot.start_time
+          )
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao agendar reposi\u00E7\u00E3o pelo professor:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "N\u00E3o foi poss\u00EDvel agendar a reposi\u00E7\u00E3o.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Agendar reposi\u00E7\u00E3o";
+
+    }
+
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    "Reposi\u00E7\u00E3o agendada com sucesso."
+  );
+
+}
+
+
+// =====================================================
+// PROFESSOR - GERENCIAR REPOSICAO AGENDADA
+// =====================================================
+
+function openTeacherMakeupReservationManager(
+  date,
+  slot
+) {
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (!slot.reservation_id) {
+
+    alert(
+      "N\u00E3o foi poss\u00EDvel identificar a reserva desta reposi\u00E7\u00E3o."
+    );
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #6f42c1;
+      "
+    >
+
+      <h3>
+        Reposi\u00E7\u00E3o agendada
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+        ${escapeHtml(
+          slot.student_name ||
+          "Aluno"
+        )}
+      </p>
+
+
+      <p>
+        <strong>Data:</strong>
+        ${formatDate(date)}
+      </p>
+
+
+      <p>
+        <strong>Hor\u00E1rio:</strong>
+        ${normalizeTime(
+          slot.start_time
+        )}
+        \u00E0s
+        ${normalizeTime(
+          slot.end_time
+        )}
+      </p>
+
+
+      <p
+        style="
+          padding:12px;
+          background:#eef5ff;
+          border-radius:8px;
+        "
+      >
+        Se o professor cancelar, a reposi\u00E7\u00E3o
+        volta para o aluno e o cancelamento do aluno
+        n\u00E3o \u00E9 consumido.
+      </p>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelTeacherMakeupReservationButton"
+          style="
+            border-color:#c0392b;
+            color:#c0392b;
+          "
+        >
+          Cancelar reposi\u00E7\u00E3o
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherMakeupManagerButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherMakeupManagerMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  document
+    .getElementById(
+      "cancelTeacherMakeupReservationButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        cancelTeacherMakeupReservation(
+          slot.reservation_id
+        );
+
+      }
+    );
+
+
+  document
+    .getElementById(
+      "closeTeacherMakeupManagerButton"
+    )
+    .addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+}
+
+
+// =====================================================
+// PROFESSOR - CANCELAR REPOSICAO
+// =====================================================
+
+async function cancelTeacherMakeupReservation(
+  reservationId
+) {
+
+  const confirmed =
+    window.confirm(
+      "Cancelar esta reposi\u00E7\u00E3o?\n\n" +
+      "Ela voltar\u00E1 para o aluno como dispon\u00EDvel."
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const button =
+    document.getElementById(
+      "cancelTeacherMakeupReservationButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherMakeupManagerMessage"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Cancelando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "cancel_makeup_by_teacher",
+      {
+        p_reservation_id:
+          reservationId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cancelar reposi\u00E7\u00E3o pelo professor:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "N\u00E3o foi poss\u00EDvel cancelar a reposi\u00E7\u00E3o.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Cancelar reposi\u00E7\u00E3o";
+
+    }
+
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    "Reposi\u00E7\u00E3o cancelada. Ela voltou para o aluno."
+  );
 
 }
 
