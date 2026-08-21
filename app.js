@@ -1976,7 +1976,7 @@ function formatAttendanceStatus(status) {
       return "\u2705 Presente";
 
     case "absent":
-      return "\u274c Falta";
+      return "\u274c Falta sem justificativa";
 
     case "justified_absence":
       return "\u26a0\ufe0f Falta justificada";
@@ -2266,6 +2266,29 @@ function renderMakeupCard(makeup) {
             ? ` \u00E0s ${sourceEnd}`
             : ""
         }
+      </p>
+
+    `;
+
+  }
+
+  else if (
+    String(
+      makeup.source || ""
+    ).toLowerCase() ===
+    "manual"
+  ) {
+
+    sourceLessonInfo = `
+
+      <p>
+        <strong>
+          Aula de origem:
+        </strong>
+
+        Nao vinculada.
+        Esta reposicao foi concedida manualmente
+        pelo professor.
       </p>
 
     `;
@@ -2787,7 +2810,7 @@ function formatMakeupSource(source) {
   ) {
 
     case "absence":
-      return "Falta";
+      return "Falta justificada";
 
     case "manual":
       return "Professor";
@@ -6007,7 +6030,7 @@ function formatTeacherAttendanceShort(
       return "\u2705 Presente";
 
     case "absent":
-      return "\u274C Falta";
+      return "\u274C Falta sem justificativa";
 
     case "justified_absence":
       return "\u26A0\uFE0F Falta justificada";
@@ -6777,7 +6800,7 @@ async function openTeacherAttendanceManager(
               : ""
           }
         >
-          Falta
+          Falta sem justificativa
         </option>
 
         <option
@@ -6789,7 +6812,7 @@ async function openTeacherAttendanceManager(
               : ""
           }
         >
-          Falta justificada
+          Falta justificada (gera reposicao)
         </option>
 
       `;
@@ -7395,10 +7418,8 @@ async function openTeacherAttendanceManager(
             background:#fff3cd;
           "
         >
-          <strong>Falta:</strong>
-          ao salvar, o sistema gerara
-          automaticamente uma reposicao
-          para o aluno conforme as regras cadastradas.
+          <strong>Falta sem justificativa:</strong>
+          esta falta nao gera reposicao.
         </div>
 
       `;
@@ -7420,7 +7441,9 @@ async function openTeacherAttendanceManager(
             background:#eef5ff;
           "
         >
-          A falta sera registrada como justificada.
+          <strong>Falta justificada:</strong>
+          ao salvar, o sistema gerara
+          automaticamente uma reposicao para o aluno.
         </div>
 
       `;
@@ -7761,14 +7784,34 @@ async function saveTeacherAttendance(
 
 
   if (
+    status === "justified_absence"
+  ) {
+
+    const confirmed =
+      window.confirm(
+
+        "Confirmar falta justificada?\n\n" +
+        "Uma reposicao sera gerada automaticamente para o aluno."
+
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+  }
+
+
+  else if (
     status === "absent"
   ) {
 
     const confirmed =
       window.confirm(
 
-        "Confirmar falta?\n\n" +
-        "Uma reposicao sera gerada automaticamente para o aluno."
+        "Confirmar falta sem justificativa?\n\n" +
+        "Esta falta nao gerara reposicao."
 
       );
 
