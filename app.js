@@ -6215,6 +6215,340 @@ function isTeacherOccurrenceFinished(
 // ABRIR REGISTRO DE PRESENCA
 // =====================================================
 
+async function escapeSelectValue(
+  value
+) {
+
+  return escapeHtml(
+    value || ""
+  );
+
+}
+
+
+// =====================================================
+// MATERIAS DO PROFESSOR PARA O REGISTRO
+// =====================================================
+
+async function getTeacherSubjectsForRecord() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_subjects_for_record"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar materias:",
+      error
+    );
+
+    return [];
+  }
+
+
+  return data || [];
+
+}
+
+
+// =====================================================
+// CONTEUDOS DA MATERIA
+// =====================================================
+
+async function getTeacherContentsForRecord(
+  subjectId
+) {
+
+  if (!subjectId) {
+    return [];
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_contents_for_record",
+      {
+        p_subject_id:
+          subjectId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar conteudos:",
+      error
+    );
+
+    return [];
+  }
+
+
+  return data || [];
+
+}
+
+
+// =====================================================
+// PREENCHER SELECT DE CONTEUDO
+// =====================================================
+
+function fillTeacherContentSelect(
+  contents,
+  selectedContentId = null
+) {
+
+  const select =
+    document.getElementById(
+      "teacherLessonContent"
+    );
+
+
+  if (!select) {
+    return;
+  }
+
+
+  select.innerHTML = `
+
+    <option value="">
+      Nao informado
+    </option>
+
+    ${contents
+      .map(
+        item => `
+
+          <option
+            value="${escapeSelectValue(
+              item.content_id
+            )}"
+            ${
+              String(
+                item.content_id
+              ) ===
+              String(
+                selectedContentId || ""
+              )
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHtml(
+              item.content_title
+            )}
+          </option>
+
+        `
+      )
+      .join("")}
+
+  `;
+
+
+  select.disabled =
+    !document.getElementById(
+      "teacherLessonSubject"
+    )?.value;
+
+}
+
+
+// =====================================================
+// CADASTRAR NOVO CONTEUDO
+// =====================================================
+
+async function createTeacherContentFromRecord() {
+
+  const subjectSelect =
+    document.getElementById(
+      "teacherLessonSubject"
+    );
+
+
+  const input =
+    document.getElementById(
+      "teacherNewContentTitle"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherNewContentMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherNewContentButton"
+    );
+
+
+  if (
+    !subjectSelect ||
+    !input
+  ) {
+    return;
+  }
+
+
+  const subjectId =
+    subjectSelect.value;
+
+
+  const title =
+    input.value.trim();
+
+
+  if (!subjectId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione a materia primeiro.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (!title) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite o nome do conteudo.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "create_teacher_content_for_record",
+      {
+        p_subject_id:
+          subjectId,
+
+        p_title:
+          title
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao cadastrar conteudo:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel cadastrar o conteudo.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar novo conteudo";
+
+    }
+
+
+    return;
+  }
+
+
+  const contents =
+    await getTeacherContentsForRecord(
+      subjectId
+    );
+
+
+  fillTeacherContentSelect(
+    contents,
+    data
+  );
+
+
+  input.value =
+    "";
+
+
+  const area =
+    document.getElementById(
+      "teacherNewContentArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "";
+
+  }
+
+}
+
+
+// =====================================================
+// PRESENCA / FALTAS DIRETO NA AGENDA DO PROFESSOR
+// COM MATERIA + CONTEUDO
+// =====================================================
+
 async function openTeacherAttendanceManager(
   date,
   slot
@@ -6244,26 +6578,39 @@ async function openTeacherAttendanceManager(
   `;
 
 
+  const [
+    occurrenceResult,
+    subjects
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_occurrence_record",
+        {
+
+          p_date:
+            formatDateForDatabase(
+              date
+            ),
+
+          p_start_time:
+            normalizeTime(
+              slot.start_time
+            )
+
+        }
+      ),
+
+      getTeacherSubjectsForRecord()
+
+    ]);
+
+
   const {
     data,
     error
   } =
-    await supabaseClient.rpc(
-      "get_teacher_occurrence_for_attendance",
-      {
-
-        p_date:
-          formatDateForDatabase(
-            date
-          ),
-
-        p_start_time:
-          normalizeTime(
-            slot.start_time
-          )
-
-      }
-    );
+    occurrenceResult;
 
 
   if (error) {
@@ -6286,7 +6633,7 @@ async function openTeacherAttendanceManager(
           ${
             escapeHtml(
               error.message ||
-              "N\u00E3o foi poss\u00EDvel carregar esta aula."
+              "Nao foi possivel carregar esta aula."
             )
           }
         </p>
@@ -6339,7 +6686,7 @@ async function openTeacherAttendanceManager(
 
       <div class="card">
         <p>
-          N\u00E3o foi poss\u00EDvel identificar esta aula.
+          Nao foi possivel identificar esta aula.
         </p>
       </div>
 
@@ -6371,6 +6718,26 @@ async function openTeacherAttendanceManager(
     "";
 
 
+  const selectedSubjectId =
+    occurrence.subject_id ||
+    "";
+
+
+  const selectedContentId =
+    occurrence.content_id ||
+    "";
+
+
+  const initialContents =
+    selectedSubjectId
+
+      ? await getTeacherContentsForRecord(
+          selectedSubjectId
+        )
+
+      : [];
+
+
   const statusOptions =
     isMakeup
 
@@ -6380,7 +6747,7 @@ async function openTeacherAttendanceManager(
           value="makeup"
           selected
         >
-          Reposi\u00E7\u00E3o realizada
+          Reposicao realizada
         </option>
 
       `
@@ -6440,7 +6807,7 @@ async function openTeacherAttendanceManager(
       <h3>
         ${
           isMakeup
-            ? "Registrar reposi\u00E7\u00E3o"
+            ? "Registrar reposicao"
             : "Registrar aula"
         }
       </h3>
@@ -6469,13 +6836,13 @@ async function openTeacherAttendanceManager(
 
 
       <p>
-        <strong>Hor\u00E1rio:</strong>
+        <strong>Horario:</strong>
 
         ${normalizeTime(
           occurrence.start_time
         )}
 
-        \u00E0s
+        as
 
         ${normalizeTime(
           occurrence.end_time
@@ -6515,6 +6882,10 @@ async function openTeacherAttendanceManager(
       }
 
 
+      <!-- ==========================================
+           PRESENCA
+           ========================================== -->
+
       <div
         style="
           margin-top:18px;
@@ -6531,8 +6902,8 @@ async function openTeacherAttendanceManager(
         >
           ${
             isMakeup
-              ? "Situa\u00E7\u00E3o"
-              : "Presen\u00E7a"
+              ? "Situacao"
+              : "Presenca"
           }
         </label>
 
@@ -6567,6 +6938,269 @@ async function openTeacherAttendanceManager(
       ></div>
 
 
+      <!-- ==========================================
+           MATERIA
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+          padding-top:18px;
+          border-top:1px solid #e5e5e5;
+        "
+      >
+
+        <label
+          for="teacherLessonSubject"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Materia
+        </label>
+
+
+        <select
+          id="teacherLessonSubject"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option value="">
+            Nao informada
+          </option>
+
+
+          ${subjects
+            .map(
+              subject => `
+
+                <option
+                  value="${escapeSelectValue(
+                    subject.subject_id
+                  )}"
+                  ${
+                    String(
+                      subject.subject_id
+                    ) ===
+                    String(
+                      selectedSubjectId
+                    )
+                      ? "selected"
+                      : ""
+                  }
+                >
+                  ${escapeHtml(
+                    subject.subject_name
+                  )}
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+
+        ${
+          subjects.length === 0
+
+            ? `
+
+              <p
+                style="
+                  margin-top:8px;
+                  font-size:13px;
+                  color:#856404;
+                "
+              >
+                Nenhuma materia ativa cadastrada.
+                Voce ainda pode salvar a presenca
+                e as observacoes.
+              </p>
+
+            `
+
+            : ""
+        }
+
+      </div>
+
+
+      <!-- ==========================================
+           CONTEUDO
+           ========================================== -->
+
+      <div
+        style="
+          margin-top:18px;
+        "
+      >
+
+        <label
+          for="teacherLessonContent"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:8px;
+          "
+        >
+          Conteudo trabalhado
+        </label>
+
+
+        <select
+          id="teacherLessonContent"
+          ${
+            selectedSubjectId
+              ? ""
+              : "disabled"
+          }
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          <option value="">
+            Nao informado
+          </option>
+
+
+          ${initialContents
+            .map(
+              item => `
+
+                <option
+                  value="${escapeSelectValue(
+                    item.content_id
+                  )}"
+                  ${
+                    String(
+                      item.content_id
+                    ) ===
+                    String(
+                      selectedContentId
+                    )
+                      ? "selected"
+                      : ""
+                  }
+                >
+                  ${escapeHtml(
+                    item.content_title
+                  )}
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="openTeacherNewContentButton"
+          style="
+            margin-top:10px;
+          "
+        >
+          + Novo conteudo
+        </button>
+
+
+        <div
+          id="teacherNewContentArea"
+          style="
+            display:none;
+            margin-top:12px;
+            padding:15px;
+            border-radius:8px;
+            background:#f7f7f7;
+          "
+        >
+
+          <label
+            for="teacherNewContentTitle"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:8px;
+            "
+          >
+            Nome do novo conteudo
+          </label>
+
+
+          <input
+            type="text"
+            id="teacherNewContentTitle"
+            maxlength="200"
+            placeholder="Ex.: Present Perfect - ever / never"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+
+          <div
+            style="
+              display:flex;
+              gap:10px;
+              flex-wrap:wrap;
+              margin-top:10px;
+            "
+          >
+
+            <button
+              type="button"
+              class="action-button"
+              id="saveTeacherNewContentButton"
+            >
+              Salvar novo conteudo
+            </button>
+
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="cancelTeacherNewContentButton"
+            >
+              Cancelar
+            </button>
+
+          </div>
+
+
+          <p
+            id="teacherNewContentMessage"
+            style="
+              margin-top:8px;
+            "
+          ></p>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==========================================
+           OBSERVACAO DE PRESENCA
+           ========================================== -->
+
       <div
         style="
           margin-top:18px;
@@ -6581,7 +7215,7 @@ async function openTeacherAttendanceManager(
             margin-bottom:8px;
           "
         >
-          Observa\u00E7\u00E3o sobre presen\u00E7a / falta
+          Observacao sobre presenca / falta
         </label>
 
 
@@ -6606,6 +7240,10 @@ async function openTeacherAttendanceManager(
       </div>
 
 
+      <!-- ==========================================
+           OBSERVACOES DA AULA
+           ========================================== -->
+
       <div
         style="
           margin-top:18px;
@@ -6620,7 +7258,7 @@ async function openTeacherAttendanceManager(
             margin-bottom:8px;
           "
         >
-          Observa\u00E7\u00F5es da aula
+          Observacoes da aula
         </label>
 
 
@@ -6628,7 +7266,7 @@ async function openTeacherAttendanceManager(
           id="teacherLessonNotes"
           rows="4"
           maxlength="3000"
-          placeholder="Ex.: desempenho, pontos de aten\u00E7\u00E3o, orienta\u00E7\u00F5es..."
+          placeholder="Ex.: desempenho, pontos de atencao, orientacoes..."
           style="
             width:100%;
             box-sizing:border-box;
@@ -6658,8 +7296,8 @@ async function openTeacherAttendanceManager(
                 background:#f3e8ff;
               "
             >
-              Ao salvar, a reposi\u00E7\u00E3o ser\u00E1 marcada
-              como realizada e deixar\u00E1 de ficar pendente.
+              Ao salvar, a reposicao sera marcada
+              como realizada e deixara de ficar pendente.
             </div>
 
           `
@@ -6721,6 +7359,18 @@ async function openTeacherAttendanceManager(
     );
 
 
+  const subjectSelect =
+    document.getElementById(
+      "teacherLessonSubject"
+    );
+
+
+  const contentSelect =
+    document.getElementById(
+      "teacherLessonContent"
+    );
+
+
   function updateAttendanceWarning() {
 
     if (
@@ -6746,8 +7396,8 @@ async function openTeacherAttendanceManager(
           "
         >
           <strong>Falta:</strong>
-          ao salvar, o sistema gerar\u00E1
-          automaticamente uma reposi\u00E7\u00E3o
+          ao salvar, o sistema gerara
+          automaticamente uma reposicao
           para o aluno conforme as regras cadastradas.
         </div>
 
@@ -6770,7 +7420,7 @@ async function openTeacherAttendanceManager(
             background:#eef5ff;
           "
         >
-          A falta ser\u00E1 registrada como justificada.
+          A falta sera registrada como justificada.
         </div>
 
       `;
@@ -6799,6 +7449,154 @@ async function openTeacherAttendanceManager(
     statusSelect.addEventListener(
       "change",
       updateAttendanceWarning
+    );
+
+  }
+
+
+  if (subjectSelect) {
+
+    subjectSelect.addEventListener(
+      "change",
+      async () => {
+
+        const subjectId =
+          subjectSelect.value;
+
+
+        if (!contentSelect) {
+          return;
+        }
+
+
+        if (!subjectId) {
+
+          contentSelect.innerHTML = `
+            <option value="">
+              Nao informado
+            </option>
+          `;
+
+          contentSelect.disabled =
+            true;
+
+          return;
+        }
+
+
+        contentSelect.disabled =
+          true;
+
+
+        contentSelect.innerHTML = `
+          <option value="">
+            Carregando...
+          </option>
+        `;
+
+
+        const contents =
+          await getTeacherContentsForRecord(
+            subjectId
+          );
+
+
+        fillTeacherContentSelect(
+          contents
+        );
+
+      }
+    );
+
+  }
+
+
+  const newContentButton =
+    document.getElementById(
+      "openTeacherNewContentButton"
+    );
+
+
+  if (newContentButton) {
+
+    newContentButton.addEventListener(
+      "click",
+      () => {
+
+        if (
+          !subjectSelect ||
+          !subjectSelect.value
+        ) {
+
+          alert(
+            "Selecione uma materia antes de cadastrar um conteudo."
+          );
+
+          return;
+        }
+
+
+        const newContentArea =
+          document.getElementById(
+            "teacherNewContentArea"
+          );
+
+
+        if (newContentArea) {
+
+          newContentArea.style.display =
+            "block";
+
+        }
+
+      }
+    );
+
+  }
+
+
+  const saveNewContentButton =
+    document.getElementById(
+      "saveTeacherNewContentButton"
+    );
+
+
+  if (saveNewContentButton) {
+
+    saveNewContentButton.addEventListener(
+      "click",
+      createTeacherContentFromRecord
+    );
+
+  }
+
+
+  const cancelNewContentButton =
+    document.getElementById(
+      "cancelTeacherNewContentButton"
+    );
+
+
+  if (cancelNewContentButton) {
+
+    cancelNewContentButton.addEventListener(
+      "click",
+      () => {
+
+        const newContentArea =
+          document.getElementById(
+            "teacherNewContentArea"
+          );
+
+
+        if (newContentArea) {
+
+          newContentArea.style.display =
+            "none";
+
+        }
+
+      }
     );
 
   }
@@ -6852,7 +7650,7 @@ async function openTeacherAttendanceManager(
 
 
 // =====================================================
-// SALVAR REGISTRO DE PRESENCA
+// SALVAR REGISTRO COMPLETO DA AULA
 // =====================================================
 
 async function saveTeacherAttendance(
@@ -6879,6 +7677,18 @@ async function saveTeacherAttendance(
     );
 
 
+  const subjectSelect =
+    document.getElementById(
+      "teacherLessonSubject"
+    );
+
+
+  const contentSelect =
+    document.getElementById(
+      "teacherLessonContent"
+    );
+
+
   const button =
     document.getElementById(
       "saveTeacherAttendanceButton"
@@ -6901,12 +7711,44 @@ async function saveTeacherAttendance(
         );
 
 
+  const subjectId =
+    subjectSelect
+      ? subjectSelect.value || null
+      : null;
+
+
+  const contentId =
+    contentSelect
+      ? contentSelect.value || null
+      : null;
+
+
   if (!status) {
 
     if (message) {
 
       message.textContent =
-        "Selecione a presen\u00E7a do aluno.";
+        "Selecione a presenca do aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    contentId &&
+    !subjectId
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione a materia correspondente ao conteudo.";
 
       message.style.color =
         "red";
@@ -6926,7 +7768,7 @@ async function saveTeacherAttendance(
       window.confirm(
 
         "Confirmar falta?\n\n" +
-        "Uma reposi\u00E7\u00E3o ser\u00E1 gerada automaticamente para o aluno."
+        "Uma reposicao sera gerada automaticamente para o aluno."
 
       );
 
@@ -6953,7 +7795,7 @@ async function saveTeacherAttendance(
     error
   } =
     await supabaseClient.rpc(
-      "save_teacher_occurrence_attendance",
+      "save_teacher_occurrence_record",
       {
 
         p_date:
@@ -6974,6 +7816,12 @@ async function saveTeacherAttendance(
             ? attendanceNotes.value.trim() || null
             : null,
 
+        p_subject_id:
+          subjectId,
+
+        p_content_id:
+          contentId,
+
         p_teacher_notes:
           teacherNotes
             ? teacherNotes.value.trim() || null
@@ -6986,7 +7834,7 @@ async function saveTeacherAttendance(
   if (error) {
 
     console.error(
-      "Erro ao salvar presen\u00E7a:",
+      "Erro ao salvar registro da aula:",
       error
     );
 
@@ -6995,7 +7843,7 @@ async function saveTeacherAttendance(
 
       message.textContent =
         error.message ||
-        "N\u00E3o foi poss\u00EDvel salvar o registro.";
+        "Nao foi possivel salvar o registro.";
 
       message.style.color =
         "red";
@@ -7037,7 +7885,7 @@ async function saveTeacherAttendance(
 
   alert(
     isMakeup
-      ? "Reposi\u00E7\u00E3o registrada como realizada."
+      ? "Reposicao registrada como realizada."
       : "Registro da aula salvo com sucesso."
   );
 
