@@ -6215,7 +6215,7 @@ function isTeacherOccurrenceFinished(
 // ABRIR REGISTRO DE PRESENCA
 // =====================================================
 
-async function escapeSelectValue(
+function escapeSelectValue(
   value
 ) {
 
