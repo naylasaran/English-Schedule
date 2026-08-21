@@ -5516,6 +5516,113 @@ function setTeacherPage(page) {
   }
 
   // ===================================================
+  // ALUNOS
+  // ===================================================
+
+  if (page === "students") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h3
+              style="
+                margin-bottom:6px;
+              "
+            >
+              Alunos
+            </h3>
+
+            <p
+              style="
+                margin:0;
+              "
+            >
+              Consulte presencas, faltas, aulas,
+              conteudos e reposicoes de cada aluno.
+            </p>
+
+          </div>
+
+
+          <input
+            type="search"
+            id="teacherStudentSearch"
+            placeholder="Buscar aluno..."
+            style="
+              min-width:240px;
+              padding:10px 12px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div
+          id="teacherStudentList"
+          style="
+            margin-top:20px;
+          "
+        >
+          Carregando alunos...
+        </div>
+
+
+        <div
+          id="teacherStudentDetailArea"
+          style="
+            margin-top:20px;
+          "
+        ></div>
+
+      </div>
+
+    `;
+
+
+    const searchInput =
+      document.getElementById(
+        "teacherStudentSearch"
+      );
+
+
+    if (searchInput) {
+
+      searchInput.addEventListener(
+        "input",
+        () => {
+
+          renderTeacherStudentOverview(
+            searchInput.value
+          );
+
+        }
+      );
+
+    }
+
+
+    loadTeacherStudentOverview();
+
+    return;
+  }
+
+
+  // ===================================================
   // MATERIAS / CONTEUDOS
   // ===================================================
 
@@ -6606,6 +6713,878 @@ function setTeacherPage(page) {
 
   `;
 }
+
+// =====================================================
+// ABA ALUNOS DO PROFESSOR
+// =====================================================
+
+let teacherStudentOverviewData = [];
+
+
+// =====================================================
+// CARREGAR RESUMO DOS ALUNOS
+// =====================================================
+
+async function loadTeacherStudentOverview() {
+
+  const container =
+    document.getElementById(
+      "teacherStudentList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_student_overview"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar alunos:",
+      error
+    );
+
+
+    container.innerHTML = `
+
+      <p>
+        Nao foi possivel carregar os alunos.
+      </p>
+
+    `;
+
+
+    return;
+  }
+
+
+  teacherStudentOverviewData =
+    data || [];
+
+
+  renderTeacherStudentOverview();
+
+}
+
+
+// =====================================================
+// RENDERIZAR LISTA DOS ALUNOS
+// =====================================================
+
+function renderTeacherStudentOverview(
+  searchText = ""
+) {
+
+  const container =
+    document.getElementById(
+      "teacherStudentList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const normalizedSearch =
+    String(
+      searchText || ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const students =
+    teacherStudentOverviewData.filter(
+      student => {
+
+        if (!normalizedSearch) {
+          return true;
+        }
+
+
+        return String(
+          student.student_name || ""
+        )
+          .toLowerCase()
+          .includes(
+            normalizedSearch
+          );
+
+      }
+    );
+
+
+  if (students.length === 0) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+        Nenhum aluno encontrado.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+        gap:14px;
+      "
+    >
+
+      ${students
+        .map(
+          renderTeacherStudentOverviewCard
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".open-teacher-student-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          openTeacherStudentDetail(
+            button.dataset.studentId
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD DO ALUNO
+// =====================================================
+
+function renderTeacherStudentOverviewCard(
+  student
+) {
+
+  return `
+
+    <div
+      style="
+        border:1px solid #ddd;
+        border-radius:12px;
+        padding:18px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:19px;
+            "
+          >
+            ${escapeHtml(
+              student.student_name
+            )}
+          </strong>
+
+
+          <div
+            style="
+              margin-top:5px;
+              color:#666;
+            "
+          >
+            Aula de
+            ${Number(
+              student.class_duration_minutes || 0
+            )}
+            min
+          </div>
+
+        </div>
+
+
+        <span>
+          ${
+            student.active
+              ? "Ativo"
+              : "Inativo"
+          }
+        </span>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(2,1fr);
+          gap:8px;
+          margin-top:15px;
+        "
+      >
+
+        <div>
+          <strong>
+            ${Number(
+              student.present_count || 0
+            )}
+          </strong>
+          presentes
+        </div>
+
+        <div>
+          <strong>
+            ${Number(
+              student.absent_count || 0
+            )}
+          </strong>
+          faltas sem justificativa
+        </div>
+
+        <div>
+          <strong>
+            ${Number(
+              student.justified_absence_count || 0
+            )}
+          </strong>
+          faltas justificadas
+        </div>
+
+        <div>
+          <strong>
+            ${Number(
+              student.available_makeups || 0
+            )}
+          </strong>
+          reposicoes disponiveis
+        </div>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="action-button open-teacher-student-button"
+        data-student-id="${student.student_id}"
+        style="
+          margin-top:16px;
+        "
+      >
+        Ver aluno
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// DETALHE DO ALUNO
+// =====================================================
+
+async function openTeacherStudentDetail(
+  studentId
+) {
+
+  const area =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const student =
+    teacherStudentOverviewData.find(
+      item =>
+        String(
+          item.student_id
+        ) ===
+        String(
+          studentId
+        )
+    );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        ${escapeHtml(
+          student
+            ? student.student_name
+            : "Aluno"
+        )}
+      </h3>
+
+      <p>
+        Carregando historico...
+      </p>
+
+    </div>
+
+  `;
+
+
+  const [
+    historyResult,
+    makeupResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_student_lesson_history",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_makeups",
+        {
+          p_student_id:
+            studentId
+        }
+      )
+
+    ]);
+
+
+  if (
+    historyResult.error ||
+    makeupResult.error
+  ) {
+
+    console.error(
+      "Erro ao carregar detalhes do aluno:",
+      historyResult.error ||
+      makeupResult.error
+    );
+
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <p>
+          Nao foi possivel carregar os detalhes do aluno.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const history =
+    historyResult.data || [];
+
+
+  const makeups =
+    makeupResult.data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h3
+            style="
+              margin-bottom:5px;
+            "
+          >
+            ${escapeHtml(
+              student
+                ? student.student_name
+                : "Aluno"
+            )}
+          </h3>
+
+
+          <p
+            style="
+              margin:0;
+            "
+          >
+            Duracao da aula:
+            <strong>
+              ${Number(
+                student
+                  ? student.class_duration_minutes
+                  : 0
+              )}
+              minutos
+            </strong>
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherStudentDetailButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <h4
+        style="
+          margin-top:24px;
+        "
+      >
+        Reposicoes
+      </h4>
+
+
+      ${
+        makeups.length === 0
+
+          ? `
+
+            <p>
+              Nenhuma reposicao registrada.
+            </p>
+
+          `
+
+          : `
+
+            <div
+              style="
+                display:grid;
+                gap:9px;
+              "
+            >
+
+              ${makeups
+                .map(
+                  renderTeacherStudentMakeupRow
+                )
+                .join("")}
+
+            </div>
+
+          `
+      }
+
+
+      <h4
+        style="
+          margin-top:28px;
+        "
+      >
+        Historico de aulas
+      </h4>
+
+
+      ${
+        history.length === 0
+
+          ? `
+
+            <p>
+              Nenhuma aula registrada.
+            </p>
+
+          `
+
+          : `
+
+            <div
+              style="
+                display:grid;
+                gap:10px;
+              "
+            >
+
+              ${history
+                .map(
+                  renderTeacherStudentHistoryRow
+                )
+                .join("")}
+
+            </div>
+
+          `
+      }
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeTeacherStudentDetailButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// REPOSICAO DO ALUNO
+// =====================================================
+
+function renderTeacherStudentMakeupRow(
+  makeup
+) {
+
+  let status =
+    String(
+      makeup.status || ""
+    );
+
+
+  switch (
+    status.toLowerCase()
+  ) {
+
+    case "available":
+      status =
+        "Disponivel";
+      break;
+
+    case "reserved":
+      status =
+        "Reservada";
+      break;
+
+    case "completed":
+      status =
+        "Realizada";
+      break;
+
+    case "expired":
+      status =
+        "Expirada";
+      break;
+
+    case "lost":
+      status =
+        "Perdida";
+      break;
+
+  }
+
+
+  let sourceLesson =
+    "";
+
+
+  if (
+    makeup.source_lesson_date
+  ) {
+
+    sourceLesson = `
+
+      <div
+        style="
+          margin-top:4px;
+          color:#666;
+        "
+      >
+        Aula de origem:
+        ${formatDate(
+          new Date(
+            makeup.source_lesson_date +
+            "T12:00:00"
+          )
+        )}
+        -
+        ${normalizeTime(
+          makeup.source_lesson_start_time
+        )}
+      </div>
+
+    `;
+
+  }
+
+
+  let reservation =
+    "";
+
+
+  if (
+    makeup.reservation_id
+  ) {
+
+    reservation = `
+
+      <div
+        style="
+          margin-top:4px;
+          color:#6f42c1;
+        "
+      >
+        Agendada para
+        ${formatDate(
+          new Date(
+            makeup.reservation_date +
+            "T12:00:00"
+          )
+        )}
+        -
+        ${normalizeTime(
+          makeup.reservation_start_time
+        )}
+      </div>
+
+    `;
+
+  }
+
+
+  return `
+
+    <div
+      style="
+        padding:12px;
+        border:1px solid #e1e1e1;
+        border-radius:8px;
+      "
+    >
+
+      <strong>
+        ${Number(
+          makeup.duration_minutes || 0
+        )}
+        min
+      </strong>
+
+      -
+      ${escapeHtml(
+        formatMakeupSource(
+          makeup.source
+        )
+      )}
+
+      -
+      ${escapeHtml(
+        status
+      )}
+
+      ${sourceLesson}
+
+      ${reservation}
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// AULA DO HISTORICO INDIVIDUAL
+// =====================================================
+
+function renderTeacherStudentHistoryRow(
+  record
+) {
+
+  const attendance =
+    record.attendance_status
+      ? formatTeacherAttendanceShort(
+          record.attendance_status
+        )
+      : (
+          record.lesson_status ===
+          "cancelled"
+            ? "Aula cancelada"
+            : "Sem registro"
+        );
+
+
+  return `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #e1e1e1;
+        border-radius:8px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${formatDate(
+            new Date(
+              record.lesson_date +
+              "T12:00:00"
+            )
+          )}
+          -
+          ${normalizeTime(
+            record.start_time
+          )}
+        </strong>
+
+
+        <strong>
+          ${escapeHtml(
+            attendance
+          )}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:7px;
+          color:#555;
+        "
+      >
+        ${escapeHtml(
+          record.subject_name ||
+          "Materia nao informada"
+        )}
+        -
+        ${escapeHtml(
+          record.content_title ||
+          "Conteudo nao informado"
+        )}
+      </div>
+
+
+      ${
+        record.teacher_notes
+
+          ? `
+
+            <div
+              style="
+                margin-top:7px;
+                white-space:pre-wrap;
+              "
+            >
+              ${escapeHtml(
+                record.teacher_notes
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
 
 // =====================================================
 // RELATORIO DE PRESENCA / FALTAS
