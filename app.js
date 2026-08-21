@@ -105,6 +105,30 @@ async function showLoggedUser(user) {
 
     await loadCurrentStudentId();
 
+
+    if (!currentStudentId) {
+
+      await supabaseClient.auth.signOut();
+
+      studentScreen.classList.add(
+        "hidden"
+      );
+
+      teacherScreen.classList.add(
+        "hidden"
+      );
+
+      loginScreen.classList.remove(
+        "hidden"
+      );
+
+      loginMessage.textContent =
+        "Este acesso de aluno foi desativado.";
+
+      return;
+    }
+
+
     await showStudentArea();
 
   }
@@ -5801,9 +5825,8 @@ function setTeacherPage(page) {
           >
             A senha nao sera salva nas tabelas do ERP.
             Ela e enviada diretamente ao Supabase Auth.
-            Se a confirmacao de e-mail estiver ativada
-            no projeto, o aluno precisara confirmar o
-            e-mail antes do primeiro login.
+            Com a confirmacao de e-mail desativada no
+            Supabase, o acesso pode ser usado imediatamente.
           </div>
 
 
@@ -7839,13 +7862,7 @@ async function completeStudentRegistrationUi(
 
       <br>
 
-      ${
-        hasSession
-
-          ? "O acesso ja pode ser usado para login."
-
-          : "Se a confirmacao de e-mail estiver ativada, o aluno deve confirmar o e-mail antes do primeiro login."
-      }
+      O acesso ja pode ser usado para login.
 
     `;
 
@@ -8044,6 +8061,27 @@ function renderTeacherStudentOverview(
 
     });
 
+
+  document
+    .querySelectorAll(
+      ".delete-teacher-student-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteTeacherStudent(
+            button.dataset.studentId,
+            button.dataset.studentName
+          );
+
+        }
+      );
+
+    });
+
 }
 
 
@@ -8163,20 +8201,135 @@ function renderTeacherStudentOverviewCard(
       </div>
 
 
-      <button
-        type="button"
-        class="action-button open-teacher-student-button"
-        data-student-id="${student.student_id}"
+      <div
         style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
           margin-top:16px;
         "
       >
-        Ver aluno
-      </button>
+
+        <button
+          type="button"
+          class="action-button open-teacher-student-button"
+          data-student-id="${student.student_id}"
+        >
+          Ver aluno
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button delete-teacher-student-button"
+          data-student-id="${student.student_id}"
+          data-student-name="${escapeHtml(
+            student.student_name
+          )}"
+          style="
+            border-color:#c0392b;
+            color:#c0392b;
+          "
+        >
+          Excluir aluno
+        </button>
+
+      </div>
 
     </div>
 
   `;
+
+}
+
+
+// =====================================================
+// EXCLUIR ALUNO
+// =====================================================
+
+async function deleteTeacherStudent(
+  studentId,
+  studentName
+) {
+
+  const confirmed =
+    window.confirm(
+
+      "Excluir o aluno \"" +
+      String(
+        studentName || ""
+      ) +
+      "\"?\n\n" +
+
+      "O aluno sumira da lista, o acesso ao ERP sera bloqueado " +
+      "e os horarios futuros dele serao liberados.\n\n" +
+
+      "O historico das aulas passadas sera preservado."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "delete_teacher_student",
+      {
+        p_student_id:
+          studentId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao excluir aluno:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel excluir o aluno."
+    );
+
+
+    return;
+  }
+
+
+  const detailArea =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (detailArea) {
+
+    detailArea.innerHTML =
+      "";
+
+  }
+
+
+  currentTeacherStudents =
+    [];
+
+
+  await loadTeacherStudents();
+
+  await loadTeacherStudentOverview();
+
+
+  alert(
+    "Aluno excluido com sucesso."
+  );
 
 }
 
