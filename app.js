@@ -2883,6 +2883,36 @@ async function loadStudentWeeklySchedule() {
   currentStudentSchedule = data || [];
 
   let weeklyMakeupReservations = [];
+  let weeklyLessonHistory = [];
+
+  const {
+    data: lessonHistoryData,
+    error: lessonHistoryError
+  } =
+    await supabaseClient.rpc(
+      "get_my_week_lesson_records",
+      {
+        p_week_start:
+          weekStart
+      }
+    );
+
+  if (lessonHistoryError) {
+
+    console.warn(
+      "Nao foi possivel carregar o historico da semana:",
+      lessonHistoryError
+    );
+
+  }
+
+  else {
+
+    weeklyLessonHistory =
+      lessonHistoryData || [];
+
+  }
+
 
   if (currentStudentId) {
 
@@ -2920,7 +2950,8 @@ async function loadStudentWeeklySchedule() {
 
   renderStudentWeeklySchedule(
     currentStudentSchedule,
-    weeklyMakeupReservations
+    weeklyMakeupReservations,
+    weeklyLessonHistory
   );
 }
 
@@ -2932,7 +2963,8 @@ async function loadStudentWeeklySchedule() {
 
 function renderStudentWeeklySchedule(
   schedule,
-  makeupReservations = []
+  makeupReservations = [],
+  lessonHistoryRecords = []
 ) {
 
   const head =
@@ -3071,6 +3103,55 @@ function renderStudentWeeklySchedule(
           );
 
 
+        const lessonHistory =
+          lessonHistoryRecords.find(
+            record => {
+
+              if (
+                String(
+                  record.lesson_date
+                ) !==
+                slotDateDb
+              ) {
+                return false;
+              }
+
+              const recordStart =
+                timeToMinutes(
+                  record.start_time
+                );
+
+              const recordEnd =
+                timeToMinutes(
+                  record.end_time
+                );
+
+              const slotStart =
+                timeToMinutes(
+                  slot.start_time
+                );
+
+              const slotEnd =
+                timeToMinutes(
+                  slot.end_time
+                );
+
+              return (
+                recordStart < slotEnd &&
+                recordEnd > slotStart
+              );
+
+            }
+          );
+
+        const historyDisplay =
+          lessonHistory
+            ? getStudentAgendaHistoryDisplay(
+                lessonHistory
+              )
+            : null;
+
+
         const ownMakeupReservation =
           makeupReservations.find(
             reservation => {
@@ -3118,19 +3199,23 @@ function renderStudentWeeklySchedule(
 
 
         const status =
-          ownMakeupReservation
+          historyDisplay
 
-            ? {
-                className:
-                  "own-makeup",
+            ? historyDisplay
 
-                label:
-                  "Minha reposi\u00E7\u00E3o"
-              }
+            : ownMakeupReservation
 
-            : normalizeStudentScheduleStatus(
-                slot.status
-              );
+              ? {
+                  className:
+                    "own-makeup",
+
+                  label:
+                    "Minha reposi\u00E7\u00E3o"
+                }
+
+              : normalizeStudentScheduleStatus(
+                  slot.status
+                );
 
 
         cell.classList.add(
@@ -3142,10 +3227,64 @@ function renderStudentWeeklySchedule(
 
 
         // =============================================
-        // MINHA REPOSI\u00C7\u00C3O
+        // HISTORICO DA AULA
         // =============================================
 
         if (
+          historyDisplay &&
+          lessonHistory
+        ) {
+
+          cell.style.backgroundColor =
+            historyDisplay.background;
+
+          cell.style.color =
+            historyDisplay.color;
+
+          cell.style.fontWeight =
+            "bold";
+
+          cell.style.cursor =
+            "pointer";
+
+          cell.innerHTML = `
+
+            <strong>
+              ${escapeHtml(
+                historyDisplay.label
+              )}
+            </strong>
+
+            <br>
+
+            <small>
+              Ver registro
+            </small>
+
+          `;
+
+          cell.title =
+            "Clique para ver o registro desta aula.";
+
+          cell.addEventListener(
+            "click",
+            () => {
+
+              openStudentAgendaLessonHistory(
+                lessonHistory
+              );
+
+            }
+          );
+
+        }
+
+
+        // =============================================
+        // MINHA REPOSI\u00C7\u00C3O
+        // =============================================
+
+        else if (
           status.className ===
           "own-makeup"
         ) {
@@ -3294,6 +3433,279 @@ function renderStudentWeeklySchedule(
 
 // =====================================================
 // ENCONTRAR HOR\xc1RIO
+// =====================================================
+// HISTORICO DA AULA NA AGENDA DO ALUNO
+// =====================================================
+
+function getStudentAgendaHistoryDisplay(
+  record
+) {
+
+  const attendance =
+    String(
+      record.attendance_status ||
+      ""
+    ).toLowerCase();
+
+
+  if (
+    record.lesson_status ===
+    "cancelled"
+  ) {
+
+    return {
+      className:
+        "student-history",
+      label:
+        "Aula cancelada",
+      background:
+        "#fff3cd",
+      color:
+        "#856404"
+    };
+
+  }
+
+
+  switch (
+    attendance
+  ) {
+
+    case "present":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "Presente",
+        background:
+          "#dcecff",
+        color:
+          "#245a9a"
+      };
+
+
+    case "absent":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "Falta sem justificativa",
+        background:
+          "#f8d7da",
+        color:
+          "#842029"
+      };
+
+
+    case "justified_absence":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "Falta justificada",
+        background:
+          "#fff3cd",
+        color:
+          "#856404"
+      };
+
+
+    case "makeup":
+
+      return {
+        className:
+          "student-history",
+        label:
+          "Reposicao realizada",
+        background:
+          "#eadcf8",
+        color:
+          "#6f42c1"
+      };
+
+
+    default:
+
+      if (
+        record.lesson_status ===
+        "completed"
+      ) {
+
+        return {
+          className:
+            "student-history",
+          label:
+            "Aula realizada",
+          background:
+            "#dcecff",
+          color:
+            "#245a9a"
+        };
+
+      }
+
+
+      return null;
+
+  }
+
+}
+
+
+function openStudentAgendaLessonHistory(
+  record
+) {
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const attendance =
+    record.attendance_status
+      ? formatAttendanceStatus(
+          record.attendance_status
+        )
+      : (
+          record.lesson_status ===
+          "cancelled"
+            ? "Aula cancelada"
+            : "Nao registrado"
+        );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Registro da aula
+      </h3>
+
+      <p>
+        <strong>Data:</strong>
+        ${formatDate(
+          new Date(
+            record.lesson_date +
+            "T12:00:00"
+          )
+        )}
+      </p>
+
+      <p>
+        <strong>Horario:</strong>
+        ${normalizeTime(
+          record.start_time
+        )}
+        as
+        ${normalizeTime(
+          record.end_time
+        )}
+      </p>
+
+      <p>
+        <strong>Presenca:</strong>
+        ${escapeHtml(
+          attendance
+        )}
+      </p>
+
+      <p>
+        <strong>Materia:</strong>
+        ${escapeHtml(
+          record.subject_name ||
+          "Nao informada"
+        )}
+      </p>
+
+      <p>
+        <strong>Conteudo:</strong>
+        ${escapeHtml(
+          record.content_title ||
+          "Nao informado"
+        )}
+      </p>
+
+      <div
+        style="
+          margin-top:15px;
+          padding:15px;
+          background:#f7f7f7;
+          border-radius:8px;
+        "
+      >
+
+        <strong>
+          Observacoes do professor
+        </strong>
+
+        <p
+          style="
+            white-space:pre-wrap;
+            margin-bottom:0;
+          "
+        >
+          ${escapeHtml(
+            record.teacher_notes ||
+            "Nenhuma observacao registrada."
+          )}
+        </p>
+
+      </div>
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="closeStudentAgendaHistoryButton"
+        style="
+          margin-top:15px;
+        "
+      >
+        Fechar
+      </button>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeStudentAgendaHistoryButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
 // =====================================================
 
 function findScheduleSlot(
