@@ -12,6 +12,7 @@ let currentUser = null;
 let currentProfile = null;
 let currentStudentId = null;
 let currentTeacherStudents = [];
+let currentTeacherPausePeriods = [];
 let currentTeacherPlans = [];
 let editingTeacherPlanId = null;
 
@@ -390,6 +391,7 @@ function setStudentPage(page) {
           <span>\uD83D\uDD34 Ocupado</span>
           <span>\u26AB Indispon\u00EDvel</span>
           <span>\uD83D\uDD35 Minha aula</span>
+          <span>\u23F8 Aulas pausadas</span>
           <span>\uD83D\uDFE3 Minha reposi\u00E7\u00E3o</span>
         </div>
 
@@ -3190,6 +3192,7 @@ async function loadStudentWeeklySchedule() {
 
   let weeklyMakeupReservations = [];
   let weeklyLessonHistory = [];
+  let weeklyPausePeriods = [];
 
 
   const {
@@ -3218,6 +3221,50 @@ async function loadStudentWeeklySchedule() {
 
     weeklyLessonHistory =
       lessonHistoryData || [];
+
+  }
+
+
+  const weekEndForPause =
+    addDays(
+      selectedWeekStart,
+      6
+    );
+
+
+  const {
+    data: pauseData,
+    error: pauseError
+  } =
+    await supabaseClient.rpc(
+      "get_my_pause_periods",
+      {
+
+        p_from_date:
+          weekStart,
+
+        p_to_date:
+          formatDateForDatabase(
+            weekEndForPause
+          )
+
+      }
+    );
+
+
+  if (pauseError) {
+
+    console.warn(
+      "Nao foi possivel carregar as pausas do aluno:",
+      pauseError
+    );
+
+  }
+
+  else {
+
+    weeklyPausePeriods =
+      pauseData || [];
 
   }
 
@@ -3259,7 +3306,8 @@ async function loadStudentWeeklySchedule() {
   renderStudentWeeklySchedule(
     currentStudentSchedule,
     weeklyMakeupReservations,
-    weeklyLessonHistory
+    weeklyLessonHistory,
+    weeklyPausePeriods
   );
 }
 
@@ -3272,7 +3320,8 @@ async function loadStudentWeeklySchedule() {
 function renderStudentWeeklySchedule(
   schedule,
   makeupReservations = [],
-  lessonHistoryRecords = []
+  lessonHistoryRecords = [],
+  pausePeriods = []
 ) {
 
   const head =
@@ -3411,6 +3460,38 @@ function renderStudentWeeklySchedule(
           );
 
 
+        const pausePeriod =
+          pausePeriods.find(
+            period => {
+
+              const startsOn =
+                String(
+                  period.starts_on
+                );
+
+
+              const endsOn =
+                period.ends_on
+                  ? String(
+                      period.ends_on
+                    )
+                  : null;
+
+
+              return (
+                slotDateDb >= startsOn
+                &&
+                (
+                  !endsOn
+                  ||
+                  slotDateDb <= endsOn
+                )
+              );
+
+            }
+          );
+
+
         const lessonHistory =
           lessonHistoryRecords.find(
             record => {
@@ -3509,6 +3590,25 @@ function renderStudentWeeklySchedule(
           );
 
 
+        const baseStatus =
+          normalizeStudentScheduleStatus(
+            slot.status
+          );
+
+
+        const pausedOwnLesson =
+          Boolean(
+            pausePeriod
+            &&
+            baseStatus.className ===
+              "own"
+            &&
+            !historyDisplay
+            &&
+            !ownMakeupReservation
+          );
+
+
         const status =
           historyDisplay
 
@@ -3524,9 +3624,17 @@ function renderStudentWeeklySchedule(
                     "Minha reposi\u00E7\u00E3o"
                 }
 
-              : normalizeStudentScheduleStatus(
-                  slot.status
-                );
+              : pausedOwnLesson
+
+                ? {
+                    className:
+                      "paused-own",
+
+                    label:
+                      "Aulas pausadas"
+                  }
+
+                : baseStatus;
 
 
         cell.classList.add(
@@ -3588,6 +3696,47 @@ function renderStudentWeeklySchedule(
 
             }
           );
+
+        }
+
+
+        // =============================================
+        // AULAS PAUSADAS
+        // =============================================
+
+        else if (
+          status.className ===
+          "paused-own"
+        ) {
+
+          cell.style.backgroundColor =
+            "#e5e5e5";
+
+          cell.style.color =
+            "#555555";
+
+          cell.style.fontWeight =
+            "bold";
+
+          cell.style.cursor =
+            "default";
+
+          cell.innerHTML = `
+
+            <strong>
+              Aulas pausadas
+            </strong>
+
+            <br>
+
+            <small>
+              Horario reservado
+            </small>
+
+          `;
+
+          cell.title =
+            "As aulas deste aluno estao pausadas. O horario fixo continua reservado.";
 
         }
 
@@ -8082,6 +8231,29 @@ function renderTeacherStudentOverview(
 
     });
 
+
+  document
+    .querySelectorAll(
+      ".toggle-teacher-student-pause-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          toggleTeacherStudentPause(
+            button.dataset.studentId,
+            button.dataset.studentName,
+            button.dataset.paused ===
+              "true"
+          );
+
+        }
+      );
+
+    });
+
 }
 
 
@@ -8142,11 +8314,20 @@ function renderTeacherStudentOverviewCard(
         </div>
 
 
-        <span>
+        <span
+          style="
+            font-weight:bold;
+            color:${
+              student.classes_paused
+                ? "#856404"
+                : "#246b37"
+            };
+          "
+        >
           ${
-            student.active
-              ? "Ativo"
-              : "Inativo"
+            student.classes_paused
+              ? "Aulas pausadas"
+              : "Ativo"
           }
         </span>
 
@@ -8221,6 +8402,29 @@ function renderTeacherStudentOverviewCard(
 
         <button
           type="button"
+          class="secondary-button toggle-teacher-student-pause-button"
+          data-student-id="${student.student_id}"
+          data-student-name="${escapeHtml(
+            student.student_name
+          )}"
+          data-paused="${student.classes_paused
+            ? "true"
+            : "false"}"
+          style="
+            border-color:#856404;
+            color:#856404;
+          "
+        >
+          ${
+            student.classes_paused
+              ? "Ativar aulas"
+              : "Desativar aulas"
+          }
+        </button>
+
+
+        <button
+          type="button"
           class="secondary-button delete-teacher-student-button"
           data-student-id="${student.student_id}"
           data-student-name="${escapeHtml(
@@ -8239,6 +8443,109 @@ function renderTeacherStudentOverviewCard(
     </div>
 
   `;
+
+}
+
+
+// =====================================================
+// PAUSAR / RETOMAR AULAS DO ALUNO
+// =====================================================
+
+async function toggleTeacherStudentPause(
+  studentId,
+  studentName,
+  currentlyPaused
+) {
+
+  const newPaused =
+    !currentlyPaused;
+
+
+  const confirmed =
+    window.confirm(
+
+      newPaused
+
+        ? (
+            "Desativar temporariamente as aulas de \"" +
+            String(
+              studentName || ""
+            ) +
+            "\"?\n\n" +
+
+            "O horario fixo continuara reservado para este aluno, " +
+            "mas as aulas regulares ficarao pausadas ate voce retoma-las.\n\n" +
+
+            "O aluno continua podendo entrar no ERP e consultar o historico."
+          )
+
+        : (
+            "Ativar novamente as aulas de \"" +
+            String(
+              studentName || ""
+            ) +
+            "\"?\n\n" +
+
+            "A agenda fixa voltara a funcionar normalmente a partir de hoje."
+          )
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "set_teacher_student_paused",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_paused:
+          newPaused
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao alterar pausa do aluno:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel alterar o status das aulas."
+    );
+
+
+    return;
+  }
+
+
+  currentTeacherStudents =
+    [];
+
+
+  await loadTeacherStudents();
+
+  await loadTeacherStudentOverview();
+
+
+  alert(
+    newPaused
+      ? "Aulas pausadas. O horario fixo foi preservado."
+      : "Aulas retomadas com sucesso."
+  );
 
 }
 
@@ -11594,6 +11901,55 @@ async function loadTeacherWeeklySchedule() {
   `;
 
 
+  const pauseWeekEnd =
+    addDays(
+      selectedTeacherWeekStart,
+      6
+    );
+
+
+  const {
+    data: teacherPauseData,
+    error: teacherPauseError
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_student_pause_periods",
+      {
+
+        p_from_date:
+          formatDateForDatabase(
+            selectedTeacherWeekStart
+          ),
+
+        p_to_date:
+          formatDateForDatabase(
+            pauseWeekEnd
+          )
+
+      }
+    );
+
+
+  if (teacherPauseError) {
+
+    console.warn(
+      "Nao foi possivel carregar as pausas dos alunos:",
+      teacherPauseError
+    );
+
+    currentTeacherPausePeriods =
+      [];
+
+  }
+
+  else {
+
+    currentTeacherPausePeriods =
+      teacherPauseData || [];
+
+  }
+
+
   const days = [];
 
 
@@ -11952,11 +12308,112 @@ function renderTeacherWeeklySchedule(days) {
             ).trim();
 
 
+          const teacherSlotDateDb =
+            formatDateForDatabase(
+              day.date
+            );
+
+
+          const pausePeriod =
+            currentTeacherPausePeriods.find(
+              period => {
+
+                if (
+                  String(
+                    period.student_id
+                  ) !==
+                  String(
+                    slot.student_id || ""
+                  )
+                ) {
+                  return false;
+                }
+
+
+                const startsOn =
+                  String(
+                    period.starts_on
+                  );
+
+
+                const endsOn =
+                  period.ends_on
+                    ? String(
+                        period.ends_on
+                      )
+                    : null;
+
+
+                return (
+                  teacherSlotDateDb >=
+                    startsOn
+                  &&
+                  (
+                    !endsOn
+                    ||
+                    teacherSlotDateDb <=
+                      endsOn
+                  )
+                );
+
+              }
+            );
+
+
+          const pausedRegularLesson =
+            Boolean(
+              pausePeriod
+              &&
+              status.type ===
+                "lesson"
+              &&
+              !attendance
+            );
+
+
+          // ===========================================
+          // AULAS PAUSADAS
+          // ===========================================
+
+          if (pausedRegularLesson) {
+
+            cell.innerHTML = `
+
+              <strong>
+                ${escapeHtml(
+                  studentName ||
+                  (
+                    pausePeriod &&
+                    pausePeriod.student_name
+                  )
+                  ||
+                  "Aluno"
+                )}
+              </strong>
+
+              <br>
+
+              <small>
+                Aulas pausadas
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#e5e5e5";
+
+            cell.style.color =
+              "#555555";
+
+          }
+
+
           // ===========================================
           // REPOSICAO JA REALIZADA
           // ===========================================
 
-          if (completedMakeup) {
+          else if (completedMakeup) {
 
             cell.innerHTML = `
 
@@ -12260,6 +12717,20 @@ function renderTeacherWeeklySchedule(days) {
           // ===========================================
 
           if (
+            pausedRegularLesson
+          ) {
+
+            cell.style.cursor =
+              "default";
+
+
+            cell.title =
+              "Aulas pausadas. O horario fixo continua reservado para este aluno.";
+
+          }
+
+
+          else if (
             isOccurrence &&
             (
               occurrenceFinished ||
