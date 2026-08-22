@@ -3196,6 +3196,107 @@ async function loadStudentWeeklySchedule() {
 
 
   const {
+    data: releasedPauseSlotData,
+    error: releasedPauseSlotError
+  } =
+    await supabaseClient.rpc(
+      "get_my_released_pause_slots",
+      {
+        p_week_start:
+          weekStart
+      }
+    );
+
+
+  if (releasedPauseSlotError) {
+
+    console.warn(
+      "Nao foi possivel carregar os horarios liberados pelas pausas:",
+      releasedPauseSlotError
+    );
+
+  }
+
+  else {
+
+    const releasedSlots =
+      releasedPauseSlotData || [];
+
+
+    releasedSlots.forEach(
+      releasedSlot => {
+
+        const existingSlot =
+          currentStudentSchedule.find(
+            slot =>
+              Number(
+                slot.day_of_week
+              ) ===
+              Number(
+                releasedSlot.day_of_week
+              )
+              &&
+              normalizeTime(
+                slot.start_time
+              ) ===
+              normalizeTime(
+                releasedSlot.start_time
+              )
+          );
+
+
+        if (existingSlot) {
+
+          existingSlot.status =
+            "free";
+
+          existingSlot.reservation_id =
+            null;
+
+          existingSlot.makeup_id =
+            null;
+
+          existingSlot.reservation_date =
+            null;
+
+        }
+
+        else {
+
+          currentStudentSchedule.push({
+
+            day_of_week:
+              releasedSlot.day_of_week,
+
+            start_time:
+              releasedSlot.start_time,
+
+            end_time:
+              releasedSlot.end_time,
+
+            status:
+              "free",
+
+            reservation_id:
+              null,
+
+            makeup_id:
+              null,
+
+            reservation_date:
+              null
+
+          });
+
+        }
+
+      }
+    );
+
+  }
+
+
+  const {
     data: lessonHistoryData,
     error: lessonHistoryError
   } =
@@ -3609,6 +3710,24 @@ function renderStudentWeeklySchedule(
           );
 
 
+        const pausedOwnLessonReserved =
+          Boolean(
+            pausedOwnLesson
+            &&
+            pausePeriod.keep_slot_reserved !==
+              false
+          );
+
+
+        const pausedOwnLessonReleased =
+          Boolean(
+            pausedOwnLesson
+            &&
+            pausePeriod.keep_slot_reserved ===
+              false
+          );
+
+
         const status =
           historyDisplay
 
@@ -3624,7 +3743,7 @@ function renderStudentWeeklySchedule(
                     "Minha reposi\u00E7\u00E3o"
                 }
 
-              : pausedOwnLesson
+              : pausedOwnLessonReserved
 
                 ? {
                     className:
@@ -3634,7 +3753,17 @@ function renderStudentWeeklySchedule(
                       "Aulas pausadas"
                   }
 
-                : baseStatus;
+                : pausedOwnLessonReleased
+
+                  ? {
+                      className:
+                        "available",
+
+                      label:
+                        "Livre"
+                    }
+
+                  : baseStatus;
 
 
         cell.classList.add(
@@ -3836,6 +3965,27 @@ function renderStudentWeeklySchedule(
           status.className ===
           "available"
         ) {
+
+          if (
+            pausedOwnLessonReleased
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                Livre
+              </strong>
+
+              <br>
+
+              <small>
+                Horario liberado durante a pausa
+              </small>
+
+            `;
+
+          }
+
 
           if (
             !canBookMakeupOnDate(
@@ -8242,12 +8392,30 @@ function renderTeacherStudentOverview(
         "click",
         () => {
 
-          toggleTeacherStudentPause(
-            button.dataset.studentId,
-            button.dataset.studentName,
+          const currentlyPaused =
             button.dataset.paused ===
-              "true"
-          );
+              "true";
+
+
+          if (currentlyPaused) {
+
+            toggleTeacherStudentPause(
+              button.dataset.studentId,
+              button.dataset.studentName,
+              true,
+              true
+            );
+
+          }
+
+          else {
+
+            openTeacherStudentPauseOptions(
+              button.dataset.studentId,
+              button.dataset.studentName
+            );
+
+          }
 
         }
       );
@@ -8448,52 +8616,305 @@ function renderTeacherStudentOverviewCard(
 
 
 // =====================================================
+// ESCOLHER COMO FICA O HORARIO DURANTE A PAUSA
+// =====================================================
+
+function openTeacherStudentPauseOptions(
+  studentId,
+  studentName
+) {
+
+  const area =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #856404;
+      "
+    >
+
+      <h3>
+        Desativar aulas temporariamente
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+
+        ${escapeHtml(
+          studentName ||
+          "Aluno"
+        )}
+      </p>
+
+
+      <div
+        style="
+          padding:14px;
+          border-radius:8px;
+          background:#eef5ff;
+          margin-top:15px;
+        "
+      >
+
+        <strong>
+          O que continua funcionando durante a pausa
+        </strong>
+
+        <p
+          style="
+            margin-bottom:0;
+          "
+        >
+          O login do aluno continua ativo.
+          Ele continua podendo entrar no ERP,
+          ver suas reposicoes e marcar reposicoes normalmente.
+          Somente as aulas fixas ficam pausadas.
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:20px;
+        "
+      >
+
+        <strong>
+          O que fazer com o horario fixo durante a pausa?
+        </strong>
+
+
+        <label
+          style="
+            display:block;
+            margin-top:12px;
+            padding:12px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            cursor:pointer;
+          "
+        >
+
+          <input
+            type="radio"
+            name="studentPauseSlotOption"
+            value="reserved"
+            checked
+          >
+
+          <strong>
+            Manter o horario reservado
+          </strong>
+
+          <div
+            style="
+              margin-top:5px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            O horario nao podera ser usado por outro aluno
+            nem para outra reposicao durante a pausa.
+          </div>
+
+        </label>
+
+
+        <label
+          style="
+            display:block;
+            margin-top:10px;
+            padding:12px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            cursor:pointer;
+          "
+        >
+
+          <input
+            type="radio"
+            name="studentPauseSlotOption"
+            value="released"
+          >
+
+          <strong>
+            Liberar o horario durante a pausa
+          </strong>
+
+          <div
+            style="
+              margin-top:5px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            O horario ficara livre somente durante o periodo
+            da pausa e podera receber reposicoes.
+            Quando as aulas forem ativadas novamente,
+            o horario fixo do aluno volta automaticamente.
+          </div>
+
+        </label>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmStudentPauseButton"
+        >
+          Confirmar pausa
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelStudentPauseOptionsButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="studentPauseOptionsMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const confirmButton =
+    document.getElementById(
+      "confirmStudentPauseButton"
+    );
+
+
+  if (confirmButton) {
+
+    confirmButton.addEventListener(
+      "click",
+      () => {
+
+        const selected =
+          document.querySelector(
+            'input[name="studentPauseSlotOption"]:checked'
+          );
+
+
+        const keepSlotReserved =
+          !selected
+          ||
+          selected.value ===
+            "reserved";
+
+
+        toggleTeacherStudentPause(
+          studentId,
+          studentName,
+          false,
+          keepSlotReserved
+        );
+
+      }
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelStudentPauseOptionsButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
 // PAUSAR / RETOMAR AULAS DO ALUNO
 // =====================================================
 
 async function toggleTeacherStudentPause(
   studentId,
   studentName,
-  currentlyPaused
+  currentlyPaused,
+  keepSlotReserved = true
 ) {
 
   const newPaused =
     !currentlyPaused;
 
 
-  const confirmed =
-    window.confirm(
+  if (!newPaused) {
 
-      newPaused
+    const confirmed =
+      window.confirm(
 
-        ? (
-            "Desativar temporariamente as aulas de \"" +
-            String(
-              studentName || ""
-            ) +
-            "\"?\n\n" +
+        "Ativar novamente as aulas de \"" +
+        String(
+          studentName || ""
+        ) +
+        "\"?\n\n" +
 
-            "O horario fixo continuara reservado para este aluno, " +
-            "mas as aulas regulares ficarao pausadas ate voce retoma-las.\n\n" +
+        "A agenda fixa voltara a funcionar normalmente a partir de hoje."
 
-            "O aluno continua podendo entrar no ERP e consultar o historico."
-          )
-
-        : (
-            "Ativar novamente as aulas de \"" +
-            String(
-              studentName || ""
-            ) +
-            "\"?\n\n" +
-
-            "A agenda fixa voltara a funcionar normalmente a partir de hoje."
-          )
-
-    );
+      );
 
 
-  if (!confirmed) {
-    return;
+    if (!confirmed) {
+      return;
+    }
+
   }
 
 
@@ -8508,7 +8929,10 @@ async function toggleTeacherStudentPause(
           studentId,
 
         p_paused:
-          newPaused
+          newPaused,
+
+        p_keep_slot_reserved:
+          keepSlotReserved
 
       }
     );
@@ -8541,9 +8965,29 @@ async function toggleTeacherStudentPause(
   await loadTeacherStudentOverview();
 
 
+  const detailArea =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (detailArea) {
+
+    detailArea.innerHTML =
+      "";
+
+  }
+
+
   alert(
     newPaused
-      ? "Aulas pausadas. O horario fixo foi preservado."
+
+      ? (
+          keepSlotReserved
+            ? "Aulas pausadas. O horario fixo continuara reservado."
+            : "Aulas pausadas. O horario ficara livre durante a pausa."
+        )
+
       : "Aulas retomadas com sucesso."
   );
 
@@ -12371,11 +12815,29 @@ function renderTeacherWeeklySchedule(days) {
             );
 
 
+          const pausedReservedLesson =
+            Boolean(
+              pausedRegularLesson
+              &&
+              pausePeriod.keep_slot_reserved !==
+                false
+            );
+
+
+          const pausedReleasedLesson =
+            Boolean(
+              pausedRegularLesson
+              &&
+              pausePeriod.keep_slot_reserved ===
+                false
+            );
+
+
           // ===========================================
-          // AULAS PAUSADAS
+          // AULAS PAUSADAS - HORARIO RESERVADO
           // ===========================================
 
-          if (pausedRegularLesson) {
+          if (pausedReservedLesson) {
 
             cell.innerHTML = `
 
@@ -12394,7 +12856,7 @@ function renderTeacherWeeklySchedule(days) {
               <br>
 
               <small>
-                Aulas pausadas
+                Aulas pausadas - horario reservado
               </small>
 
             `;
@@ -12405,6 +12867,45 @@ function renderTeacherWeeklySchedule(days) {
 
             cell.style.color =
               "#555555";
+
+          }
+
+
+          // ===========================================
+          // AULAS PAUSADAS - HORARIO LIBERADO
+          // ===========================================
+
+          else if (pausedReleasedLesson) {
+
+            cell.innerHTML = `
+
+              <strong>
+                Livre
+              </strong>
+
+              <br>
+
+              <small>
+                Liberado durante a pausa de
+                ${escapeHtml(
+                  studentName ||
+                  (
+                    pausePeriod &&
+                    pausePeriod.student_name
+                  )
+                  ||
+                  "aluno"
+                )}
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#dff5e3";
+
+            cell.style.color =
+              "#246b37";
 
           }
 
@@ -12717,7 +13218,7 @@ function renderTeacherWeeklySchedule(days) {
           // ===========================================
 
           if (
-            pausedRegularLesson
+            pausedReservedLesson
           ) {
 
             cell.style.cursor =
@@ -12726,6 +13227,41 @@ function renderTeacherWeeklySchedule(days) {
 
             cell.title =
               "Aulas pausadas. O horario fixo continua reservado para este aluno.";
+
+          }
+
+
+          else if (
+            pausedReleasedLesson
+          ) {
+
+            cell.style.cursor =
+              "pointer";
+
+
+            cell.title =
+              "Horario liberado somente durante a pausa. Clique para agendar uma reposicao.";
+
+
+            cell.addEventListener(
+              "click",
+              () => {
+
+                openTeacherMakeupBooking(
+                  day.date,
+                  {
+                    ...slot,
+                    status:
+                      "free",
+                    student_id:
+                      null,
+                    student_name:
+                      null
+                  }
+                );
+
+              }
+            );
 
           }
 
