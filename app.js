@@ -1198,7 +1198,276 @@ async function loadStudentFinancialHistory() {
 
     </div>
 
+
+    <div
+      id="studentMonthlyFinancialReportArea"
+      style="
+        display:none;
+        margin-top:18px;
+      "
+    ></div>
+
   `;
+
+
+  document
+    .querySelectorAll(
+      ".student-financial-report-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          openStudentMonthlyFinancialReport(
+            Number(
+              button.dataset.year
+            ),
+            Number(
+              button.dataset.month
+            )
+          );
+
+        }
+      );
+
+    });
+}
+
+
+// =====================================================
+// RELATORIO MENSAL DO PROPRIO ALUNO
+// =====================================================
+
+async function openStudentMonthlyFinancialReport(
+  year,
+  month
+) {
+
+  const area =
+    document.getElementById(
+      "studentMonthlyFinancialReportArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#f7faff;
+      "
+    >
+      Carregando aulas do mes...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_monthly_financial_report",
+      {
+
+        p_year:
+          year,
+
+        p_month:
+          month
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar aulas do financeiro:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:18px;
+          border:1px solid #d9534f;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar as aulas."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const lessons =
+    data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:20px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          align-items:flex-start;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h4
+            style="
+              margin:0;
+            "
+          >
+            Aulas de
+            ${escapeHtml(
+              formatMonth(
+                month
+              )
+            )}/${year}
+          </h4>
+
+
+          <p
+            style="
+              margin:6px 0 0;
+              color:#666;
+            "
+          >
+            Aulas regulares consideradas neste mes.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeStudentMonthlyFinancialReportButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:9px;
+          margin-top:16px;
+        "
+      >
+
+        ${
+          lessons.length === 0
+
+            ? `
+
+              <div
+                style="
+                  padding:15px;
+                  border:1px solid #ddd;
+                  border-radius:8px;
+                "
+              >
+                Nenhuma aula regular encontrada neste mes.
+              </div>
+
+            `
+
+            : lessons
+                .map(
+                  renderMonthlyFinancialLessonRow
+                )
+                .join("")
+        }
+
+      </div>
+
+
+      <p
+        style="
+          margin-top:14px;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        Reposicoes nao aparecem como uma nova cobranca.
+      </p>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeStudentMonthlyFinancialReportButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.style.display =
+          "none";
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
 }
 
 
@@ -1437,6 +1706,23 @@ function renderFinancialCard(item) {
           "Nenhuma observa\xe7\xe3o."
         }
       </p>
+
+
+      <button
+        type="button"
+        class="secondary-button student-financial-report-button"
+        data-year="${Number(
+          item.year
+        )}"
+        data-month="${Number(
+          item.month
+        )}"
+        style="
+          margin-top:8px;
+        "
+      >
+        Ver aulas do mes
+      </button>
 
     </div>
 
@@ -7086,6 +7372,15 @@ function setTeacherPage(page) {
 
         <div
           id="teacherFinancialFormArea"
+          style="
+            display:none;
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <div
+          id="teacherFinancialReportArea"
           style="
             display:none;
             margin-top:20px;
@@ -13298,6 +13593,42 @@ function renderTeacherFinancialRecords() {
 
   document
     .querySelectorAll(
+      ".teacher-financial-report-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const item =
+            currentTeacherFinancialRecords.find(
+              record =>
+                String(
+                  record.financial_id
+                ) ===
+                String(
+                  button.dataset.financialId
+                )
+            );
+
+
+          if (item) {
+
+            openTeacherMonthlyFinancialReport(
+              item
+            );
+
+          }
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
       ".edit-teacher-financial-button"
     )
     .forEach(button => {
@@ -13585,6 +13916,15 @@ function renderTeacherFinancialRecordCard(
 
         <button
           type="button"
+          class="secondary-button teacher-financial-report-button"
+          data-financial-id="${item.financial_id}"
+        >
+          Ver relatorio
+        </button>
+
+
+        <button
+          type="button"
           class="secondary-button edit-teacher-financial-button"
           data-financial-id="${item.financial_id}"
         >
@@ -13608,6 +13948,609 @@ function renderTeacherFinancialRecordCard(
         </button>
 
       </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// RELATORIO FINANCEIRO MENSAL DO ALUNO - PROFESSOR
+// =====================================================
+
+async function openTeacherMonthlyFinancialReport(
+  item
+) {
+
+  const area =
+    document.getElementById(
+      "teacherFinancialReportArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#f7faff;
+      "
+    >
+      Carregando relatorio...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_student_monthly_financial_report",
+      {
+
+        p_student_id:
+          item.student_id,
+
+        p_year:
+          Number(
+            item.year
+          ),
+
+        p_month:
+          Number(
+            item.month
+          )
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar relatorio financeiro:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:18px;
+          border:1px solid #d9534f;
+          border-radius:10px;
+          background:#fff;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar o relatorio."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const lessons =
+    data || [];
+
+
+  const dueDate =
+    item.due_date
+      ? formatDate(
+          new Date(
+            item.due_date +
+            "T12:00:00"
+          )
+        )
+      : "Nao informado";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:20px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:15px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h3
+            style="
+              margin:0;
+            "
+          >
+            Relatorio financeiro
+          </h3>
+
+          <p
+            style="
+              margin:6px 0 0;
+            "
+          >
+            <strong>
+              ${escapeHtml(
+                item.student_name
+              )}
+            </strong>
+
+            -
+            ${escapeHtml(
+              formatMonth(
+                item.month
+              )
+            )}/${item.year}
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeTeacherFinancialReportButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+          gap:10px;
+          margin-top:18px;
+        "
+      >
+
+        <div
+          style="
+            padding:12px;
+            background:#f7faff;
+            border-radius:8px;
+          "
+        >
+          <div
+            style="
+              font-size:13px;
+              color:#666;
+            "
+          >
+            Valor
+          </div>
+
+          <strong>
+            ${formatCurrency(
+              item.amount
+            )}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            padding:12px;
+            background:#f7faff;
+            border-radius:8px;
+          "
+        >
+          <div
+            style="
+              font-size:13px;
+              color:#666;
+            "
+          >
+            Vencimento
+          </div>
+
+          <strong>
+            ${dueDate}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            padding:12px;
+            background:#f7faff;
+            border-radius:8px;
+          "
+        >
+          <div
+            style="
+              font-size:13px;
+              color:#666;
+            "
+          >
+            Status
+          </div>
+
+          <strong>
+            ${formatPaymentStatus(
+              item.payment_status
+            )}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            padding:12px;
+            background:#f7faff;
+            border-radius:8px;
+          "
+        >
+          <div
+            style="
+              font-size:13px;
+              color:#666;
+            "
+          >
+            Aulas regulares no mes
+          </div>
+
+          <strong>
+            ${lessons.length}
+          </strong>
+        </div>
+
+      </div>
+
+
+      ${
+        item.billing_type ===
+          "per_lesson"
+
+          ? `
+
+            <div
+              style="
+                margin-top:14px;
+                padding:12px;
+                border-radius:8px;
+                background:#eef8f0;
+              "
+            >
+              <strong>
+                Calculo:
+              </strong>
+
+              ${Number(
+                item.lesson_count || lessons.length
+              )}
+              aula(s)
+
+              x
+
+              ${formatCurrency(
+                item.lesson_unit_value || 0
+              )}
+
+              =
+
+              <strong>
+                ${formatCurrency(
+                  item.amount
+                )}
+              </strong>
+            </div>
+
+          `
+
+          : `
+
+            <div
+              style="
+                margin-top:14px;
+                padding:12px;
+                border-radius:8px;
+                background:#eef8f0;
+              "
+            >
+              <strong>
+                Cobranca mensal fixa.
+              </strong>
+
+              As aulas abaixo mostram a agenda regular
+              considerada naquele mes.
+            </div>
+
+          `
+      }
+
+
+      <h4
+        style="
+          margin:22px 0 10px;
+        "
+      >
+        Aulas do mes
+      </h4>
+
+
+      <div
+        style="
+          display:grid;
+          gap:9px;
+        "
+      >
+
+        ${
+          lessons.length === 0
+
+            ? `
+
+              <div
+                style="
+                  padding:15px;
+                  border:1px solid #ddd;
+                  border-radius:8px;
+                "
+              >
+                Nenhuma aula regular encontrada neste mes.
+              </div>
+
+            `
+
+            : lessons
+                .map(
+                  renderMonthlyFinancialLessonRow
+                )
+                .join("")
+        }
+
+      </div>
+
+
+      <p
+        style="
+          margin-top:16px;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        Reposicoes nao sao cobradas novamente e nao entram
+        como novas aulas neste relatorio.
+      </p>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeTeacherFinancialReportButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.style.display =
+          "none";
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// LINHA DE AULA DO RELATORIO FINANCEIRO
+// =====================================================
+
+function renderMonthlyFinancialLessonRow(
+  lesson
+) {
+
+  let status =
+    "Agendada";
+
+
+  if (
+    lesson.lesson_status ===
+      "cancelled"
+  ) {
+
+    status =
+      "Cancelada";
+
+  }
+
+  else if (
+    lesson.attendance_status ===
+      "present"
+  ) {
+
+    status =
+      "Presente";
+
+  }
+
+  else if (
+    lesson.attendance_status ===
+      "absent"
+  ) {
+
+    status =
+      "Falta sem justificativa";
+
+  }
+
+  else if (
+    lesson.attendance_status ===
+      "justified_absence"
+  ) {
+
+    status =
+      "Falta justificada";
+
+  }
+
+  else if (
+    lesson.attendance_status ===
+      "makeup"
+  ) {
+
+    status =
+      "Reposicao realizada";
+
+  }
+
+
+  const subjectText =
+    [
+      lesson.subject_name,
+      lesson.content_title
+    ]
+      .filter(Boolean)
+      .join(" - ");
+
+
+  return `
+
+    <div
+      style="
+        padding:13px;
+        border:1px solid #e1e1e1;
+        border-radius:8px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${formatDate(
+            new Date(
+              lesson.lesson_date +
+              "T12:00:00"
+            )
+          )}
+
+          -
+
+          ${normalizeTime(
+            lesson.start_time
+          )}
+
+          as
+
+          ${normalizeTime(
+            lesson.end_time
+          )}
+        </strong>
+
+
+        <strong>
+          ${escapeHtml(
+            status
+          )}
+        </strong>
+
+      </div>
+
+
+      ${
+        subjectText
+
+          ? `
+
+            <div
+              style="
+                margin-top:6px;
+                color:#555;
+              "
+            >
+              ${escapeHtml(
+                subjectText
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        lesson.teacher_notes
+
+          ? `
+
+            <div
+              style="
+                margin-top:6px;
+                white-space:pre-wrap;
+              "
+            >
+              ${escapeHtml(
+                lesson.teacher_notes
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
 
     </div>
 
