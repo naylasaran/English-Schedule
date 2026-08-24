@@ -8889,10 +8889,28 @@ function renderTeacherStudentOverview(
 
           if (currentlyPaused) {
 
-            openTeacherStudentResumeOptions(
-              button.dataset.studentId,
-              button.dataset.studentName
-            );
+            const keepReserved =
+              button.dataset.keepReserved ===
+                "true";
+
+
+            if (keepReserved) {
+
+              resumeTeacherStudentKeepingSchedule(
+                button.dataset.studentId,
+                button.dataset.studentName
+              );
+
+            }
+
+            else {
+
+              openTeacherStudentResumeOptions(
+                button.dataset.studentId,
+                button.dataset.studentName
+              );
+
+            }
 
           }
 
@@ -9066,6 +9084,11 @@ function renderTeacherStudentOverviewCard(
           data-paused="${student.classes_paused
             ? "true"
             : "false"}"
+          data-keep-reserved="${
+            student.pause_keep_slot_reserved !== false
+              ? "true"
+              : "false"
+          }"
           style="
             border-color:#856404;
             color:#856404;
@@ -9099,6 +9122,100 @@ function renderTeacherStudentOverviewCard(
     </div>
 
   `;
+
+}
+
+
+// =====================================================
+// ATIVAR AULAS MANTENDO O HORARIO QUE FICOU RESERVADO
+// =====================================================
+
+async function resumeTeacherStudentKeepingSchedule(
+  studentId,
+  studentName
+) {
+
+  const confirmed =
+    window.confirm(
+
+      "Ativar novamente as aulas de \"" +
+      String(
+        studentName || ""
+      ) +
+      "\"?\n\n" +
+
+      "Como o horario ficou reservado durante a pausa, " +
+      "o aluno voltara automaticamente para os mesmos dias e horarios."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "resume_teacher_student_after_pause",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_schedule:
+          null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao ativar aluno mantendo horario:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel ativar as aulas."
+    );
+
+
+    return;
+  }
+
+
+  currentTeacherStudents =
+    [];
+
+
+  await loadTeacherStudents();
+
+  await loadTeacherStudentOverview();
+
+
+  const detailArea =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (detailArea) {
+
+    detailArea.innerHTML =
+      "";
+
+  }
+
+
+  alert(
+    "Aulas ativadas. O horario anterior foi restaurado."
+  );
 
 }
 
@@ -9409,7 +9526,7 @@ async function resumeTeacherStudentWithNewSchedule(
     error
   } =
     await supabaseClient.rpc(
-      "resume_teacher_student_with_schedule",
+      "resume_teacher_student_after_pause",
       {
 
         p_student_id:
@@ -10008,10 +10125,19 @@ async function openTeacherStudentDetail(
 
 
   const [
+    scheduleResult,
     historyResult,
     makeupResult
   ] =
     await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_student_fixed_schedule",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
 
       supabaseClient.rpc(
         "get_teacher_student_lesson_history",
@@ -10033,12 +10159,14 @@ async function openTeacherStudentDetail(
 
 
   if (
+    scheduleResult.error ||
     historyResult.error ||
     makeupResult.error
   ) {
 
     console.error(
       "Erro ao carregar detalhes do aluno:",
+      scheduleResult.error ||
       historyResult.error ||
       makeupResult.error
     );
@@ -10059,6 +10187,10 @@ async function openTeacherStudentDetail(
 
     return;
   }
+
+
+  const fixedSchedule =
+    scheduleResult.data || [];
 
 
   const history =
@@ -10133,9 +10265,140 @@ async function openTeacherStudentDetail(
       </div>
 
 
-      <h4
+      <div
         style="
           margin-top:24px;
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#f7faff;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Dias e horarios das aulas fixas
+            </h4>
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              Esta e a agenda fixa atual deste aluno.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="editTeacherStudentScheduleButton"
+          >
+            Modificar dias / horarios
+          </button>
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            gap:8px;
+            margin-top:14px;
+          "
+        >
+
+          ${
+            fixedSchedule.length === 0
+
+              ? `
+
+                <div
+                  style="
+                    padding:12px;
+                    background:#ffffff;
+                    border-radius:8px;
+                  "
+                >
+                  Nenhum horario fixo cadastrado.
+                </div>
+
+              `
+
+              : fixedSchedule
+                  .map(
+                    item => `
+
+                      <div
+                        style="
+                          padding:12px;
+                          background:#ffffff;
+                          border:1px solid #e5e5e5;
+                          border-radius:8px;
+                        "
+                      >
+
+                        <strong>
+                          ${escapeHtml(
+                            formatDay(
+                              item.day_of_week
+                            )
+                          )}
+                        </strong>
+
+                        -
+                        ${normalizeTime(
+                          item.start_time
+                        )}
+
+                        as
+
+                        ${normalizeTime(
+                          item.end_time
+                        )}
+
+                      </div>
+
+                    `
+                  )
+                  .join("")
+          }
+
+        </div>
+
+
+        <div
+          id="teacherStudentScheduleEditArea"
+          style="
+            margin-top:15px;
+          "
+        ></div>
+
+      </div>
+
+
+      <h4
+        style="
+          margin-top:28px;
         "
       >
         Reposicoes
@@ -10219,6 +10482,32 @@ async function openTeacherStudentDetail(
   `;
 
 
+  const editScheduleButton =
+    document.getElementById(
+      "editTeacherStudentScheduleButton"
+    );
+
+
+  if (editScheduleButton) {
+
+    editScheduleButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherStudentScheduleEditor(
+          studentId,
+          student
+            ? student.student_name
+            : "Aluno",
+          fixedSchedule
+        );
+
+      }
+    );
+
+  }
+
+
   const closeButton =
     document.getElementById(
       "closeTeacherStudentDetailButton"
@@ -10244,6 +10533,381 @@ async function openTeacherStudentDetail(
     behavior: "smooth",
     block: "start"
   });
+
+}
+
+
+// =====================================================
+// EDITAR AGENDA FIXA PELO "VER ALUNO"
+// =====================================================
+
+function openTeacherStudentScheduleEditor(
+  studentId,
+  studentName,
+  fixedSchedule
+) {
+
+  const area =
+    document.getElementById(
+      "teacherStudentScheduleEditArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:15px;
+        background:#ffffff;
+        border:1px solid #ddd;
+        border-radius:8px;
+      "
+    >
+
+      <strong>
+        Modificar agenda fixa de
+        ${escapeHtml(
+          studentName || "Aluno"
+        )}
+      </strong>
+
+
+      <p
+        style="
+          margin-top:7px;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        A alteracao passa a valer a partir de hoje.
+        As semanas anteriores continuam preservadas.
+      </p>
+
+
+      <div
+        style="
+          display:flex;
+          justify-content:flex-end;
+          margin-top:12px;
+        "
+      >
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="addTeacherStudentScheduleRowButton"
+        >
+          + Adicionar dia / horario
+        </button>
+
+      </div>
+
+
+      <div
+        id="teacherStudentFixedScheduleRows"
+      ></div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:16px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherStudentScheduleButton"
+        >
+          Salvar horarios
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelTeacherStudentScheduleButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherStudentScheduleMessage"
+        style="
+          margin-top:10px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const rowsContainer =
+    document.getElementById(
+      "teacherStudentFixedScheduleRows"
+    );
+
+
+  if (rowsContainer) {
+
+    rowsContainer.innerHTML =
+      "";
+
+
+    if (
+      Array.isArray(
+        fixedSchedule
+      ) &&
+      fixedSchedule.length > 0
+    ) {
+
+      fixedSchedule.forEach(
+        item => {
+
+          addStudentFixedScheduleRow(
+            "teacherStudentFixedScheduleRows",
+            {
+              day_of_week:
+                item.day_of_week,
+
+              start_time:
+                normalizeTime(
+                  item.start_time
+                )
+            }
+          );
+
+        }
+      );
+
+    }
+
+    else {
+
+      addStudentFixedScheduleRow(
+        "teacherStudentFixedScheduleRows"
+      );
+
+    }
+
+  }
+
+
+  const addButton =
+    document.getElementById(
+      "addTeacherStudentScheduleRowButton"
+    );
+
+
+  if (addButton) {
+
+    addButton.addEventListener(
+      "click",
+      () => {
+
+        addStudentFixedScheduleRow(
+          "teacherStudentFixedScheduleRows"
+        );
+
+      }
+    );
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherStudentScheduleButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherStudentFixedSchedule(
+          studentId
+        );
+
+      }
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelTeacherStudentScheduleButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// SALVAR AGENDA FIXA DO ALUNO
+// =====================================================
+
+async function saveTeacherStudentFixedSchedule(
+  studentId
+) {
+
+  const result =
+    collectStudentFixedSchedule(
+      "teacherStudentFixedScheduleRows"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentScheduleMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherStudentScheduleButton"
+    );
+
+
+  if (result.error) {
+
+    if (message) {
+
+      message.textContent =
+        result.error;
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+
+      "Salvar os novos dias e horarios deste aluno?\n\n" +
+      "A alteracao passa a valer a partir de hoje e o passado sera preservado."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "replace_teacher_student_weekly_schedule",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_schedule:
+          result.schedule
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao alterar horarios do aluno:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar os horarios.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar horarios";
+
+    }
+
+
+    return;
+  }
+
+
+  currentTeacherStudents =
+    [];
+
+
+  await loadTeacherStudents();
+
+  await loadTeacherStudentOverview();
+
+  await openTeacherStudentDetail(
+    studentId
+  );
+
+
+  alert(
+    "Horarios do aluno atualizados com sucesso."
+  );
 
 }
 
