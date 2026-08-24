@@ -23,6 +23,7 @@ let currentTeacherFinancialStudents = [];
 let currentTeacherProfileSettings = null;
 let currentStudentTeacherSettings = null;
 let currentAdminTeachers = [];
+let currentAdminTeacherSystemFinancial = [];
 let currentTeacherHolidayWeek = [];
 let currentStudentHolidayWeek = [];
 let currentTeacherRulesImagePath = null;
@@ -1984,6 +1985,25 @@ function renderAdminTeacherManagement() {
   }
 
 
+  const systemBillingNow =
+    new Date();
+
+
+  const defaultSystemBillingMonth =
+    String(
+      systemBillingNow.getFullYear()
+    )
+    +
+    "-"
+    +
+    String(
+      systemBillingNow.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+
   content.innerHTML = `
 
     <div class="card">
@@ -2043,6 +2063,54 @@ function renderAdminTeacherManagement() {
           border:1px solid #d9e3f2;
         "
       ></div>
+
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:12px;
+          flex-wrap:wrap;
+          margin-top:18px;
+          padding:12px 14px;
+          border-radius:9px;
+          background:#f7faff;
+        "
+      >
+
+        <div>
+
+          <strong>
+            Mensalidade dos professores
+          </strong>
+
+
+          <div
+            style="
+              margin-top:3px;
+              color:#666;
+              font-size:12px;
+            "
+          >
+            Selecione o mes para conferir e registrar o pagamento.
+          </div>
+
+        </div>
+
+
+        <input
+          type="month"
+          id="adminTeacherSystemMonth"
+          value="${defaultSystemBillingMonth}"
+          style="
+            padding:9px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
 
 
       <div
@@ -2189,6 +2257,70 @@ function renderAdminTeacherManagement() {
 
       </div>
 
+
+      <div
+        style="
+          margin-top:22px;
+          padding-top:18px;
+          border-top:1px solid #ddd;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Homologacao final
+            </h4>
+
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              Execute os fluxos com contas de teste e registre
+              aqui o resultado antes de liberar o ERP.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="openAdminQaButton"
+          >
+            Abrir checklist final
+          </button>
+
+        </div>
+
+
+        <div
+          id="adminQaArea"
+          style="
+            margin-top:14px;
+          "
+        ></div>
+
+      </div>
+
     </div>
 
   `;
@@ -2240,6 +2372,1078 @@ function renderAdminTeacherManagement() {
     );
 
   }
+
+
+  const qaButton =
+    document.getElementById(
+      "openAdminQaButton"
+    );
+
+
+  if (qaButton) {
+
+    qaButton.addEventListener(
+      "click",
+      loadAdminQaChecklist
+    );
+
+  }
+
+
+  const systemMonthInput =
+    document.getElementById(
+      "adminTeacherSystemMonth"
+    );
+
+
+  if (systemMonthInput) {
+
+    systemMonthInput.addEventListener(
+      "change",
+      loadAdminTeachers
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// TESTES DA HOMOLOGACAO FINAL
+// =====================================================
+
+function getAdminQaChecks() {
+
+  return [
+
+    {
+      key:
+        "security_diagnostic",
+      category:
+        "Base",
+      title:
+        "Diagnostico de seguranca",
+      instruction:
+        "No ADM, execute Seguranca do ERP.",
+      expected:
+        "O diagnostico principal deve retornar OK, sem permissoes sensiveis abertas."
+    },
+
+    {
+      key:
+        "integrity_diagnostic",
+      category:
+        "Base",
+      title:
+        "Diagnostico de integridade",
+      instruction:
+        "No ADM, execute Integridade do ERP.",
+      expected:
+        "Nenhuma inconsistencia critica deve permanecer antes da liberacao."
+    },
+
+    {
+      key:
+        "admin_create_teacher",
+      category:
+        "ADM",
+      title:
+        "Cadastrar professor",
+      instruction:
+        "Crie um professor de teste pelo ADM com nome, e-mail, senha e horario de atendimento.",
+      expected:
+        "O professor aparece como Ativo e consegue entrar com o novo login."
+    },
+
+    {
+      key:
+        "admin_pause_teacher",
+      category:
+        "ADM",
+      title:
+        "Pausar professor",
+      instruction:
+        "Pause o professor de teste e tente entrar com a conta dele.",
+      expected:
+        "O login do professor fica bloqueado e o historico permanece intacto."
+    },
+
+    {
+      key:
+        "admin_reactivate_teacher",
+      category:
+        "ADM",
+      title:
+        "Reativar professor",
+      instruction:
+        "Reative o mesmo professor e tente entrar novamente.",
+      expected:
+        "O login volta a funcionar sem perder alunos, agenda ou historico."
+    },
+
+    {
+      key:
+        "teacher_system_payment",
+      category:
+        "ADM",
+      title:
+        "Mensalidade do professor no sistema",
+      instruction:
+        "No ADM, configure valor e dia do vencimento para um professor, marque o mes como pago e abra o Perfil desse professor.",
+      expected:
+        "ADM e professor veem o mesmo valor, vencimento e status. Ao marcar Pago, o professor tambem visualiza Pago."
+    },
+
+    {
+      key:
+        "teacher_profile_hours",
+      category:
+        "Professor",
+      title:
+        "Perfil e horario da agenda",
+      instruction:
+        "No Perfil do professor, altere o horario, por exemplo para 08:00 ate 20:00.",
+      expected:
+        "A agenda passa a exibir somente a janela configurada, com blocos de 30 minutos ate 19:30."
+    },
+
+    {
+      key:
+        "student_registration_schedule",
+      category:
+        "Alunos",
+      title:
+        "Cadastrar aluno com contrato e horario",
+      instruction:
+        "Cadastre um aluno de teste com nascimento, financeiro, contrato e aula fixa.",
+      expected:
+        "O acesso e criado, o aluno aparece em Alunos e a aula aparece na agenda correta."
+    },
+
+    {
+      key:
+        "student_name_abbreviation",
+      category:
+        "Agenda",
+      title:
+        "Nome abreviado na agenda",
+      instruction:
+        "Cadastre nome completo com pelo menos sobrenome e abra a agenda do professor.",
+      expected:
+        "A agenda mostra primeiro nome + inicial do primeiro sobrenome, sem alterar o nome completo no cadastro."
+    },
+
+    {
+      key:
+        "minor_guardian_privacy",
+      category:
+        "Responsavel",
+      title:
+        "Menor sem valores financeiros",
+      instruction:
+        "Use um aluno menor de 18 anos. Entre como aluno e depois como responsavel vinculado.",
+      expected:
+        "O aluno nao recebe valores monetarios; o responsavel ve o financeiro completo."
+    },
+
+    {
+      key:
+        "regular_lesson_change",
+      category:
+        "Agenda",
+      title:
+        "Alteracao de uma aula regular",
+      instruction:
+        "Mude somente uma ocorrencia de uma aula para outro horario.",
+      expected:
+        "Apenas aquela data muda. A agenda fixa e o historico das demais semanas permanecem corretos."
+    },
+
+    {
+      key:
+        "student_regular_cancellation",
+      category:
+        "Cancelamentos",
+      title:
+        "Cancelamento de aula regular pelo aluno",
+      instruction:
+        "Teste um cancelamento com mais de 2 horas e outro com menos de 2 horas.",
+      expected:
+        "Com 2h ou mais gera direito a reposicao; com menos de 2h nao gera."
+    },
+
+    {
+      key:
+        "makeup_flow",
+      category:
+        "Reposicoes",
+      title:
+        "Fluxo completo de reposicao",
+      instruction:
+        "Reserve uma reposicao, cancele uma vez com antecedencia e depois teste o segundo cancelamento.",
+      expected:
+        "Primeiro cancelamento devolve a reposicao uma vez; o segundo faz perder o direito conforme a regra."
+    },
+
+    {
+      key:
+        "attendance_makeup",
+      category:
+        "Presenca",
+      title:
+        "Falta e falta justificada",
+      instruction:
+        "Registre falta normal, falta justificada e depois corrija o status.",
+      expected:
+        "Falta normal nao gera reposicao; justificada gera; ao corrigir o status a reposicao correspondente e ajustada."
+    },
+
+    {
+      key:
+        "national_holiday",
+      category:
+        "Feriados",
+      title:
+        "Feriado nacional",
+      instruction:
+        "Abra uma semana com feriado nacional e teste Aula normal e Nao ter aula.",
+      expected:
+        "A decisao aparece na agenda; em Sem aula o dia bloqueia reposicoes e nao conta como aula cobrada por aula."
+    },
+
+    {
+      key:
+        "rules_image",
+      category:
+        "Regras",
+      title:
+        "Imagem nas regras",
+      instruction:
+        "Envie uma imagem nas Regras, confira como aluno, substitua e depois remova.",
+      expected:
+        "Texto e imagem aparecem ao aluno; substituicao e remocao funcionam sem quebrar as regras."
+    },
+
+    {
+      key:
+        "student_materials",
+      category:
+        "Materiais",
+      title:
+        "Material individual do aluno",
+      instruction:
+        "Envie um link para apenas um aluno e entre com duas contas de alunos diferentes.",
+      expected:
+        "Somente o aluno selecionado ve o material e consegue abrir o link."
+    },
+
+    {
+      key:
+        "student_comment",
+      category:
+        "Comunicacao",
+      title:
+        "Comentario do aluno",
+      instruction:
+        "O aluno comenta uma aula. Depois abra Ver aluno como professor.",
+      expected:
+        "O professor recebe indicacao de comentario novo, consegue ler e o aviso deixa de ficar como nao lido."
+    },
+
+    {
+      key:
+        "monthly_finance",
+      category:
+        "Financeiro",
+      title:
+        "Cobranca mensal",
+      instruction:
+        "Configure um aluno como mensal e gere o financeiro de um mes dentro do contrato.",
+      expected:
+        "O valor mensal, vencimento, status e relatorio do mes aparecem sem duplicar o lancamento."
+    },
+
+    {
+      key:
+        "per_lesson_finance",
+      category:
+        "Financeiro",
+      title:
+        "Cobranca por aula",
+      instruction:
+        "Configure um aluno por aula e gere um mes com contrato, pausa ou feriado no periodo.",
+      expected:
+        "Somente aulas regulares cobraveis sao contadas; reposicoes nao sao cobradas novamente."
+    },
+
+    {
+      key:
+        "contract_renewal",
+      category:
+        "Contrato",
+      title:
+        "Renovacao de contrato",
+      instruction:
+        "Renove o contrato de um aluno de teste.",
+      expected:
+        "O novo contrato vira o atual e o contrato anterior permanece no Historico de contratos."
+    },
+
+    {
+      key:
+        "guardian_readonly",
+      category:
+        "Responsavel",
+      title:
+        "Acesso somente leitura do responsavel",
+      instruction:
+        "Entre como responsavel e percorra agenda, historico, observacoes e financeiro.",
+      expected:
+        "O responsavel consegue consultar os dados vinculados, mas nao consegue alterar aulas ou registros."
+    }
+
+  ];
+
+}
+
+
+// =====================================================
+// CARREGAR HOMOLOGACAO
+// =====================================================
+
+async function loadAdminQaChecklist() {
+
+  const area =
+    document.getElementById(
+      "adminQaArea"
+    );
+
+
+  const openButton =
+    document.getElementById(
+      "openAdminQaButton"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (openButton) {
+
+    openButton.disabled =
+      true;
+
+    openButton.textContent =
+      "Carregando...";
+
+  }
+
+
+  area.innerHTML =
+    "Carregando checklist...";
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_qa_results"
+    );
+
+
+  if (openButton) {
+
+    openButton.disabled =
+      false;
+
+    openButton.textContent =
+      "Atualizar checklist";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar homologacao:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px;
+          border-radius:8px;
+          background:#fdecea;
+          color:#8a1f17;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar a homologacao."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const savedResults =
+    data || [];
+
+
+  const checks =
+    getAdminQaChecks()
+      .map(
+        check => {
+
+          const saved =
+            savedResults.find(
+              item =>
+                item.check_key ===
+                  check.key
+            );
+
+
+          return {
+            ...check,
+
+            status:
+              saved
+                ? saved.status
+                : "not_tested",
+
+            notes:
+              saved
+                ? saved.notes || ""
+                : "",
+
+            updated_at:
+              saved
+                ? saved.updated_at
+                : null
+          };
+
+        }
+      );
+
+
+  renderAdminQaChecklist(
+    checks
+  );
+
+}
+
+
+// =====================================================
+// RENDERIZAR HOMOLOGACAO
+// =====================================================
+
+function renderAdminQaChecklist(
+  checks
+) {
+
+  const area =
+    document.getElementById(
+      "adminQaArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const total =
+    checks.length;
+
+
+  const passed =
+    checks.filter(
+      item =>
+        item.status ===
+          "passed"
+    ).length;
+
+
+  const failed =
+    checks.filter(
+      item =>
+        item.status ===
+          "failed"
+    ).length;
+
+
+  const tested =
+    passed +
+    failed;
+
+
+  const percent =
+    total > 0
+
+      ? Math.round(
+          (
+            passed /
+            total
+          )
+          *
+          100
+        )
+
+      : 0;
+
+
+  const categories =
+    [
+      ...new Set(
+        checks.map(
+          item =>
+            item.category
+        )
+      )
+    ];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:14px;
+        border-radius:10px;
+        background:${
+          failed > 0
+            ? "#fff3cd"
+            : (
+                passed === total
+                  ? "#eef8f0"
+                  : "#f7faff"
+              )
+        };
+        border:1px solid #ddd;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:12px;
+          flex-wrap:wrap;
+          align-items:flex-start;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:18px;
+            "
+          >
+            ${passed}/${total} testes aprovados
+          </strong>
+
+
+          <div
+            style="
+              margin-top:4px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            ${tested} testado(s) -
+            ${failed} falha(s) -
+            ${total - tested} pendente(s)
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            text-align:right;
+          "
+        >
+
+          <strong
+            style="
+              font-size:24px;
+            "
+          >
+            ${percent}%
+          </strong>
+
+
+          <div
+            style="
+              font-size:12px;
+              color:#666;
+            "
+          >
+            aprovacao
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          height:10px;
+          background:#e2e2e2;
+          border-radius:999px;
+          overflow:hidden;
+          margin-top:12px;
+        "
+      >
+
+        <div
+          style="
+            width:${percent}%;
+            height:100%;
+            background:currentColor;
+          "
+        ></div>
+
+      </div>
+
+
+      ${
+        passed === total
+
+          ? `
+
+            <div
+              style="
+                margin-top:12px;
+                font-weight:bold;
+              "
+            >
+              Checklist completo. Execute novamente Seguranca
+              e Integridade antes da liberacao definitiva.
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+
+    <div
+      style="
+        display:flex;
+        justify-content:flex-end;
+        margin-top:10px;
+      "
+    >
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="resetAdminQaButton"
+      >
+        Reiniciar homologacao
+      </button>
+
+    </div>
+
+
+    <div
+      style="
+        display:grid;
+        gap:18px;
+        margin-top:16px;
+      "
+    >
+
+      ${categories
+        .map(
+          category => `
+
+            <div>
+
+              <h4
+                style="
+                  margin:0 0 9px;
+                "
+              >
+                ${escapeHtml(
+                  category
+                )}
+              </h4>
+
+
+              <div
+                style="
+                  display:grid;
+                  gap:10px;
+                "
+              >
+
+                ${checks
+                  .filter(
+                    item =>
+                      item.category ===
+                        category
+                  )
+                  .map(
+                    renderAdminQaCheck
+                  )
+                  .join("")}
+
+              </div>
+
+            </div>
+
+          `
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".admin-qa-status-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          saveAdminQaCheck(
+            button.dataset.checkKey,
+            button.dataset.status
+          );
+
+        }
+      );
+
+    });
+
+
+  const resetButton =
+    document.getElementById(
+      "resetAdminQaButton"
+    );
+
+
+  if (resetButton) {
+
+    resetButton.addEventListener(
+      "click",
+      resetAdminQaChecklist
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CARD DE UM TESTE
+// =====================================================
+
+function renderAdminQaCheck(
+  item
+) {
+
+  const statusLabel =
+    item.status ===
+      "passed"
+
+      ? "PASSOU"
+
+      : (
+          item.status ===
+            "failed"
+
+            ? "FALHOU"
+
+            : "NAO TESTADO"
+        );
+
+
+  const statusBackground =
+    item.status ===
+      "passed"
+
+      ? "#eef8f0"
+
+      : (
+          item.status ===
+            "failed"
+
+            ? "#fdecea"
+
+            : "#f7faff"
+        );
+
+
+  return `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #ddd;
+        border-radius:9px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+          align-items:flex-start;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong>
+            ${escapeHtml(
+              item.title
+            )}
+          </strong>
+
+
+          <div
+            style="
+              display:inline-block;
+              margin-left:7px;
+              padding:3px 7px;
+              border-radius:999px;
+              background:${statusBackground};
+              font-size:11px;
+              font-weight:bold;
+            "
+          >
+            ${statusLabel}
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            gap:6px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <button
+            type="button"
+            class="secondary-button admin-qa-status-button"
+            data-check-key="${item.key}"
+            data-status="passed"
+          >
+            Passou
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button admin-qa-status-button"
+            data-check-key="${item.key}"
+            data-status="failed"
+            style="
+              color:#a12622;
+              border-color:#a12622;
+            "
+          >
+            Falhou
+          </button>
+
+
+          <button
+            type="button"
+            class="secondary-button admin-qa-status-button"
+            data-check-key="${item.key}"
+            data-status="not_tested"
+          >
+            Limpar
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:10px;
+          font-size:13px;
+        "
+      >
+
+        <strong>
+          Como testar:
+        </strong>
+
+        ${escapeHtml(
+          item.instruction
+        )}
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:7px;
+          padding:9px 10px;
+          border-radius:7px;
+          background:#f7faff;
+          font-size:13px;
+        "
+      >
+
+        <strong>
+          Resultado esperado:
+        </strong>
+
+        ${escapeHtml(
+          item.expected
+        )}
+
+      </div>
+
+
+      <textarea
+        id="adminQaNotes_${item.key}"
+        rows="2"
+        maxlength="4000"
+        placeholder="Observacoes, erro encontrado, conta usada no teste..."
+        style="
+          width:100%;
+          box-sizing:border-box;
+          margin-top:9px;
+          padding:9px;
+          border:1px solid #ccc;
+          border-radius:7px;
+          resize:vertical;
+          font-family:inherit;
+        "
+      >${escapeHtml(
+        item.notes || ""
+      )}</textarea>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// SALVAR RESULTADO DE UM TESTE
+// =====================================================
+
+async function saveAdminQaCheck(
+  checkKey,
+  status
+) {
+
+  const notesInput =
+    document.getElementById(
+      "adminQaNotes_" +
+      checkKey
+    );
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_admin_qa_result",
+      {
+
+        p_check_key:
+          checkKey,
+
+        p_status:
+          status,
+
+        p_notes:
+          notesInput
+            ? notesInput.value.trim() || null
+            : null
+
+      }
+    );
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel salvar o resultado do teste."
+    );
+
+
+    return;
+  }
+
+
+  await loadAdminQaChecklist();
+
+}
+
+
+// =====================================================
+// REINICIAR HOMOLOGACAO
+// =====================================================
+
+async function resetAdminQaChecklist() {
+
+  if (
+    !window.confirm(
+      "Reiniciar toda a homologacao? Todos os status e observacoes deste ADM serao apagados."
+    )
+  ) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "reset_admin_qa_results"
+    );
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel reiniciar a homologacao."
+    );
+
+
+    return;
+  }
+
+
+  await loadAdminQaChecklist();
 
 }
 
@@ -3881,6 +5085,59 @@ async function saveAdminTeacher() {
 }
 
 
+function getAdminTeacherSystemMonthParts() {
+
+  const input =
+    document.getElementById(
+      "adminTeacherSystemMonth"
+    );
+
+
+  const value =
+    input &&
+    input.value
+      ? input.value
+      : "";
+
+
+  if (
+    /^\d{4}-\d{2}$/.test(
+      value
+    )
+  ) {
+
+    const [
+      year,
+      month
+    ] =
+      value
+        .split("-")
+        .map(Number);
+
+
+    return {
+      year,
+      month
+    };
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  return {
+    year:
+      now.getFullYear(),
+
+    month:
+      now.getMonth() + 1
+  };
+
+}
+
+
 // =====================================================
 // LISTAR PROFESSORES NO ADM
 // =====================================================
@@ -3899,19 +5156,45 @@ async function loadAdminTeachers() {
 
 
   const {
-    data,
-    error
+    year,
+    month
   } =
-    await supabaseClient.rpc(
-      "get_admin_teachers"
-    );
+    getAdminTeacherSystemMonthParts();
 
 
-  if (error) {
+  const [
+    teachersResult,
+    systemFinancialResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_admin_teachers"
+      ),
+
+      supabaseClient.rpc(
+        "get_admin_teacher_system_financial",
+        {
+          p_year:
+            year,
+
+          p_month:
+            month
+        }
+      )
+
+    ]);
+
+
+  if (
+    teachersResult.error ||
+    systemFinancialResult.error
+  ) {
 
     console.error(
       "Erro ao carregar professores:",
-      error
+      teachersResult.error ||
+      systemFinancialResult.error
     );
 
 
@@ -3919,7 +5202,10 @@ async function loadAdminTeachers() {
 
       <p>
         ${escapeHtml(
-          error.message ||
+          (
+            teachersResult.error ||
+            systemFinancialResult.error
+          ).message ||
           "Nao foi possivel carregar os professores."
         )}
       </p>
@@ -3931,8 +5217,39 @@ async function loadAdminTeachers() {
   }
 
 
+  currentAdminTeacherSystemFinancial =
+    systemFinancialResult.data || [];
+
+
   currentAdminTeachers =
-    data || [];
+    (teachersResult.data || [])
+      .map(
+        teacher => {
+
+          const billing =
+            currentAdminTeacherSystemFinancial.find(
+              item =>
+                String(
+                  item.teacher_id
+                ) ===
+                String(
+                  teacher.teacher_id
+                )
+            )
+            || {};
+
+
+          return {
+            ...teacher,
+            ...billing,
+            system_billing_year:
+              year,
+            system_billing_month:
+              month
+          };
+
+        }
+      );
 
 
   if (
@@ -3993,6 +5310,26 @@ async function loadAdminTeachers() {
             button.dataset.teacherId,
             button.dataset.status,
             button.dataset.teacherName
+          );
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".save-admin-teacher-system-billing-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          saveAdminTeacherSystemBilling(
+            button.dataset.teacherId
           );
 
         }
@@ -4154,6 +5491,285 @@ function renderAdminTeacherCard(
       </div>
 
 
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          border-radius:9px;
+          background:#f7faff;
+          border:1px solid #d9e3f2;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <strong>
+              Mensalidade do sistema
+            </strong>
+
+
+            <div
+              style="
+                margin-top:3px;
+                color:#666;
+                font-size:12px;
+              "
+            >
+              ${formatMonth(
+                Number(
+                  teacher.system_billing_month
+                )
+              )}/${Number(
+                teacher.system_billing_year
+              )}
+            </div>
+
+          </div>
+
+
+          <strong
+            style="
+              padding:5px 9px;
+              border-radius:999px;
+              background:${
+                teacher.display_status ===
+                  "paid"
+
+                  ? "#eef8f0"
+
+                  : (
+                      teacher.display_status ===
+                        "overdue"
+
+                        ? "#fdecea"
+
+                        : "#fff3cd"
+                    )
+              };
+            "
+          >
+            ${
+              teacher.display_status ===
+                "paid"
+
+                ? "Pago"
+
+                : (
+                    teacher.display_status ===
+                      "overdue"
+
+                      ? "Atrasado"
+
+                      : (
+                          teacher.display_status ===
+                            "not_configured"
+
+                            ? "Nao configurado"
+
+                            : "Pendente"
+                        )
+                  )
+            }
+          </strong>
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+            gap:10px;
+            margin-top:12px;
+          "
+        >
+
+          <div>
+
+            <label
+              style="
+                display:block;
+                font-size:12px;
+                font-weight:bold;
+                margin-bottom:5px;
+              "
+            >
+              Valor mensal
+            </label>
+
+
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              class="admin-teacher-system-fee"
+              data-teacher-id="${teacher.teacher_id}"
+              value="${
+                teacher.system_monthly_fee != null
+                  ? Number(
+                      teacher.system_monthly_fee
+                    ).toFixed(2)
+                  : ""
+              }"
+              placeholder="0.00"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ccc;
+                border-radius:7px;
+              "
+            >
+
+          </div>
+
+
+          <div>
+
+            <label
+              style="
+                display:block;
+                font-size:12px;
+                font-weight:bold;
+                margin-bottom:5px;
+              "
+            >
+              Dia do vencimento
+            </label>
+
+
+            <input
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              class="admin-teacher-system-due-day"
+              data-teacher-id="${teacher.teacher_id}"
+              value="${Number(
+                teacher.system_payment_due_day || 10
+              )}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ccc;
+                border-radius:7px;
+              "
+            >
+
+          </div>
+
+
+          <div
+            style="
+              display:flex;
+              align-items:end;
+            "
+          >
+
+            <label
+              style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                min-height:39px;
+                cursor:pointer;
+              "
+            >
+
+              <input
+                type="checkbox"
+                class="admin-teacher-system-paid"
+                data-teacher-id="${teacher.teacher_id}"
+                ${
+                  teacher.payment_status ===
+                    "paid"
+                    ? "checked"
+                    : ""
+                }
+              >
+
+              Pago neste mes
+
+            </label>
+
+          </div>
+
+        </div>
+
+
+        ${
+          teacher.amount != null
+
+            ? `
+
+              <div
+                style="
+                  margin-top:10px;
+                  color:#555;
+                  font-size:13px;
+                "
+              >
+                Lancamento do mes:
+                <strong>
+                  ${formatCurrency(
+                    teacher.amount
+                  )}
+                </strong>
+
+                ${
+                  teacher.due_date
+
+                    ? `
+
+                      -
+                      vencimento
+                      ${formatDate(
+                        new Date(
+                          String(
+                            teacher.due_date
+                          )
+                          +
+                          "T12:00:00"
+                        )
+                      )}
+
+                    `
+
+                    : ""
+                }
+              </div>
+
+            `
+
+            : ""
+        }
+
+
+        <button
+          type="button"
+          class="secondary-button save-admin-teacher-system-billing-button"
+          data-teacher-id="${teacher.teacher_id}"
+          style="
+            margin-top:11px;
+          "
+        >
+          Salvar mensalidade
+        </button>
+
+      </div>
+
+
       ${
         status !==
           "deleted"
@@ -4233,6 +5849,181 @@ function renderAdminTeacherCard(
     </div>
 
   `;
+
+}
+
+
+// =====================================================
+// SALVAR MENSALIDADE DO PROFESSOR
+// =====================================================
+
+async function saveAdminTeacherSystemBilling(
+  teacherId
+) {
+
+  const feeInput =
+    document.querySelector(
+      '.admin-teacher-system-fee[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  const dueDayInput =
+    document.querySelector(
+      '.admin-teacher-system-due-day[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  const paidInput =
+    document.querySelector(
+      '.admin-teacher-system-paid[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  const button =
+    document.querySelector(
+      '.save-admin-teacher-system-billing-button[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  if (
+    !feeInput ||
+    !dueDayInput
+  ) {
+    return;
+  }
+
+
+  const fee =
+    Number(
+      feeInput.value
+    );
+
+
+  const dueDay =
+    Number(
+      dueDayInput.value
+    );
+
+
+  if (
+    feeInput.value ===
+      ""
+    ||
+    !Number.isFinite(
+      fee
+    )
+    ||
+    fee < 0
+  ) {
+
+    alert(
+      "Informe um valor mensal valido."
+    );
+
+    return;
+  }
+
+
+  if (
+    !Number.isInteger(
+      dueDay
+    )
+    ||
+    dueDay < 1
+    ||
+    dueDay > 31
+  ) {
+
+    alert(
+      "O dia do vencimento deve estar entre 1 e 31."
+    );
+
+    return;
+  }
+
+
+  const {
+    year,
+    month
+  } =
+    getAdminTeacherSystemMonthParts();
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_admin_teacher_system_billing",
+      {
+
+        p_teacher_id:
+          teacherId,
+
+        p_monthly_fee:
+          fee,
+
+        p_due_day:
+          dueDay,
+
+        p_year:
+          year,
+
+        p_month:
+          month,
+
+        p_paid:
+          Boolean(
+            paidInput &&
+            paidInput.checked
+          )
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar mensalidade";
+
+  }
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel salvar a mensalidade do professor."
+    );
+
+
+    return;
+  }
+
+
+  await loadAdminTeachers();
 
 }
 
@@ -33781,6 +35572,42 @@ async function loadTeacherProfilePage() {
     await loadCurrentTeacherProfileSettings();
 
 
+  const {
+    data: systemFinancialData,
+    error: systemFinancialError
+  } =
+    await supabaseClient.rpc(
+      "get_my_system_financial"
+    );
+
+
+  const systemFinancial =
+    systemFinancialError
+
+      ? null
+
+      : (
+          (
+            Array.isArray(
+              systemFinancialData
+            )
+              ? systemFinancialData[0]
+              : systemFinancialData
+          )
+          || null
+        );
+
+
+  if (systemFinancialError) {
+
+    console.warn(
+      "Nao foi possivel carregar a mensalidade do sistema:",
+      systemFinancialError
+    );
+
+  }
+
+
   if (!settings) {
 
     area.innerHTML =
@@ -33990,6 +35817,278 @@ async function loadTeacherProfilePage() {
         >
 
       </div>
+
+    </div>
+
+
+    <div
+      style="
+        margin-top:18px;
+        padding:15px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#f7faff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h4
+            style="
+              margin:0;
+            "
+          >
+            Mensalidade do sistema
+          </h4>
+
+
+          <div
+            style="
+              margin-top:4px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            Informacoes definidas pelo administrador.
+          </div>
+
+        </div>
+
+
+        ${
+          systemFinancial &&
+          systemFinancial.display_status !==
+            "not_configured"
+
+            ? `
+
+              <strong
+                style="
+                  padding:6px 10px;
+                  border-radius:999px;
+                  background:${
+                    systemFinancial.display_status ===
+                      "paid"
+
+                      ? "#eef8f0"
+
+                      : (
+                          systemFinancial.display_status ===
+                            "overdue"
+
+                            ? "#fdecea"
+
+                            : "#fff3cd"
+                        )
+                  };
+                "
+              >
+                ${
+                  systemFinancial.display_status ===
+                    "paid"
+
+                    ? "Pago"
+
+                    : (
+                        systemFinancial.display_status ===
+                          "overdue"
+
+                          ? "Atrasado"
+
+                          : "Pendente"
+                      )
+                }
+              </strong>
+
+            `
+
+            : ""
+        }
+
+      </div>
+
+
+      ${
+        !systemFinancial ||
+        systemFinancial.display_status ===
+          "not_configured"
+
+          ? `
+
+            <div
+              style="
+                margin-top:12px;
+                padding:11px;
+                border-radius:8px;
+                background:#ffffff;
+              "
+            >
+              O administrador ainda nao configurou a sua
+              mensalidade de uso do sistema.
+            </div>
+
+          `
+
+          : `
+
+            <div
+              style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+                gap:10px;
+                margin-top:13px;
+              "
+            >
+
+              <div>
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Valor
+                </div>
+
+                <strong
+                  style="
+                    font-size:18px;
+                  "
+                >
+                  ${formatCurrency(
+                    systemFinancial.amount != null
+                      ? systemFinancial.amount
+                      : systemFinancial.system_monthly_fee
+                  )}
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Dia do vencimento
+                </div>
+
+                <strong>
+                  ${Number(
+                    systemFinancial.system_payment_due_day || 10
+                  )}
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Vencimento deste mes
+                </div>
+
+                <strong>
+                  ${
+                    systemFinancial.due_date
+
+                      ? formatDate(
+                          new Date(
+                            String(
+                              systemFinancial.due_date
+                            )
+                            +
+                            "T12:00:00"
+                          )
+                        )
+
+                      : "-"
+                  }
+                </strong>
+
+              </div>
+
+
+              <div>
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Situacao
+                </div>
+
+                <strong>
+                  ${
+                    systemFinancial.display_status ===
+                      "paid"
+
+                      ? "Pago"
+
+                      : (
+                          systemFinancial.display_status ===
+                            "overdue"
+
+                            ? "Atrasado"
+
+                            : "Pendente"
+                        )
+                  }
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            ${
+              systemFinancial.paid_at
+
+                ? `
+
+                  <div
+                    style="
+                      margin-top:10px;
+                      color:#555;
+                      font-size:13px;
+                    "
+                  >
+                    Pagamento registrado em
+                    ${escapeHtml(
+                      formatDateTime(
+                        systemFinancial.paid_at
+                      )
+                    )}.
+                  </div>
+
+                `
+
+                : ""
+            }
+
+          `
+      }
 
     </div>
 
