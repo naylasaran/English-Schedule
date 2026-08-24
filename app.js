@@ -840,11 +840,46 @@ async function loadGuardianStudentDetail(
             `
         }
 
+
+        <div
+          id="guardianMonthlyFinancialReportArea"
+          style="
+            display:none;
+            margin-top:16px;
+          "
+        ></div>
+
       </div>
 
     </div>
 
   `;
+
+
+  document
+    .querySelectorAll(
+      ".guardian-financial-report-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          openGuardianMonthlyFinancialReport(
+            studentId,
+            Number(
+              button.dataset.year
+            ),
+            Number(
+              button.dataset.month
+            )
+          );
+
+        }
+      );
+
+    });
 
 }
 
@@ -993,6 +1028,242 @@ function renderGuardianHistoryRow(
 
 
 // =====================================================
+// RELATORIO FINANCEIRO MENSAL PARA O RESPONSAVEL
+// =====================================================
+
+async function openGuardianMonthlyFinancialReport(
+  studentId,
+  year,
+  month
+) {
+
+  const area =
+    document.getElementById(
+      "guardianMonthlyFinancialReportArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:15px;
+        border:1px solid #d9e3f2;
+        border-radius:8px;
+        background:#f7faff;
+      "
+    >
+      Carregando aulas do mes...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_guardian_student_monthly_financial_report",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_year:
+          year,
+
+        p_month:
+          month
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar relatorio financeiro do responsavel:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:15px;
+          border:1px solid #d9534f;
+          border-radius:8px;
+          background:#ffffff;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar as aulas do mes."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const lessons =
+    data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:16px;
+        border:1px solid #d9e3f2;
+        border-radius:8px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong>
+            Aulas de
+            ${escapeHtml(
+              formatMonth(
+                month
+              )
+            )}/${year}
+          </strong>
+
+
+          <div
+            style="
+              margin-top:4px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            Aulas regulares consideradas no financeiro daquele mes.
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeGuardianMonthlyFinancialReportButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:9px;
+          margin-top:14px;
+        "
+      >
+
+        ${
+          lessons.length === 0
+
+            ? `
+
+              <div
+                style="
+                  padding:13px;
+                  border:1px solid #ddd;
+                  border-radius:8px;
+                "
+              >
+                Nenhuma aula regular encontrada neste mes.
+              </div>
+
+            `
+
+            : lessons
+                .map(
+                  renderMonthlyFinancialLessonRow
+                )
+                .join("")
+        }
+
+      </div>
+
+
+      <p
+        style="
+          margin:14px 0 0;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        Reposicoes nao aparecem como uma nova cobranca.
+      </p>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeGuardianMonthlyFinancialReportButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.style.display =
+          "none";
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest"
+  });
+
+}
+
+
+// =====================================================
 // FINANCEIRO PARA O RESPONSAVEL
 // =====================================================
 
@@ -1102,6 +1373,23 @@ function renderGuardianFinancialRow(
 
           : ""
       }
+
+
+      <button
+        type="button"
+        class="secondary-button guardian-financial-report-button"
+        data-year="${Number(
+          item.year
+        )}"
+        data-month="${Number(
+          item.month
+        )}"
+        style="
+          margin-top:10px;
+        "
+      >
+        Ver aulas do mes
+      </button>
 
     </div>
 
@@ -11310,6 +11598,46 @@ function renderTeacherStudentOverviewCard(
       }
 
 
+      ${
+        student.student_is_minor ===
+          true
+        &&
+        Number(
+          student.guardian_count || 0
+        ) === 0
+
+          ? `
+
+            <div
+              style="
+                margin-top:12px;
+                padding:10px 12px;
+                border-radius:8px;
+                background:#fdecea;
+                color:#8a1f17;
+                font-weight:bold;
+              "
+            >
+              Menor de 18 anos sem responsavel vinculado.
+
+              <div
+                style="
+                  margin-top:4px;
+                  font-size:12px;
+                  font-weight:normal;
+                "
+              >
+                O aluno nao ve os valores financeiros.
+                Cadastre um responsavel em "Ver aluno".
+              </div>
+            </div>
+
+          `
+
+          : ""
+      }
+
+
       <div
         style="
           display:grid;
@@ -13145,6 +13473,33 @@ async function openTeacherStudentDetail(
             >
               O responsavel possui login proprio e acesso somente para consulta.
             </p>
+
+
+            ${
+              financialSettings.student_is_minor
+              &&
+              guardians.length === 0
+
+                ? `
+
+                  <div
+                    style="
+                      margin-top:10px;
+                      padding:10px;
+                      border-radius:8px;
+                      background:#fdecea;
+                      color:#8a1f17;
+                      font-weight:bold;
+                    "
+                  >
+                    Este aluno e menor de 18 anos e ainda nao possui
+                    responsavel vinculado.
+                  </div>
+
+                `
+
+                : ""
+            }
 
           </div>
 
