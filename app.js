@@ -8233,7 +8233,7 @@ async function loadStudentHistory() {
     error: commentsError
   } =
     await supabaseClient.rpc(
-      "get_my_lesson_comments_v2",
+      "get_my_lesson_comments_v3",
       {
         p_lesson_ids:
           lessonIds
@@ -8668,7 +8668,7 @@ async function addLessonComment(
     error
   } =
     await supabaseClient.rpc(
-      "add_my_lesson_comment_v2",
+      "add_my_lesson_comment_v3",
       {
         p_lesson_id:
           lessonId,
@@ -10855,15 +10855,30 @@ function renderStudentWeeklySchedule(
           cell.style.cursor =
             "pointer";
 
+          cell.innerHTML = `
+
+            <strong>
+              Minha aula
+            </strong>
+
+            <br>
+
+            <small>
+              Abrir / comentar
+            </small>
+
+          `;
+
+
           cell.title =
-            "Clique para cancelar ou adiar esta aula.";
+            "Clique para abrir a aula, comentar ou cancelar.";
 
 
           cell.addEventListener(
             "click",
             () => {
 
-              openLessonCancellation(
+              openStudentAgendaOwnLesson(
                 slot,
                 slotDate
               );
@@ -11156,7 +11171,7 @@ async function openStudentAgendaLessonHistory(
     error: commentsError
   } =
     await supabaseClient.rpc(
-      "get_my_lesson_comments_v2",
+      "get_my_lesson_comments_v3",
       {
         p_lesson_ids:
           [
@@ -11493,7 +11508,7 @@ async function openStudentAgendaLessonHistory(
           error
         } =
           await supabaseClient.rpc(
-            "add_my_lesson_comment_v2",
+            "add_my_lesson_comment_v3",
             {
               p_lesson_id:
                 record.lesson_id,
@@ -11659,6 +11674,547 @@ function normalizeStudentScheduleStatus(
 }
 
 
+async function openStudentAgendaOwnLesson(
+  slot,
+  slotDate
+) {
+
+  const area =
+    document.getElementById(
+      "makeupSelectionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const lessonDateDb =
+    formatDateForDatabase(
+      slotDate
+    );
+
+
+  area.innerHTML = `
+
+    <div class="card">
+      Carregando aula...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_or_create_my_lesson_for_slot",
+      {
+        p_lesson_date:
+          lessonDateDb,
+
+        p_slot_start:
+          normalizeTime(
+            slot.start_time
+          )
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao abrir aula pela agenda:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <p
+          style="
+            color:#b3261e;
+          "
+        >
+          ${escapeHtml(
+            error.message ||
+            "Nao foi possivel abrir esta aula."
+          )}
+        </p>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeStudentOwnLessonErrorButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+    `;
+
+
+    const closeErrorButton =
+      document.getElementById(
+        "closeStudentOwnLessonErrorButton"
+      );
+
+
+    if (closeErrorButton) {
+
+      closeErrorButton.onclick =
+        () => {
+
+          area.innerHTML =
+            "";
+
+        };
+
+    }
+
+
+    return;
+  }
+
+
+  const lesson =
+    Array.isArray(
+      data
+    )
+      ? data[0]
+      : data;
+
+
+  if (
+    !lesson ||
+    !lesson.lesson_id
+  ) {
+
+    area.innerHTML = `
+
+      <div class="card">
+        <p>
+          Nao foi possivel identificar esta aula.
+        </p>
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const {
+    data: commentsData,
+    error: commentsError
+  } =
+    await supabaseClient.rpc(
+      "get_my_lesson_comments_v3",
+      {
+        p_lesson_ids:
+          [
+            lesson.lesson_id
+          ]
+      }
+    );
+
+
+  if (commentsError) {
+
+    console.warn(
+      "Erro ao carregar comentarios da aula:",
+      commentsError
+    );
+
+  }
+
+
+  const comments =
+    commentsError
+      ? []
+      : (
+          commentsData || []
+        );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+      "
+    >
+
+      <h3>
+        Minha aula
+      </h3>
+
+
+      <p>
+        <strong>Data:</strong>
+
+        ${formatDate(
+          new Date(
+            lesson.lesson_date +
+            "T12:00:00"
+          )
+        )}
+      </p>
+
+
+      <p>
+        <strong>Horario:</strong>
+
+        ${normalizeTime(
+          lesson.start_time
+        )}
+
+        as
+
+        ${normalizeTime(
+          lesson.end_time
+        )}
+      </p>
+
+
+      <div
+        style="
+          margin-top:15px;
+          padding:15px;
+          border-radius:8px;
+          background:#f7faff;
+          border:1px solid #d9e3f2;
+        "
+      >
+
+        <strong>
+          Comentarios para o professor
+        </strong>
+
+
+        <div
+          style="
+            display:grid;
+            gap:7px;
+            margin-top:10px;
+          "
+        >
+
+          ${
+            comments.length ===
+              0
+
+              ? `
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:13px;
+                  "
+                >
+                  Voce ainda nao comentou esta aula.
+                </div>
+
+              `
+
+              : comments
+                  .map(
+                    comment => `
+
+                      <div
+                        style="
+                          padding:9px 10px;
+                          border-radius:7px;
+                          background:#ffffff;
+                        "
+                      >
+
+                        <div
+                          style="
+                            white-space:pre-wrap;
+                          "
+                        >
+                          ${escapeHtml(
+                            comment.comment
+                          )}
+                        </div>
+
+
+                        <div
+                          style="
+                            margin-top:4px;
+                            color:#777;
+                            font-size:11px;
+                          "
+                        >
+                          ${escapeHtml(
+                            formatDateTime(
+                              comment.created_at
+                            )
+                          )}
+                        </div>
+
+                      </div>
+
+                    `
+                  )
+                  .join("")
+          }
+
+        </div>
+
+
+        <textarea
+          id="studentOwnLessonCommentInput"
+          maxlength="4000"
+          rows="3"
+          placeholder="Escreva um comentario para o professor..."
+          style="
+            width:100%;
+            box-sizing:border-box;
+            margin-top:12px;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+          "
+        ></textarea>
+
+
+        <div
+          style="
+            display:flex;
+            gap:8px;
+            align-items:center;
+            flex-wrap:wrap;
+            margin-top:9px;
+          "
+        >
+
+          <button
+            type="button"
+            class="action-button"
+            id="studentOwnLessonAddCommentButton"
+          >
+            Adicionar comentario
+          </button>
+
+
+          <span
+            id="studentOwnLessonCommentMessage"
+            style="
+              font-size:13px;
+            "
+          ></span>
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          margin-top:15px;
+        "
+      >
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="studentOwnLessonCancellationButton"
+        >
+          Cancelar / adiar aula
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="studentOwnLessonCloseButton"
+        >
+          Voltar
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  const addCommentButton =
+    document.getElementById(
+      "studentOwnLessonAddCommentButton"
+    );
+
+
+  if (addCommentButton) {
+
+    addCommentButton.addEventListener(
+      "click",
+      async () => {
+
+        const input =
+          document.getElementById(
+            "studentOwnLessonCommentInput"
+          );
+
+
+        const message =
+          document.getElementById(
+            "studentOwnLessonCommentMessage"
+          );
+
+
+        const comment =
+          input
+            ? input.value.trim()
+            : "";
+
+
+        if (!comment) {
+
+          if (message) {
+
+            message.textContent =
+              "Escreva um comentario antes de enviar.";
+
+            message.style.color =
+              "red";
+
+          }
+
+
+          return;
+        }
+
+
+        addCommentButton.disabled =
+          true;
+
+        addCommentButton.textContent =
+          "Salvando...";
+
+
+        const {
+          error: saveError
+        } =
+          await supabaseClient.rpc(
+            "add_my_lesson_comment_v3",
+            {
+              p_lesson_id:
+                lesson.lesson_id,
+
+              p_comment:
+                comment
+            }
+          );
+
+
+        addCommentButton.disabled =
+          false;
+
+        addCommentButton.textContent =
+          "Adicionar comentario";
+
+
+        if (saveError) {
+
+          console.error(
+            "Erro ao comentar pela agenda:",
+            saveError
+          );
+
+
+          if (message) {
+
+            message.textContent =
+              saveError.message ||
+              "Nao foi possivel adicionar o comentario.";
+
+            message.style.color =
+              "red";
+
+          }
+
+
+          return;
+        }
+
+
+        await openStudentAgendaOwnLesson(
+          slot,
+          slotDate
+        );
+
+      }
+    );
+
+  }
+
+
+  const cancellationButton =
+    document.getElementById(
+      "studentOwnLessonCancellationButton"
+    );
+
+
+  if (cancellationButton) {
+
+    cancellationButton.addEventListener(
+      "click",
+      () => {
+
+        openLessonCancellation(
+          slot,
+          slotDate
+        );
+
+      }
+    );
+
+  }
+
+
+  const closeButton =
+    document.getElementById(
+      "studentOwnLessonCloseButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CANCELAR / ADIAR AULA
+// =====================================================
+
 async function openLessonCancellation(
   slot,
   slotDate
@@ -11679,7 +12235,7 @@ async function openLessonCancellation(
     error
   } =
     await supabaseClient.rpc(
-      "get_my_lesson_for_slot",
+      "get_or_create_my_lesson_for_slot",
       {
         p_lesson_date:
           lessonDateDb,
