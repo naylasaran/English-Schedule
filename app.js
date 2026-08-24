@@ -20,6 +20,9 @@ let currentTeacherPausePeriods = [];
 let currentTeacherPlans = [];
 let currentTeacherFinancialRecords = [];
 let currentTeacherFinancialStudents = [];
+let currentTeacherProfileSettings = null;
+let currentStudentTeacherSettings = null;
+let currentAdminTeachers = [];
 let editingTeacherFinancialId = null;
 let editingTeacherPlanId = null;
 
@@ -149,7 +152,75 @@ async function showLoggedUser(user) {
     currentProfile.role === "teacher"
   ) {
 
+    const {
+      data: teacherAccountData,
+      error: teacherAccountError
+    } =
+      await supabaseClient.rpc(
+        "get_my_teacher_account"
+      );
+
+
+    const teacherAccount =
+      (
+        Array.isArray(
+          teacherAccountData
+        )
+          ? teacherAccountData[0]
+          : teacherAccountData
+      )
+      || null;
+
+
+    if (
+      teacherAccountError ||
+      !teacherAccount ||
+      teacherAccount.account_status !==
+        "active"
+    ) {
+
+      await supabaseClient.auth.signOut();
+
+
+      teacherScreen.classList.add(
+        "hidden"
+      );
+
+
+      studentScreen.classList.add(
+        "hidden"
+      );
+
+
+      loginScreen.classList.remove(
+        "hidden"
+      );
+
+
+      loginMessage.textContent =
+        teacherAccount &&
+        teacherAccount.account_status ===
+          "paused"
+
+          ? "Este acesso de professor esta pausado pelo administrador."
+
+          : "Este acesso de professor foi desativado.";
+
+
+      return;
+    }
+
+
     await showTeacherArea();
+
+  }
+
+
+  else if (
+    currentProfile.role === "admin"
+  ) {
+
+    await showAdminArea();
 
   }
 
@@ -1413,6 +1484,24 @@ async function showTeacherArea() {
   );
 
 
+  document
+    .querySelectorAll(
+      "[data-teacher-page]"
+    )
+    .forEach(button => {
+
+      button.style.display =
+        "";
+
+    });
+
+
+  ensureTeacherProfileNavButton();
+
+
+  await loadCurrentTeacherProfileSettings();
+
+
   const header =
     document.getElementById(
       "teacherHeader"
@@ -1434,8 +1523,1716 @@ async function showTeacherArea() {
 
 
 // =====================================================
-// NAVEGA\xc7\xc3O DO ALUNO
+// BOTAO PERFIL DO PROFESSOR
 // =====================================================
+
+function ensureTeacherProfileNavButton() {
+
+  if (
+    document.querySelector(
+      '[data-teacher-page="profile"]'
+    )
+  ) {
+    return;
+  }
+
+
+  const firstButton =
+    document.querySelector(
+      "[data-teacher-page]"
+    );
+
+
+  if (
+    !firstButton ||
+    !firstButton.parentElement
+  ) {
+    return;
+  }
+
+
+  const button =
+    document.createElement(
+      "button"
+    );
+
+
+  button.type =
+    "button";
+
+
+  button.className =
+    firstButton.className;
+
+
+  button.dataset.teacherPage =
+    "profile";
+
+
+  button.textContent =
+    "Perfil";
+
+
+  button.addEventListener(
+    "click",
+    () => {
+
+      setTeacherPage(
+        "profile"
+      );
+
+    }
+  );
+
+
+  firstButton.parentElement.appendChild(
+    button
+  );
+
+}
+
+
+// =====================================================
+// CARREGAR CONFIGURACAO ATUAL DO PROFESSOR
+// =====================================================
+
+async function loadCurrentTeacherProfileSettings() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_teacher_profile"
+    );
+
+
+  if (error) {
+
+    console.warn(
+      "Nao foi possivel carregar o perfil do professor:",
+      error
+    );
+
+
+    currentTeacherProfileSettings = {
+      work_start_time:
+        "08:00",
+      work_end_time:
+        "20:00"
+    };
+
+
+    return currentTeacherProfileSettings;
+  }
+
+
+  currentTeacherProfileSettings =
+    (
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data
+    )
+    || {
+      work_start_time:
+        "08:00",
+      work_end_time:
+        "20:00"
+    };
+
+
+  return currentTeacherProfileSettings;
+
+}
+
+
+// =====================================================
+// HORARIO DENTRO DA JANELA DE ATENDIMENTO
+// =====================================================
+
+function isTimeInsideTeacherWorkHours(
+  startTime,
+  endTime,
+  settings
+) {
+
+  if (!settings) {
+    return true;
+  }
+
+
+  const workStart =
+    timeToMinutes(
+      settings.work_start_time ||
+      "00:00"
+    );
+
+
+  const workEnd =
+    timeToMinutes(
+      settings.work_end_time ||
+      "23:59"
+    );
+
+
+  const slotStart =
+    timeToMinutes(
+      startTime
+    );
+
+
+  const slotEnd =
+    timeToMinutes(
+      endTime
+    );
+
+
+  return (
+    slotStart >=
+      workStart
+    &&
+    slotEnd <=
+      workEnd
+  );
+
+}
+
+
+// =====================================================
+// NOME ABREVIADO NA AGENDA DO PROFESSOR
+// Ex.: Gabriel Baggio Montes -> Gabriel B.
+// =====================================================
+
+function formatAgendaStudentName(
+  fullName
+) {
+
+  const parts =
+    String(
+      fullName || ""
+    )
+      .trim()
+      .split(
+        /\s+/
+      )
+      .filter(Boolean);
+
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+
+  return (
+    parts[0]
+    +
+    " "
+    +
+    parts[1]
+      .charAt(0)
+      .toUpperCase()
+    +
+    "."
+  );
+
+}
+
+
+// =====================================================
+// AREA DO ADMINISTRADOR
+// =====================================================
+
+async function showAdminArea() {
+
+  teacherScreen.classList.remove(
+    "hidden"
+  );
+
+
+  studentScreen.classList.add(
+    "hidden"
+  );
+
+
+  document
+    .querySelectorAll(
+      "[data-teacher-page]"
+    )
+    .forEach(button => {
+
+      button.style.display =
+        "none";
+
+    });
+
+
+  const header =
+    document.getElementById(
+      "teacherHeader"
+    );
+
+
+  if (header) {
+
+    header.innerHTML = `
+
+      <h2>
+        Ola, ${escapeHtml(
+          currentProfile.name
+        )}
+      </h2>
+
+      <p>
+        Area administrativa.
+      </p>
+
+    `;
+
+  }
+
+
+  renderAdminTeacherManagement();
+
+  await loadAdminTeachers();
+
+}
+
+
+// =====================================================
+// TELA ADM
+// =====================================================
+
+function renderAdminTeacherManagement() {
+
+  const content =
+    document.getElementById(
+      "teacherContent"
+    );
+
+
+  if (!content) {
+    return;
+  }
+
+
+  content.innerHTML = `
+
+    <div class="card">
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h3
+            style="
+              margin:0;
+            "
+          >
+            Professores
+          </h3>
+
+
+          <p
+            style="
+              margin:6px 0 0;
+              color:#666;
+            "
+          >
+            Cadastre, pause, reative ou exclua acessos de professores.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="action-button"
+          id="openAdminTeacherRegistrationButton"
+        >
+          + Cadastrar professor
+        </button>
+
+      </div>
+
+
+      <div
+        id="adminTeacherRegistrationArea"
+        style="
+          display:none;
+          margin-top:18px;
+          padding:16px;
+          border-radius:10px;
+          background:#f7faff;
+          border:1px solid #d9e3f2;
+        "
+      ></div>
+
+
+      <div
+        id="adminTeacherList"
+        style="
+          margin-top:20px;
+        "
+      >
+        Carregando professores...
+      </div>
+
+    </div>
+
+  `;
+
+
+  const openButton =
+    document.getElementById(
+      "openAdminTeacherRegistrationButton"
+    );
+
+
+  if (openButton) {
+
+    openButton.addEventListener(
+      "click",
+      openAdminTeacherRegistrationForm
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// FORMULARIO DE NOVO PROFESSOR
+// =====================================================
+
+function openAdminTeacherRegistrationForm() {
+
+  const area =
+    document.getElementById(
+      "adminTeacherRegistrationArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <h4
+      style="
+        margin-top:0;
+      "
+    >
+      Cadastrar professor e acesso
+    </h4>
+
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:12px;
+      "
+    >
+
+      <div>
+
+        <label
+          for="adminNewTeacherName"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Nome
+        </label>
+
+        <input
+          type="text"
+          id="adminNewTeacherName"
+          autocomplete="off"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherEmail"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          E-mail
+        </label>
+
+        <input
+          type="email"
+          id="adminNewTeacherEmail"
+          autocomplete="off"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherPassword"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Senha inicial
+        </label>
+
+        <input
+          type="password"
+          id="adminNewTeacherPassword"
+          minlength="6"
+          autocomplete="new-password"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherPasswordConfirm"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Confirmar senha
+        </label>
+
+        <input
+          type="password"
+          id="adminNewTeacherPasswordConfirm"
+          minlength="6"
+          autocomplete="new-password"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherPix"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          PIX
+        </label>
+
+        <input
+          type="text"
+          id="adminNewTeacherPix"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherCnpj"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          CNPJ
+        </label>
+
+        <input
+          type="text"
+          id="adminNewTeacherCnpj"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherStart"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Inicio das aulas
+        </label>
+
+        <input
+          type="time"
+          id="adminNewTeacherStart"
+          step="1800"
+          value="08:00"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="adminNewTeacherEnd"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Fim das aulas
+        </label>
+
+        <input
+          type="time"
+          id="adminNewTeacherEnd"
+          step="1800"
+          value="20:00"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+    </div>
+
+
+    <div
+      style="
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        margin-top:14px;
+      "
+    >
+
+      <button
+        type="button"
+        class="action-button"
+        id="saveAdminTeacherButton"
+      >
+        Criar professor
+      </button>
+
+
+      <button
+        type="button"
+        class="secondary-button"
+        id="cancelAdminTeacherButton"
+      >
+        Cancelar
+      </button>
+
+    </div>
+
+
+    <p
+      id="adminTeacherRegistrationMessage"
+      style="
+        margin-top:10px;
+      "
+    ></p>
+
+  `;
+
+
+  const saveButton =
+    document.getElementById(
+      "saveAdminTeacherButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      saveAdminTeacher
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelAdminTeacherButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        area.style.display =
+          "none";
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CADASTRAR PROFESSOR PELO ADM
+// =====================================================
+
+async function saveAdminTeacher() {
+
+  const nameInput =
+    document.getElementById(
+      "adminNewTeacherName"
+    );
+
+
+  const emailInput =
+    document.getElementById(
+      "adminNewTeacherEmail"
+    );
+
+
+  const passwordInput =
+    document.getElementById(
+      "adminNewTeacherPassword"
+    );
+
+
+  const confirmInput =
+    document.getElementById(
+      "adminNewTeacherPasswordConfirm"
+    );
+
+
+  const pixInput =
+    document.getElementById(
+      "adminNewTeacherPix"
+    );
+
+
+  const cnpjInput =
+    document.getElementById(
+      "adminNewTeacherCnpj"
+    );
+
+
+  const startInput =
+    document.getElementById(
+      "adminNewTeacherStart"
+    );
+
+
+  const endInput =
+    document.getElementById(
+      "adminNewTeacherEnd"
+    );
+
+
+  const message =
+    document.getElementById(
+      "adminTeacherRegistrationMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveAdminTeacherButton"
+    );
+
+
+  if (
+    !nameInput ||
+    !emailInput ||
+    !passwordInput ||
+    !confirmInput ||
+    !startInput ||
+    !endInput
+  ) {
+    return;
+  }
+
+
+  const name =
+    nameInput.value.trim();
+
+
+  const email =
+    emailInput.value
+      .trim()
+      .toLowerCase();
+
+
+  const password =
+    passwordInput.value;
+
+
+  const startTime =
+    startInput.value;
+
+
+  const endTime =
+    endInput.value;
+
+
+  function showError(
+    value
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        value;
+
+      message.style.color =
+        "red";
+
+    }
+
+  }
+
+
+  if (!name) {
+
+    showError(
+      "Informe o nome do professor."
+    );
+
+    return;
+  }
+
+
+  if (!email) {
+
+    showError(
+      "Informe o e-mail do professor."
+    );
+
+    return;
+  }
+
+
+  if (
+    password.length <
+      6
+  ) {
+
+    showError(
+      "A senha deve ter pelo menos 6 caracteres."
+    );
+
+    return;
+  }
+
+
+  if (
+    password !==
+      confirmInput.value
+  ) {
+
+    showError(
+      "As senhas nao conferem."
+    );
+
+    return;
+  }
+
+
+  if (
+    !startTime ||
+    !endTime ||
+    timeToMinutes(
+      startTime
+    ) >=
+    timeToMinutes(
+      endTime
+    )
+  ) {
+
+    showError(
+      "Informe um horario de atendimento valido."
+    );
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Criando...";
+
+  }
+
+
+  let authClient;
+
+
+  try {
+
+    authClient =
+      createStudentAccessAuthClient();
+
+  }
+
+  catch (error) {
+
+    showError(
+      error.message ||
+      "Nao foi possivel iniciar o cadastro."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar professor";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    data: authData,
+    error: authError
+  } =
+    await authClient.auth.signUp({
+
+      email,
+
+      password,
+
+      options: {
+
+        data: {
+          name,
+          role:
+            "teacher"
+        }
+
+      }
+
+    });
+
+
+  const rpcParams = {
+
+    p_name:
+      name,
+
+    p_email:
+      email,
+
+    p_pix:
+      pixInput
+        ? pixInput.value.trim() || null
+        : null,
+
+    p_cnpj:
+      cnpjInput
+        ? cnpjInput.value.trim() || null
+        : null,
+
+    p_work_start_time:
+      startTime,
+
+    p_work_end_time:
+      endTime
+
+  };
+
+
+  if (authError) {
+
+    const existingText =
+      String(
+        authError.message || ""
+      ).toLowerCase();
+
+
+    const maybeExisting =
+      existingText.includes(
+        "already"
+      );
+
+
+    if (!maybeExisting) {
+
+      showError(
+        authError.message ||
+        "Nao foi possivel criar o acesso."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar professor";
+
+      }
+
+
+      return;
+    }
+
+
+    const {
+      error: recoverError
+    } =
+      await supabaseClient.rpc(
+        "recover_teacher_from_auth_email",
+        rpcParams
+      );
+
+
+    if (recoverError) {
+
+      showError(
+        recoverError.message ||
+        "Nao foi possivel recuperar este acesso."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar professor";
+
+      }
+
+
+      return;
+    }
+
+  }
+
+  else {
+
+    const authUser =
+      authData
+        ? authData.user
+        : null;
+
+
+    if (
+      !authUser ||
+      !authUser.id
+    ) {
+
+      showError(
+        "O Supabase nao retornou o usuario criado."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar professor";
+
+      }
+
+
+      return;
+    }
+
+
+    if (
+      Array.isArray(
+        authUser.identities
+      )
+      &&
+      authUser.identities.length ===
+        0
+    ) {
+
+      const {
+        error: recoverError
+      } =
+        await supabaseClient.rpc(
+          "recover_teacher_from_auth_email",
+          rpcParams
+        );
+
+
+      if (recoverError) {
+
+        showError(
+          recoverError.message ||
+          "Nao foi possivel vincular o acesso existente."
+        );
+
+
+        if (button) {
+
+          button.disabled =
+            false;
+
+          button.textContent =
+            "Criar professor";
+
+        }
+
+
+        return;
+      }
+
+    }
+
+    else {
+
+      const {
+        error: registerError
+      } =
+        await supabaseClient.rpc(
+          "register_teacher_from_auth",
+          {
+            p_auth_user_id:
+              authUser.id,
+            ...rpcParams
+          }
+        );
+
+
+      if (registerError) {
+
+        showError(
+          registerError.message ||
+          "O acesso foi criado, mas o professor nao foi registrado."
+        );
+
+
+        if (button) {
+
+          button.disabled =
+            false;
+
+          button.textContent =
+            "Criar professor";
+
+        }
+
+
+        return;
+      }
+
+    }
+
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Criar professor";
+
+  }
+
+
+  const area =
+    document.getElementById(
+      "adminTeacherRegistrationArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+    area.innerHTML =
+      "";
+
+  }
+
+
+  await loadAdminTeachers();
+
+
+  alert(
+    "Professor cadastrado com sucesso."
+  );
+
+}
+
+
+// =====================================================
+// LISTAR PROFESSORES NO ADM
+// =====================================================
+
+async function loadAdminTeachers() {
+
+  const container =
+    document.getElementById(
+      "adminTeacherList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_teachers"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar professores:",
+      error
+    );
+
+
+    container.innerHTML = `
+
+      <p>
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar os professores."
+        )}
+      </p>
+
+    `;
+
+
+    return;
+  }
+
+
+  currentAdminTeachers =
+    data || [];
+
+
+  if (
+    currentAdminTeachers.length ===
+      0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:15px;
+          border-radius:9px;
+          background:#f7faff;
+        "
+      >
+        Nenhum professor cadastrado.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:12px;
+      "
+    >
+
+      ${currentAdminTeachers
+        .map(
+          renderAdminTeacherCard
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".admin-teacher-status-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          changeAdminTeacherStatus(
+            button.dataset.teacherId,
+            button.dataset.status,
+            button.dataset.teacherName
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD DO PROFESSOR NO ADM
+// =====================================================
+
+function renderAdminTeacherCard(
+  teacher
+) {
+
+  const status =
+    String(
+      teacher.account_status ||
+      "active"
+    );
+
+
+  const statusLabel =
+    status ===
+      "active"
+
+      ? "Ativo"
+
+      : (
+          status ===
+            "paused"
+            ? "Pausado"
+            : "Excluido"
+        );
+
+
+  return `
+
+    <div
+      style="
+        padding:16px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:18px;
+            "
+          >
+            ${escapeHtml(
+              teacher.teacher_name
+            )}
+          </strong>
+
+
+          <div
+            style="
+              margin-top:4px;
+              color:#666;
+            "
+          >
+            ${escapeHtml(
+              teacher.teacher_email
+            )}
+          </div>
+
+        </div>
+
+
+        <strong>
+          ${statusLabel}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+          gap:8px;
+          margin-top:13px;
+        "
+      >
+
+        <div>
+          <strong>Alunos ativos:</strong>
+          ${Number(
+            teacher.student_count || 0
+          )}
+        </div>
+
+
+        <div>
+          <strong>Agenda:</strong>
+          ${normalizeTime(
+            teacher.work_start_time
+          )}
+          as
+          ${normalizeTime(
+            teacher.work_end_time
+          )}
+        </div>
+
+
+        ${
+          teacher.pix
+
+            ? `
+
+              <div>
+                <strong>PIX:</strong>
+                ${escapeHtml(
+                  teacher.pix
+                )}
+              </div>
+
+            `
+
+            : ""
+        }
+
+
+        ${
+          teacher.cnpj
+
+            ? `
+
+              <div>
+                <strong>CNPJ:</strong>
+                ${escapeHtml(
+                  teacher.cnpj
+                )}
+              </div>
+
+            `
+
+            : ""
+        }
+
+      </div>
+
+
+      ${
+        status !==
+          "deleted"
+
+          ? `
+
+            <div
+              style="
+                display:flex;
+                gap:8px;
+                flex-wrap:wrap;
+                margin-top:14px;
+              "
+            >
+
+              ${
+                status ===
+                  "active"
+
+                  ? `
+
+                    <button
+                      type="button"
+                      class="secondary-button admin-teacher-status-button"
+                      data-teacher-id="${teacher.teacher_id}"
+                      data-teacher-name="${escapeHtml(
+                        teacher.teacher_name
+                      )}"
+                      data-status="paused"
+                    >
+                      Pausar professor
+                    </button>
+
+                  `
+
+                  : `
+
+                    <button
+                      type="button"
+                      class="action-button admin-teacher-status-button"
+                      data-teacher-id="${teacher.teacher_id}"
+                      data-teacher-name="${escapeHtml(
+                        teacher.teacher_name
+                      )}"
+                      data-status="active"
+                    >
+                      Reativar professor
+                    </button>
+
+                  `
+              }
+
+
+              <button
+                type="button"
+                class="secondary-button admin-teacher-status-button"
+                data-teacher-id="${teacher.teacher_id}"
+                data-teacher-name="${escapeHtml(
+                  teacher.teacher_name
+                )}"
+                data-status="deleted"
+                style="
+                  border-color:#c0392b;
+                  color:#c0392b;
+                "
+              >
+                Excluir professor
+              </button>
+
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// ALTERAR STATUS DO PROFESSOR
+// =====================================================
+
+async function changeAdminTeacherStatus(
+  teacherId,
+  newStatus,
+  teacherName
+) {
+
+  let question =
+    "";
+
+
+  if (
+    newStatus ===
+      "paused"
+  ) {
+
+    question =
+      "Pausar o professor \"" +
+      String(
+        teacherName || ""
+      )
+      +
+      "\"? O login ficara bloqueado ate a reativacao.";
+
+  }
+
+  else if (
+    newStatus ===
+      "active"
+  ) {
+
+    question =
+      "Reativar o professor \"" +
+      String(
+        teacherName || ""
+      )
+      +
+      "\"?";
+
+  }
+
+  else {
+
+    question =
+      "Excluir o professor \"" +
+      String(
+        teacherName || ""
+      )
+      +
+      "\"?\n\n"
+      +
+      "O login sera bloqueado definitivamente, mas o historico de alunos, aulas e financeiro sera preservado.";
+
+  }
+
+
+  if (
+    !window.confirm(
+      question
+    )
+  ) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "set_admin_teacher_status",
+      {
+        p_teacher_id:
+          teacherId,
+
+        p_status:
+          newStatus
+      }
+    );
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel alterar o professor."
+    );
+
+
+    return;
+  }
+
+
+  await loadAdminTeachers();
+
+}
+
+
+// =====================================================
+// NAVEGACAO DO ALUNO
+// =====================================================
+
 
 function setStudentPage(page) {
 
@@ -4836,7 +6633,53 @@ async function loadStudentWeeklySchedule() {
     return;
   }
 
-  currentStudentSchedule = data || [];
+  const {
+    data: teacherSettingsData,
+    error: teacherSettingsError
+  } =
+    await supabaseClient.rpc(
+      "get_my_teacher_public_settings"
+    );
+
+
+  if (teacherSettingsError) {
+
+    console.warn(
+      "Nao foi possivel carregar o horario do professor:",
+      teacherSettingsError
+    );
+
+
+    currentStudentTeacherSettings =
+      null;
+
+  }
+
+  else {
+
+    currentStudentTeacherSettings =
+      (
+        Array.isArray(
+          teacherSettingsData
+        )
+          ? teacherSettingsData[0]
+          : teacherSettingsData
+      )
+      || null;
+
+  }
+
+
+  currentStudentSchedule =
+    (data || [])
+      .filter(
+        slot =>
+          isTimeInsideTeacherWorkHours(
+            slot.start_time,
+            slot.end_time,
+            currentStudentTeacherSettings
+          )
+      );
 
   let weeklyMakeupReservations = [];
   let weeklyLessonHistory = [];
@@ -4871,7 +6714,16 @@ async function loadStudentWeeklySchedule() {
       releasedPauseSlotData || [];
 
 
-    releasedSlots.forEach(
+    releasedSlots
+      .filter(
+        releasedSlot =>
+          isTimeInsideTeacherWorkHours(
+            releasedSlot.start_time,
+            releasedSlot.end_time,
+            currentStudentTeacherSettings
+          )
+      )
+      .forEach(
       releasedSlot => {
 
         const existingSlot =
@@ -7428,6 +9280,48 @@ function setTeacherPage(page) {
 
 
   // ===================================================
+  // PERFIL DO PROFESSOR
+  // ===================================================
+
+  if (page === "profile") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Perfil do professor
+        </h3>
+
+
+        <p>
+          Estes horarios determinam o intervalo exibido
+          na agenda e os horarios permitidos para aulas
+          e reposicoes.
+        </p>
+
+
+        <div
+          id="teacherProfileFormArea"
+          style="
+            margin-top:18px;
+          "
+        >
+          Carregando perfil...
+        </div>
+
+      </div>
+
+    `;
+
+
+    loadTeacherProfilePage();
+
+    return;
+  }
+
+
+  // ===================================================
   // REGRAS DO PROFESSOR
   // ===================================================
 
@@ -9928,6 +11822,22 @@ function addStudentFixedScheduleRow(
         type="time"
         step="1800"
         data-student-schedule-time
+        min="${normalizeTime(
+          (
+            currentTeacherProfileSettings &&
+            currentTeacherProfileSettings.work_start_time
+          )
+          ||
+          "00:00"
+        )}"
+        max="${normalizeTime(
+          (
+            currentTeacherProfileSettings &&
+            currentTeacherProfileSettings.work_end_time
+          )
+          ||
+          "23:30"
+        )}"
         value="${escapeHtml(
           initial.start_time || ""
         )}"
@@ -10114,6 +12024,63 @@ function collectStudentFixedSchedule(
         schedule: [],
         error:
           "Os horarios precisam comecar em :00 ou :30."
+      };
+
+    }
+
+
+    const durationSelect =
+      document.getElementById(
+        "newStudentDuration"
+      );
+
+
+    const duration =
+      durationSelect
+        ? Number(
+            durationSelect.value
+          )
+        : 30;
+
+
+    const proposedEnd =
+      (
+        timeToMinutes(
+          time
+        )
+        +
+        (
+          duration ===
+            60
+            ? 60
+            : 30
+        )
+      );
+
+
+    if (
+      currentTeacherProfileSettings
+      &&
+      (
+        timeToMinutes(
+          time
+        )
+        <
+        timeToMinutes(
+          currentTeacherProfileSettings.work_start_time
+        )
+        ||
+        proposedEnd >
+        timeToMinutes(
+          currentTeacherProfileSettings.work_end_time
+        )
+      )
+    ) {
+
+      return {
+        schedule: [],
+        error:
+          "Este horario fica fora do periodo de atendimento configurado no Perfil do professor."
       };
 
     }
@@ -23401,6 +25368,9 @@ async function loadTeacherStudents() {
 
 async function loadTeacherWeeklySchedule() {
 
+  await loadCurrentTeacherProfileSettings();
+
+
   const body =
     document.getElementById(
       "teacherScheduleBody"
@@ -23580,7 +25550,16 @@ async function loadTeacherWeeklySchedule() {
 
 
     const schedule =
-      (data || []).map(
+      (data || [])
+        .filter(
+          slot =>
+            isTimeInsideTeacherWorkHours(
+              slot.start_time,
+              slot.end_time,
+              currentTeacherProfileSettings
+            )
+        )
+        .map(
         slot => {
 
           const slotStart =
@@ -23848,6 +25827,12 @@ function renderTeacherWeeklySchedule(days) {
             ).trim();
 
 
+          const agendaStudentName =
+            formatAgendaStudentName(
+              studentName
+            );
+
+
           const teacherSlotDateDb =
             formatDateForDatabase(
               day.date
@@ -23939,7 +25924,7 @@ function renderTeacherWeeklySchedule(days) {
 
               <strong>
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   (
                     pausePeriod &&
                     pausePeriod.student_name
@@ -23984,7 +25969,7 @@ function renderTeacherWeeklySchedule(days) {
               <small>
                 Liberado durante a pausa de
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   (
                     pausePeriod &&
                     pausePeriod.student_name
@@ -24016,7 +26001,7 @@ function renderTeacherWeeklySchedule(days) {
 
               <strong>
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   "Aluno"
                 )}
               </strong>
@@ -24073,7 +26058,7 @@ function renderTeacherWeeklySchedule(days) {
 
               <strong>
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   "Aula"
                 )}
               </strong>
@@ -24109,7 +26094,7 @@ function renderTeacherWeeklySchedule(days) {
 
               <strong>
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   "Aluno"
                 )}
               </strong>
@@ -24145,7 +26130,7 @@ function renderTeacherWeeklySchedule(days) {
 
               <strong>
                 ${escapeHtml(
-                  studentName ||
+                  agendaStudentName ||
                   "Aluno"
                 )}
               </strong>
@@ -29957,6 +31942,514 @@ async function markTeacherCancellationAsRead(
 // =====================================================
 // CARREGAR REGRAS DO PROFESSOR
 // =====================================================
+
+// =====================================================
+// PAGINA DE PERFIL DO PROFESSOR
+// =====================================================
+
+async function loadTeacherProfilePage() {
+
+  const area =
+    document.getElementById(
+      "teacherProfileFormArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const settings =
+    await loadCurrentTeacherProfileSettings();
+
+
+  if (!settings) {
+
+    area.innerHTML =
+      "Nao foi possivel carregar o perfil.";
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+        gap:14px;
+      "
+    >
+
+      <div>
+
+        <label
+          for="teacherProfileName"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Nome
+        </label>
+
+        <input
+          type="text"
+          id="teacherProfileName"
+          value="${escapeHtml(
+            settings.teacher_name || ""
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="teacherProfileEmail"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          E-mail
+        </label>
+
+        <input
+          type="email"
+          id="teacherProfileEmail"
+          value="${escapeHtml(
+            settings.teacher_email || ""
+          )}"
+          disabled
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            background:#f2f2f2;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="teacherProfilePix"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          PIX
+        </label>
+
+        <input
+          type="text"
+          id="teacherProfilePix"
+          value="${escapeHtml(
+            settings.pix || ""
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="teacherProfileCnpj"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          CNPJ
+        </label>
+
+        <input
+          type="text"
+          id="teacherProfileCnpj"
+          value="${escapeHtml(
+            settings.cnpj || ""
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="teacherProfileWorkStart"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Inicio das aulas
+        </label>
+
+        <input
+          type="time"
+          id="teacherProfileWorkStart"
+          step="1800"
+          value="${normalizeTime(
+            settings.work_start_time ||
+            "08:00"
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+
+      <div>
+
+        <label
+          for="teacherProfileWorkEnd"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Fim das aulas
+        </label>
+
+        <input
+          type="time"
+          id="teacherProfileWorkEnd"
+          step="1800"
+          value="${normalizeTime(
+            settings.work_end_time ||
+            "20:00"
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+      </div>
+
+    </div>
+
+
+    <div
+      style="
+        margin-top:14px;
+        padding:12px;
+        border-radius:8px;
+        background:#eef5ff;
+        font-size:13px;
+      "
+    >
+      Exemplo: 08:00 ate 20:00 faz a agenda exibir somente
+      esse intervalo. Se ja existir aluno ou reposicao fora
+      do novo horario, o sistema pede para voce reagendar
+      antes de reduzir a janela.
+    </div>
+
+
+    <button
+      type="button"
+      class="action-button"
+      id="saveTeacherProfileButton"
+      style="
+        margin-top:15px;
+      "
+    >
+      Salvar perfil
+    </button>
+
+
+    <p
+      id="teacherProfileMessage"
+      style="
+        margin-top:10px;
+      "
+    ></p>
+
+  `;
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherProfileButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      saveTeacherProfilePage
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// SALVAR PERFIL DO PROFESSOR
+// =====================================================
+
+async function saveTeacherProfilePage() {
+
+  const nameInput =
+    document.getElementById(
+      "teacherProfileName"
+    );
+
+
+  const pixInput =
+    document.getElementById(
+      "teacherProfilePix"
+    );
+
+
+  const cnpjInput =
+    document.getElementById(
+      "teacherProfileCnpj"
+    );
+
+
+  const startInput =
+    document.getElementById(
+      "teacherProfileWorkStart"
+    );
+
+
+  const endInput =
+    document.getElementById(
+      "teacherProfileWorkEnd"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherProfileMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherProfileButton"
+    );
+
+
+  if (
+    !nameInput ||
+    !startInput ||
+    !endInput
+  ) {
+    return;
+  }
+
+
+  const name =
+    nameInput.value.trim();
+
+
+  const startTime =
+    startInput.value;
+
+
+  const endTime =
+    endInput.value;
+
+
+  if (!name) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe o nome do professor.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    !startTime ||
+    !endTime ||
+    timeToMinutes(
+      startTime
+    ) >=
+    timeToMinutes(
+      endTime
+    )
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe um horario inicial e final validos.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_my_teacher_profile",
+      {
+
+        p_name:
+          name,
+
+        p_pix:
+          pixInput
+            ? pixInput.value.trim() || null
+            : null,
+
+        p_cnpj:
+          cnpjInput
+            ? cnpjInput.value.trim() || null
+            : null,
+
+        p_work_start_time:
+          startTime,
+
+        p_work_end_time:
+          endTime
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar perfil";
+
+  }
+
+
+  if (error) {
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o perfil.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  currentProfile.name =
+    name;
+
+
+  await loadCurrentTeacherProfileSettings();
+
+
+  const header =
+    document.getElementById(
+      "teacherHeader"
+    );
+
+
+  if (header) {
+
+    header.innerHTML = `
+      <h2>Ola, ${escapeHtml(name)}</h2>
+      <p>Area do professor.</p>
+    `;
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Perfil atualizado. A agenda passa a usar este horario.";
+
+    message.style.color =
+      "green";
+
+  }
+
+}
+
 
 // =====================================================
 // PAINEL OPERACIONAL DO PROFESSOR
