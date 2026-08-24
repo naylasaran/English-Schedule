@@ -2197,6 +2197,14 @@ function renderAdminTeacherManagement() {
 
 
       <div
+        id="adminTeacherSystemReceivedSummary"
+        style="
+          margin-top:14px;
+        "
+      ></div>
+
+
+      <div
         id="adminTeacherList"
         style="
           margin-top:20px;
@@ -5497,6 +5505,12 @@ async function loadAdminTeachers() {
       );
 
 
+  renderAdminTeacherSystemReceivedSummary(
+    year,
+    month
+  );
+
+
   if (
     currentAdminTeachers.length ===
       0
@@ -5581,6 +5595,108 @@ async function loadAdminTeachers() {
       );
 
     });
+
+}
+
+
+// =====================================================
+// TOTAL RECEBIDO DOS PROFESSORES NO MES
+// =====================================================
+
+function renderAdminTeacherSystemReceivedSummary(
+  year,
+  month
+) {
+
+  const area =
+    document.getElementById(
+      "adminTeacherSystemReceivedSummary"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const paidRecords =
+    currentAdminTeacherSystemFinancial.filter(
+      item =>
+        item.payment_status ===
+          "paid"
+    );
+
+
+  const totalReceived =
+    paidRecords.reduce(
+      (
+        total,
+        item
+      ) =>
+        total
+        +
+        Number(
+          item.amount || 0
+        ),
+      0
+    );
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:15px;
+        border-radius:10px;
+        background:#eef8f0;
+        border:1px solid #d6ead9;
+      "
+    >
+
+      <div
+        style="
+          color:#555;
+          font-size:13px;
+        "
+      >
+        Total recebido dos professores em
+        ${formatMonth(
+          Number(
+            month
+          )
+        )}/${Number(
+          year
+        )}
+      </div>
+
+
+      <strong
+        style="
+          display:block;
+          margin-top:4px;
+          font-size:26px;
+        "
+      >
+        ${formatCurrency(
+          totalReceived
+        )}
+      </strong>
+
+
+      <div
+        style="
+          margin-top:3px;
+          color:#666;
+          font-size:12px;
+        "
+      >
+        ${paidRecords.length}
+        pagamento(s) marcado(s) como pago.
+      </div>
+
+    </div>
+
+  `;
 
 }
 
@@ -14083,6 +14199,48 @@ function setTeacherPage(page) {
             <div>
 
               <label
+                for="newStudentClassLink"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Link da aula
+              </label>
+
+              <input
+                id="newStudentClassLink"
+                type="url"
+                maxlength="2000"
+                autocomplete="off"
+                placeholder="https://meet.google.com/..."
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+              <div
+                style="
+                  margin-top:5px;
+                  color:#666;
+                  font-size:12px;
+                "
+              >
+                Opcional. O professor tera um atalho
+                para este link acima da agenda.
+              </div>
+
+            </div>
+
+
+            <div>
+
+              <label
                 for="newStudentPassword"
                 style="
                   display:block;
@@ -15963,6 +16121,14 @@ function setTeacherPage(page) {
         ></div>
 
 
+        <div
+          id="teacherClassLinksArea"
+          style="
+            margin-bottom:16px;
+          "
+        ></div>
+
+
         <div class="schedule-wrapper">
 
           <table class="schedule-table">
@@ -16884,6 +17050,41 @@ async function saveStudentContractAfterRegistration(
 
 
 // =====================================================
+// SALVAR LINK DA AULA APOS CADASTRO
+// =====================================================
+
+async function saveStudentClassLinkAfterRegistration(
+  studentId,
+  classLink
+) {
+
+  if (!studentId) {
+
+    return {
+      error: {
+        message:
+          "O cadastro do aluno nao retornou o ID necessario para salvar o link da aula."
+      }
+    };
+
+  }
+
+
+  return await supabaseClient.rpc(
+    "save_teacher_student_class_link",
+    {
+      p_student_id:
+        studentId,
+
+      p_class_link:
+        classLink
+    }
+  );
+
+}
+
+
+// =====================================================
 // FINALIZAR PROFILE + STUDENT
 // =====================================================
 
@@ -17027,6 +17228,12 @@ async function saveNewStudentWithAccess() {
     );
 
 
+  const classLinkInput =
+    document.getElementById(
+      "newStudentClassLink"
+    );
+
+
   const passwordInput =
     document.getElementById(
       "newStudentPassword"
@@ -17114,6 +17321,7 @@ async function saveNewStudentWithAccess() {
   if (
     !nameInput ||
     !emailInput ||
+    !classLinkInput ||
     !passwordInput ||
     !confirmInput ||
     !durationSelect ||
@@ -17138,6 +17346,11 @@ async function saveNewStudentWithAccess() {
     emailInput.value
       .trim()
       .toLowerCase();
+
+
+  const classLink =
+    classLinkInput.value.trim() ||
+    null;
 
 
   const password =
@@ -17252,6 +17465,21 @@ async function saveNewStudentWithAccess() {
 
     showError(
       "Digite um e-mail valido."
+    );
+
+    return;
+  }
+
+
+  if (
+    classLink &&
+    !/^https?:\/\//i.test(
+      classLink
+    )
+  ) {
+
+    showError(
+      "O link da aula precisa comecar com http:// ou https://."
     );
 
     return;
@@ -17643,6 +17871,42 @@ async function saveNewStudentWithAccess() {
         }
 
 
+        const {
+          error: classLinkError
+        } =
+          await saveStudentClassLinkAfterRegistration(
+            recoveredStudentId,
+            classLink
+          );
+
+
+        if (classLinkError) {
+
+          showError(
+            "O aluno foi cadastrado, mas nao foi possivel salvar o link da aula: "
+            +
+            (
+              classLinkError.message ||
+              "erro desconhecido"
+            )
+          );
+
+
+          if (button) {
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "Criar aluno e acesso";
+
+          }
+
+
+          return;
+        }
+
+
         await completeStudentRegistrationUi(
           nameInput,
           emailInput,
@@ -17843,6 +18107,42 @@ async function saveNewStudentWithAccess() {
     }
 
 
+    const {
+      error: classLinkError
+    } =
+      await saveStudentClassLinkAfterRegistration(
+        recoveredStudentId,
+        classLink
+      );
+
+
+    if (classLinkError) {
+
+      showError(
+        "O aluno foi cadastrado, mas nao foi possivel salvar o link da aula: "
+        +
+        (
+          classLinkError.message ||
+          "erro desconhecido"
+        )
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar aluno e acesso";
+
+      }
+
+
+      return;
+    }
+
+
     await completeStudentRegistrationUi(
       nameInput,
       emailInput,
@@ -17963,6 +18263,42 @@ async function saveNewStudentWithAccess() {
   }
 
 
+  const {
+    error: classLinkError
+  } =
+    await saveStudentClassLinkAfterRegistration(
+      newStudentId,
+      classLink
+    );
+
+
+  if (classLinkError) {
+
+    showError(
+      "O aluno foi criado, mas nao foi possivel salvar o link da aula: "
+      +
+      (
+        classLinkError.message ||
+        "erro desconhecido"
+      )
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
   await completeStudentRegistrationUi(
     nameInput,
     emailInput,
@@ -18001,6 +18337,21 @@ async function completeStudentRegistrationUi(
 
   emailInput.value =
     "";
+
+
+  const classLinkInput =
+    document.getElementById(
+      "newStudentClassLink"
+    );
+
+
+  if (classLinkInput) {
+
+    classLinkInput.value =
+      "";
+
+  }
+
 
   passwordInput.value =
     "";
@@ -30118,6 +30469,9 @@ async function loadTeacherWeeklySchedule() {
   renderTeacherHolidayDecisionArea();
 
 
+  await loadTeacherClassLinksForAgenda();
+
+
   const pauseWeekEnd =
     addDays(
       selectedTeacherWeekStart,
@@ -37589,6 +37943,127 @@ async function saveTeacherProfilePage() {
       "green";
 
   }
+
+}
+
+
+// =====================================================
+// LINKS DAS AULAS ACIMA DA AGENDA
+// =====================================================
+
+async function loadTeacherClassLinksForAgenda() {
+
+  const area =
+    document.getElementById(
+      "teacherClassLinksArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_class_links"
+    );
+
+
+  if (error) {
+
+    console.warn(
+      "Nao foi possivel carregar os links das aulas:",
+      error
+    );
+
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  const links =
+    data || [];
+
+
+  if (
+    links.length ===
+      0
+  ) {
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:13px 14px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#eef5ff;
+      "
+    >
+
+      <strong>
+        Links das aulas
+      </strong>
+
+
+      <div
+        style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          margin-top:10px;
+        "
+      >
+
+        ${links
+          .map(
+            item => `
+
+              <a
+                href="${escapeHtml(
+                  item.class_link
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="secondary-button"
+                style="
+                  text-decoration:none;
+                "
+                title="${escapeHtml(
+                  item.student_name
+                )}"
+              >
+                ${escapeHtml(
+                  formatAgendaStudentName(
+                    item.student_name
+                  )
+                )}
+                - Abrir aula
+              </a>
+
+            `
+          )
+          .join("")}
+
+      </div>
+
+    </div>
+
+  `;
 
 }
 
