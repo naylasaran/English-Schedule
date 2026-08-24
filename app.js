@@ -8794,6 +8794,14 @@ function setTeacherPage(page) {
 
 
         <div
+          id="teacherFinancialGenerationStatus"
+          style="
+            margin-top:14px;
+          "
+        ></div>
+
+
+        <div
           id="teacherFinancialFormArea"
           style="
             display:none;
@@ -18072,6 +18080,239 @@ async function loadTeacherFinancialRecords() {
   renderTeacherFinancialSummary();
 
   renderTeacherFinancialRecords();
+
+  await loadTeacherFinancialGenerationStatus();
+
+}
+
+
+// =====================================================
+// STATUS DE GERACAO DO FINANCEIRO DO MES
+// =====================================================
+
+async function loadTeacherFinancialGenerationStatus() {
+
+  const area =
+    document.getElementById(
+      "teacherFinancialGenerationStatus"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  const [
+    statusResult,
+    missingResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_financial_generation_status",
+        {
+          p_year:
+            year,
+
+          p_month:
+            month
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_missing_financial_students",
+        {
+          p_year:
+            year,
+
+          p_month:
+            month
+        }
+      )
+
+    ]);
+
+
+  if (
+    statusResult.error ||
+    missingResult.error
+  ) {
+
+    console.error(
+      "Erro ao carregar status de geracao financeira:",
+      statusResult.error ||
+      missingResult.error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px;
+          border-radius:8px;
+          background:#fff3cd;
+        "
+      >
+        Nao foi possivel conferir se existem mensalidades
+        pendentes de geracao.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const status =
+    (
+      Array.isArray(
+        statusResult.data
+      )
+        ? statusResult.data[0]
+        : statusResult.data
+    )
+    || {};
+
+
+  const missing =
+    missingResult.data || [];
+
+
+  if (
+    Number(
+      status.missing_records || 0
+    ) === 0
+  ) {
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px 14px;
+          border-radius:9px;
+          background:#eef8f0;
+        "
+      >
+        <strong>
+          Financeiro do mes completo.
+        </strong>
+
+        <div
+          style="
+            margin-top:4px;
+            font-size:13px;
+            color:#555;
+          "
+        >
+          ${Number(
+            status.generated_records || 0
+          )}
+          de
+          ${Number(
+            status.eligible_students || 0
+          )}
+          aluno(s) elegivel(is) ja possuem lancamento.
+        </div>
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:14px;
+        border-radius:9px;
+        background:#fff3cd;
+      "
+    >
+
+      <strong>
+        ${Number(
+          status.missing_records || 0
+        )}
+        aluno(s) ainda sem lancamento neste mes.
+      </strong>
+
+
+      <div
+        style="
+          margin-top:8px;
+          display:grid;
+          gap:6px;
+        "
+      >
+
+        ${missing
+          .map(
+            item => `
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  gap:10px;
+                  flex-wrap:wrap;
+                  padding:8px 10px;
+                  background:#ffffff;
+                  border-radius:7px;
+                "
+              >
+
+                <span>
+                  ${escapeHtml(
+                    item.student_name
+                  )}
+                </span>
+
+
+                <span>
+                  ${
+                    item.billing_type ===
+                      "per_lesson"
+                      ? "Por aula"
+                      : "Mensal"
+                  }
+                </span>
+
+              </div>
+
+            `
+          )
+          .join("")}
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:10px;
+          font-size:13px;
+          color:#555;
+        "
+      >
+        Use "Gerar mensalidades do mes" para criar somente
+        os lancamentos que ainda estao faltando.
+      </div>
+
+    </div>
+
+  `;
 
 }
 
@@ -29734,11 +29975,24 @@ async function loadTeacherDashboard() {
   }
 
 
+  const dashboardNow =
+    new Date();
+
+
+  const dashboardYear =
+    dashboardNow.getFullYear();
+
+
+  const dashboardMonth =
+    dashboardNow.getMonth() + 1;
+
+
   const [
     summaryResult,
     alertsResult,
     contractSummaryResult,
-    contractAlertsResult
+    contractAlertsResult,
+    financialGenerationResult
   ] =
     await Promise.all([
 
@@ -29756,6 +30010,17 @@ async function loadTeacherDashboard() {
 
       supabaseClient.rpc(
         "get_teacher_contract_dashboard_alerts"
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_financial_generation_status",
+        {
+          p_year:
+            dashboardYear,
+
+          p_month:
+            dashboardMonth
+        }
       )
 
     ]);
@@ -29786,6 +30051,12 @@ async function loadTeacherDashboard() {
           "alertas de contratos",
         error:
           contractAlertsResult.error
+      },
+      {
+        name:
+          "geracao financeira",
+        error:
+          financialGenerationResult.error
       }
     ]
       .filter(
@@ -29844,8 +30115,78 @@ async function loadTeacherDashboard() {
     || {};
 
 
+  const financialGeneration =
+    (
+      !financialGenerationResult.error
+      &&
+      Array.isArray(
+        financialGenerationResult.data
+      )
+        ? financialGenerationResult.data[0]
+        : (
+            !financialGenerationResult.error
+              ? financialGenerationResult.data
+              : null
+          )
+    )
+    || {};
+
+
+  const generatedFinancialAlerts =
+    Number(
+      financialGeneration.missing_records || 0
+    ) > 0
+
+      ? [
+          {
+            alert_type:
+              "missing_financial",
+
+            student_id:
+              null,
+
+            student_name:
+              "",
+
+            title:
+              "Mensalidades do mes ainda nao geradas",
+
+            detail:
+              String(
+                Number(
+                  financialGeneration.missing_records || 0
+                )
+              )
+              +
+              " aluno(s) ainda estao sem lancamento em "
+              +
+              formatMonth(
+                dashboardMonth
+              )
+              +
+              "/"
+              +
+              dashboardYear
+              +
+              ".",
+
+            alert_date:
+              null,
+
+            amount:
+              null,
+
+            sort_priority:
+              15
+          }
+        ]
+
+      : [];
+
+
   const alerts =
     [
+      ...generatedFinancialAlerts,
       ...(
         contractAlertsResult.error
           ? []
@@ -29953,6 +30294,11 @@ async function loadTeacherDashboard() {
         ${renderTeacherDashboardStat(
           "Mensalidades atrasadas",
           summary.overdue_financial || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Mensalidades nao geradas",
+          financialGeneration.missing_records || 0
         )}
 
         ${renderTeacherDashboardStat(
@@ -30210,7 +30556,10 @@ function renderTeacherDashboardAlert(
 
   const financial =
     alert.alert_type ===
-      "overdue_financial";
+      "overdue_financial"
+    ||
+    alert.alert_type ===
+      "missing_financial";
 
 
   return `
