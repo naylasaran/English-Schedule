@@ -25363,6 +25363,148 @@ async function loadTeacherStudents() {
 
 
 // =====================================================
+// COMPLETAR GRADE VISUAL DO HORARIO DO PROFESSOR
+//
+// Ex.: Perfil 08:00 - 20:00
+// gera 08:00, 08:30, ..., 19:30.
+// =====================================================
+
+function fillTeacherScheduleWithWorkHourGrid(
+  schedule
+) {
+
+  const settings =
+    currentTeacherProfileSettings;
+
+
+  if (
+    !settings ||
+    !settings.work_start_time ||
+    !settings.work_end_time
+  ) {
+
+    return schedule || [];
+
+  }
+
+
+  const startMinutes =
+    timeToMinutes(
+      settings.work_start_time
+    );
+
+
+  const endMinutes =
+    timeToMinutes(
+      settings.work_end_time
+    );
+
+
+  const result =
+    [
+      ...(schedule || [])
+    ];
+
+
+  for (
+    let minutes =
+      startMinutes;
+
+    minutes + 30 <=
+      endMinutes;
+
+    minutes += 30
+  ) {
+
+    const startTime =
+      minutesToTime(
+        minutes
+      );
+
+
+    const endTime =
+      minutesToTime(
+        minutes + 30
+      );
+
+
+    const exists =
+      result.some(
+        slot =>
+          normalizeTime(
+            slot.start_time
+          ) ===
+          normalizeTime(
+            startTime
+          )
+      );
+
+
+    if (!exists) {
+
+      result.push({
+
+        start_time:
+          startTime,
+
+        end_time:
+          endTime,
+
+        status:
+          "free",
+
+        student_id:
+          null,
+
+        student_name:
+          null,
+
+        reservation_id:
+          null,
+
+        makeup_id:
+          null,
+
+        attendance:
+          null,
+
+        synthetic_work_slot:
+          true
+
+      });
+
+    }
+
+  }
+
+
+  return result
+    .filter(
+      slot =>
+        isTimeInsideTeacherWorkHours(
+          slot.start_time,
+          slot.end_time,
+          settings
+        )
+    )
+    .sort(
+      (
+        a,
+        b
+      ) =>
+        timeToMinutes(
+          a.start_time
+        )
+        -
+        timeToMinutes(
+          b.start_time
+        )
+    );
+
+}
+
+
+// =====================================================
 // AGENDA SEMANAL DO PROFESSOR
 // =====================================================
 
@@ -25550,15 +25692,17 @@ async function loadTeacherWeeklySchedule() {
 
 
     const schedule =
-      (data || [])
-        .filter(
-          slot =>
-            isTimeInsideTeacherWorkHours(
-              slot.start_time,
-              slot.end_time,
-              currentTeacherProfileSettings
-            )
-        )
+      fillTeacherScheduleWithWorkHourGrid(
+        (data || [])
+          .filter(
+            slot =>
+              isTimeInsideTeacherWorkHours(
+                slot.start_time,
+                slot.end_time,
+                currentTeacherProfileSettings
+              )
+          )
+      )
         .map(
         slot => {
 
