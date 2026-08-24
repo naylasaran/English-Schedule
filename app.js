@@ -7209,6 +7209,15 @@ function setTeacherPage(page) {
 
             <button
               type="button"
+              class="secondary-button"
+              id="openOrphanGuardiansButton"
+            >
+              Responsaveis sem aluno ativo
+            </button>
+
+
+            <button
+              type="button"
               class="action-button"
               id="openRegisterStudentButton"
             >
@@ -7704,6 +7713,15 @@ function setTeacherPage(page) {
 
 
         <div
+          id="teacherOrphanGuardianArea"
+          style="
+            display:none;
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <div
           id="teacherStudentList"
           style="
             margin-top:20px;
@@ -7723,6 +7741,22 @@ function setTeacherPage(page) {
       </div>
 
     `;
+
+
+    const openOrphanGuardiansButton =
+      document.getElementById(
+        "openOrphanGuardiansButton"
+      );
+
+
+    if (openOrphanGuardiansButton) {
+
+      openOrphanGuardiansButton.addEventListener(
+        "click",
+        openTeacherOrphanGuardiansManager
+      );
+
+    }
 
 
     const openRegisterButton =
@@ -13271,6 +13305,449 @@ async function openTeacherStudentDetail(
 
 
 // =====================================================
+// RESPONSAVEIS SEM ALUNO ATIVO
+// =====================================================
+
+async function openTeacherOrphanGuardiansManager() {
+
+  const area =
+    document.getElementById(
+      "teacherOrphanGuardianArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (
+    area.style.display ===
+      "block"
+  ) {
+
+    area.style.display =
+      "none";
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  await loadTeacherOrphanGuardians();
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// CARREGAR RESPONSAVEIS SEM ALUNO ATIVO
+// =====================================================
+
+async function loadTeacherOrphanGuardians() {
+
+  const area =
+    document.getElementById(
+      "teacherOrphanGuardianArea"
+    );
+
+
+  if (!area) {
+    return [];
+  }
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#f7faff;
+      "
+    >
+      Carregando responsaveis sem aluno ativo...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_orphan_guardians"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar responsaveis sem aluno ativo:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:18px;
+          border:1px solid #d9534f;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar os responsaveis."
+        )}
+      </div>
+
+    `;
+
+
+    return [];
+  }
+
+
+  const guardians =
+    data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h4
+            style="
+              margin:0;
+            "
+          >
+            Responsaveis sem aluno ativo
+          </h4>
+
+
+          <p
+            style="
+              margin:6px 0 0;
+              color:#666;
+            "
+          >
+            Somente responsaveis que nao estao ligados a
+            nenhum aluno ativo podem ter o login excluido.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeOrphanGuardiansButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:10px;
+          margin-top:16px;
+        "
+      >
+
+        ${
+          guardians.length ===
+            0
+
+            ? `
+
+              <div
+                style="
+                  padding:14px;
+                  border-radius:8px;
+                  background:#f7faff;
+                "
+              >
+                Nao existe nenhum responsavel disponivel para exclusao.
+              </div>
+
+            `
+
+            : guardians
+                .map(
+                  guardian => `
+
+                    <div
+                      style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:12px;
+                        flex-wrap:wrap;
+                        padding:13px;
+                        border:1px solid #e5e5e5;
+                        border-radius:8px;
+                      "
+                    >
+
+                      <div>
+
+                        <strong>
+                          ${escapeHtml(
+                            guardian.guardian_name
+                          )}
+                        </strong>
+
+
+                        <div
+                          style="
+                            margin-top:4px;
+                            color:#666;
+                          "
+                        >
+                          ${escapeHtml(
+                            guardian.guardian_email
+                          )}
+                        </div>
+
+
+                        ${
+                          Number(
+                            guardian.linked_inactive_students || 0
+                          ) > 0
+
+                            ? `
+
+                              <div
+                                style="
+                                  margin-top:4px;
+                                  font-size:12px;
+                                  color:#777;
+                                "
+                              >
+                                Possui apenas vinculo(s) historico(s)
+                                com aluno(s) inativo(s).
+                              </div>
+
+                            `
+
+                            : ""
+                        }
+
+                      </div>
+
+
+                      <button
+                        type="button"
+                        class="secondary-button delete-orphan-guardian-button"
+                        data-guardian-profile-id="${guardian.guardian_profile_id}"
+                        data-guardian-name="${escapeHtml(
+                          guardian.guardian_name
+                        )}"
+                        style="
+                          border-color:#c0392b;
+                          color:#c0392b;
+                        "
+                      >
+                        Excluir responsavel e login
+                      </button>
+
+                    </div>
+
+                  `
+                )
+                .join("")
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".delete-orphan-guardian-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteTeacherOrphanGuardian(
+            button.dataset.guardianProfileId,
+            button.dataset.guardianName,
+            true
+          );
+
+        }
+      );
+
+    });
+
+
+  const closeButton =
+    document.getElementById(
+      "closeOrphanGuardiansButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.style.display =
+          "none";
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  return guardians;
+
+}
+
+
+// =====================================================
+// EXCLUIR RESPONSAVEL E LOGIN
+// =====================================================
+
+async function deleteTeacherOrphanGuardian(
+  guardianProfileId,
+  guardianName,
+  askConfirmation = true
+) {
+
+  if (askConfirmation) {
+
+    const confirmed =
+      window.confirm(
+
+        "Excluir definitivamente o responsavel \"" +
+        String(
+          guardianName || ""
+        ) +
+        "\"?\n\n" +
+
+        "Isso apagara tambem o login deste responsavel no Supabase Auth.\n\n" +
+
+        "A exclusao so sera permitida se ele nao estiver ligado a nenhum aluno ativo."
+
+      );
+
+
+    if (!confirmed) {
+      return false;
+    }
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "delete_teacher_orphan_guardian",
+      {
+
+        p_guardian_profile_id:
+          guardianProfileId
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao excluir responsavel:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel excluir o responsavel."
+    );
+
+
+    return false;
+  }
+
+
+  const managerArea =
+    document.getElementById(
+      "teacherOrphanGuardianArea"
+    );
+
+
+  if (
+    managerArea &&
+    managerArea.style.display ===
+      "block"
+  ) {
+
+    await loadTeacherOrphanGuardians();
+
+  }
+
+
+  return true;
+
+}
+
+
+// =====================================================
 // FORMULARIO DE RESPONSAVEL
 // =====================================================
 
@@ -14110,9 +14587,74 @@ async function unlinkTeacherStudentGuardian(
   }
 
 
+  const {
+    data: orphanData,
+    error: orphanError
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_orphan_guardians"
+    );
+
+
+  let deletedGuardian =
+    false;
+
+
+  if (!orphanError) {
+
+    const orphan =
+      (orphanData || [])
+        .find(
+          item =>
+            String(
+              item.guardian_profile_id
+            ) ===
+            String(
+              guardianProfileId
+            )
+        );
+
+
+    if (orphan) {
+
+      const deleteNow =
+        window.confirm(
+
+          "O vinculo foi removido e este responsavel nao esta mais ligado a nenhum aluno ativo.\n\n" +
+
+          "Deseja excluir tambem o responsavel e o login dele?"
+
+        );
+
+
+      if (deleteNow) {
+
+        deletedGuardian =
+          await deleteTeacherOrphanGuardian(
+            guardianProfileId,
+            guardianName,
+            false
+          );
+
+      }
+
+    }
+
+  }
+
+
   await openTeacherStudentDetail(
     studentId
   );
+
+
+  if (deletedGuardian) {
+
+    alert(
+      "Responsavel e login excluidos com sucesso."
+    );
+
+  }
 
 }
 
