@@ -19,6 +19,7 @@ let currentTeacherStudents = [];
 let currentTeacherPausePeriods = [];
 let currentTeacherPlans = [];
 let currentTeacherFinancialRecords = [];
+let currentTeacherFinancialStudents = [];
 let editingTeacherFinancialId = null;
 let editingTeacherPlanId = null;
 
@@ -1213,6 +1214,35 @@ function renderFinancialCard(item) {
     );
 
 
+  const fallbackDueDate =
+    (
+      item.year &&
+      item.month
+    )
+      ? (
+          String(
+            item.year
+          )
+          +
+          "-"
+          +
+          String(
+            item.month
+          ).padStart(
+            2,
+            "0"
+          )
+          +
+          "-01"
+        )
+      : null;
+
+
+  const dueDateValue =
+    item.due_date ||
+    fallbackDueDate;
+
+
   const amount =
     formatCurrency(
       item.amount
@@ -1277,25 +1307,22 @@ function renderFinancialCard(item) {
       </p>
 
 
-      ${
-        item.due_date
+      <p>
+        <strong>Vencimento:</strong>
 
-          ? `
+        ${
+          dueDateValue
 
-            <p>
-              <strong>Vencimento:</strong>
-              ${formatDate(
+            ? formatDate(
                 new Date(
-                  item.due_date +
+                  dueDateValue +
                   "T12:00:00"
                 )
-              )}
-            </p>
+              )
 
-          `
-
-          : ""
-      }
+            : "Nao informado"
+        }
+      </p>
 
 
       ${
@@ -6720,13 +6747,32 @@ function setTeacherPage(page) {
           </div>
 
 
-          <button
-            type="button"
-            class="action-button"
-            id="newTeacherFinancialButton"
+          <div
+            style="
+              display:flex;
+              gap:8px;
+              flex-wrap:wrap;
+            "
           >
-            + Nova mensalidade
-          </button>
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="generateTeacherFinancialButton"
+            >
+              Gerar mensalidades do mes
+            </button>
+
+
+            <button
+              type="button"
+              class="action-button"
+              id="newTeacherFinancialButton"
+            >
+              + Nova mensalidade
+            </button>
+
+          </div>
 
         </div>
 
@@ -6834,6 +6880,22 @@ function setTeacherPage(page) {
       </div>
 
     `;
+
+
+    const generateButton =
+      document.getElementById(
+        "generateTeacherFinancialButton"
+      );
+
+
+    if (generateButton) {
+
+      generateButton.addEventListener(
+        "click",
+        generateTeacherFinancialMonth
+      );
+
+    }
 
 
     const newButton =
@@ -10444,6 +10506,7 @@ async function openTeacherStudentDetail(
 
   const [
     scheduleResult,
+    financialSettingsResult,
     historyResult,
     makeupResult
   ] =
@@ -10451,6 +10514,14 @@ async function openTeacherStudentDetail(
 
       supabaseClient.rpc(
         "get_teacher_student_fixed_schedule",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_financial_settings",
         {
           p_student_id:
             studentId
@@ -10478,6 +10549,7 @@ async function openTeacherStudentDetail(
 
   if (
     scheduleResult.error ||
+    financialSettingsResult.error ||
     historyResult.error ||
     makeupResult.error
   ) {
@@ -10485,6 +10557,7 @@ async function openTeacherStudentDetail(
     console.error(
       "Erro ao carregar detalhes do aluno:",
       scheduleResult.error ||
+      financialSettingsResult.error ||
       historyResult.error ||
       makeupResult.error
     );
@@ -10509,6 +10582,17 @@ async function openTeacherStudentDetail(
 
   const fixedSchedule =
     scheduleResult.data || [];
+
+
+  const financialSettings =
+    (
+      Array.isArray(
+        financialSettingsResult.data
+      )
+        ? financialSettingsResult.data[0]
+        : financialSettingsResult.data
+    )
+    || {};
 
 
   const history =
@@ -10714,6 +10798,155 @@ async function openTeacherStudentDetail(
       </div>
 
 
+      <div
+        style="
+          margin-top:20px;
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+
+        <h4
+          style="
+            margin-top:0;
+          "
+        >
+          Configuracao financeira
+        </h4>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+            gap:12px;
+          "
+        >
+
+          <div>
+
+            <label
+              for="teacherStudentMonthlyFee"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Valor mensal
+            </label>
+
+
+            <input
+              type="number"
+              id="teacherStudentMonthlyFee"
+              min="0"
+              step="0.01"
+              value="${
+                financialSettings.monthly_fee != null
+                  ? Number(
+                      financialSettings.monthly_fee
+                    ).toFixed(
+                      2
+                    )
+                  : ""
+              }"
+              placeholder="0,00"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+
+          <div>
+
+            <label
+              for="teacherStudentDueDay"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Dia do vencimento
+            </label>
+
+
+            <input
+              type="number"
+              id="teacherStudentDueDay"
+              min="1"
+              max="31"
+              step="1"
+              value="${Number(
+                financialSettings.payment_due_day || 1
+              )}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+        </div>
+
+
+        <label
+          style="
+            display:block;
+            margin-top:14px;
+          "
+        >
+
+          <input
+            type="checkbox"
+            id="teacherStudentInvoiceDefault"
+            ${
+              financialSettings.invoice_required_default
+                ? "checked"
+                : ""
+            }
+          >
+
+          Normalmente precisa de nota fiscal
+
+        </label>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="saveTeacherStudentFinancialSettingsButton"
+          style="
+            margin-top:14px;
+          "
+        >
+          Salvar configuracao financeira
+        </button>
+
+
+        <p
+          id="teacherStudentFinancialSettingsMessage"
+          style="
+            margin-top:10px;
+          "
+        ></p>
+
+      </div>
+
+
       <h4
         style="
           margin-top:28px;
@@ -10826,6 +11059,28 @@ async function openTeacherStudentDetail(
   }
 
 
+  const saveFinancialSettingsButton =
+    document.getElementById(
+      "saveTeacherStudentFinancialSettingsButton"
+    );
+
+
+  if (saveFinancialSettingsButton) {
+
+    saveFinancialSettingsButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherStudentFinancialSettings(
+          studentId
+        );
+
+      }
+    );
+
+  }
+
+
   const closeButton =
     document.getElementById(
       "closeTeacherStudentDetailButton"
@@ -10851,6 +11106,193 @@ async function openTeacherStudentDetail(
     behavior: "smooth",
     block: "start"
   });
+
+}
+
+
+// =====================================================
+// SALVAR CONFIGURACAO FINANCEIRA DO ALUNO
+// =====================================================
+
+async function saveTeacherStudentFinancialSettings(
+  studentId
+) {
+
+  const feeInput =
+    document.getElementById(
+      "teacherStudentMonthlyFee"
+    );
+
+
+  const dueDayInput =
+    document.getElementById(
+      "teacherStudentDueDay"
+    );
+
+
+  const invoiceInput =
+    document.getElementById(
+      "teacherStudentInvoiceDefault"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentFinancialSettingsMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherStudentFinancialSettingsButton"
+    );
+
+
+  const fee =
+    feeInput
+      ? Number(
+          feeInput.value
+        )
+      : NaN;
+
+
+  const dueDay =
+    dueDayInput
+      ? Number(
+          dueDayInput.value
+        )
+      : NaN;
+
+
+  if (
+    Number.isNaN(
+      fee
+    )
+    ||
+    fee < 0
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite um valor mensal valido.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    Number.isNaN(
+      dueDay
+    )
+    ||
+    dueDay < 1
+    ||
+    dueDay > 31
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "O dia de vencimento deve estar entre 1 e 31.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_student_financial_settings",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_monthly_fee:
+          fee,
+
+        p_payment_due_day:
+          dueDay,
+
+        p_invoice_required_default:
+          Boolean(
+            invoiceInput &&
+            invoiceInput.checked
+          )
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar configuracao financeira";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar configuracao financeira:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Configuracao financeira salva.";
+
+    message.style.color =
+      "green";
+
+  }
 
 }
 
@@ -11500,11 +11942,32 @@ function renderTeacherStudentHistoryRow(
 
 async function loadTeacherFinancialPage() {
 
-  if (
-    currentTeacherStudents.length === 0
-  ) {
+  const {
+    data: financialStudentData,
+    error: financialStudentError
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_financial_students"
+    );
 
-    await loadTeacherStudents();
+
+  if (financialStudentError) {
+
+    console.error(
+      "Erro ao carregar alunos do financeiro:",
+      financialStudentError
+    );
+
+
+    currentTeacherFinancialStudents =
+      [];
+
+  }
+
+  else {
+
+    currentTeacherFinancialStudents =
+      financialStudentData || [];
 
   }
 
@@ -11523,7 +11986,7 @@ async function loadTeacherFinancialPage() {
         Todos os alunos
       </option>
 
-      ${currentTeacherStudents
+      ${currentTeacherFinancialStudents
         .map(
           student => `
 
@@ -11533,6 +11996,11 @@ async function loadTeacherFinancialPage() {
               ${escapeHtml(
                 student.student_name
               )}
+              ${
+                student.classes_paused
+                  ? " - aulas pausadas"
+                  : ""
+              }
             </option>
 
           `
@@ -11608,6 +12076,121 @@ function getTeacherFinancialMonthParts() {
     year,
     month
   };
+
+}
+
+
+// =====================================================
+// GERAR MENSALIDADES AUTOMATICAMENTE
+// =====================================================
+
+async function generateTeacherFinancialMonth() {
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  const confirmed =
+    window.confirm(
+
+      "Gerar as mensalidades de " +
+      formatMonth(
+        month
+      ) +
+      "/" +
+      year +
+      "?\n\n" +
+
+      "O sistema criara apenas os lancamentos que ainda nao existem, " +
+      "usando o valor e o dia de vencimento configurados em cada aluno."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const button =
+    document.getElementById(
+      "generateTeacherFinancialButton"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Gerando...";
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "generate_teacher_monthly_financial",
+      {
+
+        p_year:
+          year,
+
+        p_month:
+          month
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Gerar mensalidades do mes";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao gerar mensalidades:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel gerar as mensalidades."
+    );
+
+
+    return;
+  }
+
+
+  await loadTeacherFinancialRecords();
+
+
+  alert(
+    String(
+      Number(
+        data || 0
+      )
+    )
+    +
+    " mensalidade(s) criada(s)."
+  );
 
 }
 
@@ -12342,7 +12925,7 @@ function openTeacherFinancialForm(
               Selecione
             </option>
 
-            ${currentTeacherStudents
+            ${currentTeacherFinancialStudents
               .map(
                 student => `
 
@@ -12362,6 +12945,11 @@ function openTeacherFinancialForm(
                     ${escapeHtml(
                       student.student_name
                     )}
+                    ${
+                      student.classes_paused
+                        ? " - aulas pausadas"
+                        : ""
+                    }
                   </option>
 
                 `
