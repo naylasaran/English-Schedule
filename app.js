@@ -23,6 +23,9 @@ let currentTeacherFinancialStudents = [];
 let editingTeacherFinancialId = null;
 let editingTeacherPlanId = null;
 
+let currentGuardianStudents = [];
+let selectedGuardianStudentId = null;
+
 let currentStudentSchedule = [];
 let selectedScheduleSlot = null;
 let selectedWeekStart = getMonday(new Date());
@@ -151,6 +154,15 @@ async function showLoggedUser(user) {
   }
 
 
+  else if (
+    currentProfile.role === "guardian"
+  ) {
+
+    await showGuardianArea();
+
+  }
+
+
   else {
 
     await supabaseClient.auth.signOut();
@@ -208,6 +220,18 @@ async function loadCurrentStudentId() {
 
 async function showStudentArea() {
 
+  document
+    .querySelectorAll(
+      "[data-student-page]"
+    )
+    .forEach(button => {
+
+      button.style.display =
+        "";
+
+    });
+
+
   studentScreen.classList.remove(
     "hidden"
   );
@@ -238,7 +262,856 @@ async function showStudentArea() {
 
 
 // =====================================================
-// \xc1REA DO PROFESSOR
+// AREA DO RESPONSAVEL
+// =====================================================
+
+async function showGuardianArea() {
+
+  studentScreen.classList.remove(
+    "hidden"
+  );
+
+
+  teacherScreen.classList.add(
+    "hidden"
+  );
+
+
+  document
+    .querySelectorAll(
+      "[data-student-page]"
+    )
+    .forEach(button => {
+
+      button.style.display =
+        "none";
+
+    });
+
+
+  const header =
+    document.getElementById(
+      "studentHeader"
+    );
+
+
+  if (header) {
+
+    header.innerHTML = `
+
+      <h2>
+        Ola, ${escapeHtml(
+          currentProfile.name
+        )}
+      </h2>
+
+      <p>
+        Area do responsavel.
+      </p>
+
+    `;
+
+  }
+
+
+  await loadGuardianDashboard();
+
+}
+
+
+// =====================================================
+// CARREGAR ALUNOS DO RESPONSAVEL
+// =====================================================
+
+async function loadGuardianDashboard() {
+
+  const content =
+    document.getElementById(
+      "studentContent"
+    );
+
+
+  if (!content) {
+    return;
+  }
+
+
+  content.innerHTML = `
+
+    <div class="card">
+      Carregando alunos vinculados...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_guardian_students"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar alunos do responsavel:",
+      error
+    );
+
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <p>
+          Nao foi possivel carregar os alunos vinculados.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  currentGuardianStudents =
+    data || [];
+
+
+  if (
+    currentGuardianStudents.length ===
+      0
+  ) {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Area do responsavel
+        </h3>
+
+        <p>
+          Nenhum aluno esta vinculado a este acesso.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  if (
+    !selectedGuardianStudentId
+    ||
+    !currentGuardianStudents.some(
+      item =>
+        String(
+          item.student_id
+        ) ===
+        String(
+          selectedGuardianStudentId
+        )
+    )
+  ) {
+
+    selectedGuardianStudentId =
+      currentGuardianStudents[0]
+        .student_id;
+
+  }
+
+
+  content.innerHTML = `
+
+    <div class="card">
+
+      <h3>
+        Acompanhamento do aluno
+      </h3>
+
+
+      <div
+        style="
+          max-width:420px;
+          margin-top:15px;
+        "
+      >
+
+        <label
+          for="guardianStudentSelect"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Aluno
+        </label>
+
+
+        <select
+          id="guardianStudentSelect"
+          style="
+            width:100%;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+          "
+        >
+
+          ${currentGuardianStudents
+            .map(
+              student => `
+
+                <option
+                  value="${student.student_id}"
+                  ${
+                    String(
+                      student.student_id
+                    ) ===
+                    String(
+                      selectedGuardianStudentId
+                    )
+                      ? "selected"
+                      : ""
+                  }
+                >
+                  ${escapeHtml(
+                    student.student_name
+                  )}
+                </option>
+
+              `
+            )
+            .join("")}
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="guardianStudentDetailArea"
+        style="
+          margin-top:20px;
+        "
+      >
+        Carregando informacoes...
+      </div>
+
+    </div>
+
+  `;
+
+
+  const select =
+    document.getElementById(
+      "guardianStudentSelect"
+    );
+
+
+  if (select) {
+
+    select.addEventListener(
+      "change",
+      () => {
+
+        selectedGuardianStudentId =
+          select.value;
+
+
+        loadGuardianStudentDetail(
+          selectedGuardianStudentId
+        );
+
+      }
+    );
+
+  }
+
+
+  await loadGuardianStudentDetail(
+    selectedGuardianStudentId
+  );
+
+}
+
+
+// =====================================================
+// DETALHE DO ALUNO PARA O RESPONSAVEL
+// =====================================================
+
+async function loadGuardianStudentDetail(
+  studentId
+) {
+
+  const area =
+    document.getElementById(
+      "guardianStudentDetailArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML =
+    "Carregando informacoes...";
+
+
+  const [
+    scheduleResult,
+    historyResult,
+    financialResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_guardian_student_fixed_schedule",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_guardian_student_lesson_history",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_guardian_student_financial_history",
+        {
+          p_student_id:
+            studentId
+        }
+      )
+
+    ]);
+
+
+  if (
+    scheduleResult.error ||
+    historyResult.error ||
+    financialResult.error
+  ) {
+
+    console.error(
+      "Erro ao carregar detalhes para responsavel:",
+      scheduleResult.error ||
+      historyResult.error ||
+      financialResult.error
+    );
+
+
+    area.innerHTML = `
+
+      <p>
+        Nao foi possivel carregar as informacoes deste aluno.
+      </p>
+
+    `;
+
+
+    return;
+  }
+
+
+  const schedule =
+    scheduleResult.data || [];
+
+
+  const history =
+    historyResult.data || [];
+
+
+  const financial =
+    financialResult.data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:18px;
+      "
+    >
+
+      <div
+        style="
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#f7faff;
+        "
+      >
+
+        <h4
+          style="
+            margin-top:0;
+          "
+        >
+          Dias e horarios das aulas
+        </h4>
+
+
+        ${
+          schedule.length ===
+            0
+
+            ? `
+
+              <p>
+                Nenhum horario fixo cadastrado no momento.
+              </p>
+
+            `
+
+            : `
+
+              <div
+                style="
+                  display:grid;
+                  gap:8px;
+                "
+              >
+
+                ${schedule
+                  .map(
+                    item => `
+
+                      <div
+                        style="
+                          padding:10px;
+                          border-radius:8px;
+                          background:#ffffff;
+                          border:1px solid #e5e5e5;
+                        "
+                      >
+
+                        <strong>
+                          ${escapeHtml(
+                            formatDay(
+                              item.day_of_week
+                            )
+                          )}
+                        </strong>
+
+                        -
+
+                        ${normalizeTime(
+                          item.start_time
+                        )}
+
+                        as
+
+                        ${normalizeTime(
+                          item.end_time
+                        )}
+
+                      </div>
+
+                    `
+                  )
+                  .join("")}
+
+              </div>
+
+            `
+        }
+
+      </div>
+
+
+      <div
+        style="
+          padding:16px;
+          border:1px solid #ddd;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+
+        <h4
+          style="
+            margin-top:0;
+          "
+        >
+          Historico de aulas
+        </h4>
+
+
+        ${
+          history.length ===
+            0
+
+            ? `
+
+              <p>
+                Ainda nao ha aulas registradas.
+              </p>
+
+            `
+
+            : `
+
+              <div
+                style="
+                  display:grid;
+                  gap:10px;
+                "
+              >
+
+                ${history
+                  .map(
+                    renderGuardianHistoryRow
+                  )
+                  .join("")}
+
+              </div>
+
+            `
+        }
+
+      </div>
+
+
+      <div
+        style="
+          padding:16px;
+          border:1px solid #ddd;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+
+        <h4
+          style="
+            margin-top:0;
+          "
+        >
+          Financeiro
+        </h4>
+
+
+        ${
+          financial.length ===
+            0
+
+            ? `
+
+              <p>
+                Nenhuma mensalidade cadastrada.
+              </p>
+
+            `
+
+            : `
+
+              <div
+                style="
+                  display:grid;
+                  gap:10px;
+                "
+              >
+
+                ${financial
+                  .map(
+                    renderGuardianFinancialRow
+                  )
+                  .join("")}
+
+              </div>
+
+            `
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// HISTORICO PARA O RESPONSAVEL
+// =====================================================
+
+function renderGuardianHistoryRow(
+  record
+) {
+
+  const subject =
+    [
+      record.subject_name,
+      record.content_title
+    ]
+      .filter(Boolean)
+      .join(" - ");
+
+
+  return `
+
+    <div
+      style="
+        padding:13px;
+        border:1px solid #e5e5e5;
+        border-radius:8px;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${formatDate(
+            new Date(
+              record.lesson_date +
+              "T12:00:00"
+            )
+          )}
+
+          -
+
+          ${normalizeTime(
+            record.start_time
+          )}
+
+          as
+
+          ${normalizeTime(
+            record.end_time
+          )}
+        </strong>
+
+
+        <strong>
+          ${
+            record.attendance_status
+              ? escapeHtml(
+                  formatAttendanceStatus(
+                    record.attendance_status
+                  )
+                )
+              : (
+                  record.lesson_status ===
+                    "cancelled"
+                    ? "Cancelada"
+                    : "Sem registro de presenca"
+                )
+          }
+        </strong>
+
+      </div>
+
+
+      ${
+        subject
+
+          ? `
+
+            <div
+              style="
+                margin-top:7px;
+                color:#555;
+              "
+            >
+              ${escapeHtml(
+                subject
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        record.teacher_notes
+
+          ? `
+
+            <div
+              style="
+                margin-top:9px;
+                padding:10px;
+                background:#f7faff;
+                border-radius:8px;
+                white-space:pre-wrap;
+              "
+            >
+
+              <strong>
+                Observacoes do professor:
+              </strong>
+
+              <div
+                style="
+                  margin-top:4px;
+                "
+              >
+                ${escapeHtml(
+                  record.teacher_notes
+                )}
+              </div>
+
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// FINANCEIRO PARA O RESPONSAVEL
+// =====================================================
+
+function renderGuardianFinancialRow(
+  item
+) {
+
+  const dueDate =
+    item.due_date
+      ? formatDate(
+          new Date(
+            item.due_date +
+            "T12:00:00"
+          )
+        )
+      : "Nao informado";
+
+
+  return `
+
+    <div
+      style="
+        padding:13px;
+        border:1px solid #e5e5e5;
+        border-radius:8px;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${escapeHtml(
+            formatMonth(
+              item.month
+            )
+          )}/${item.year}
+        </strong>
+
+
+        <strong>
+          ${formatCurrency(
+            item.amount
+          )}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:7px;
+        "
+      >
+        <strong>
+          Vencimento:
+        </strong>
+
+        ${dueDate}
+      </div>
+
+
+      <div
+        style="
+          margin-top:5px;
+        "
+      >
+        <strong>
+          Status:
+        </strong>
+
+        ${formatPaymentStatus(
+          item.payment_status
+        )}
+      </div>
+
+
+      ${
+        item.billing_type ===
+          "per_lesson"
+
+          ? `
+
+            <div
+              style="
+                margin-top:5px;
+                color:#555;
+              "
+            >
+              ${Number(
+                item.lesson_count || 0
+              )}
+              aula(s)
+              x
+              ${formatCurrency(
+                item.lesson_unit_value || 0
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// AREA DO PROFESSOR
 // =====================================================
 
 async function showTeacherArea() {
@@ -11372,7 +12245,8 @@ async function openTeacherStudentDetail(
     financialSettingsResult,
     historyResult,
     makeupResult,
-    commentsResult
+    commentsResult,
+    guardiansResult
   ] =
     await Promise.all([
 
@@ -11414,6 +12288,14 @@ async function openTeacherStudentDetail(
           p_student_id:
             studentId
         }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_guardians",
+        {
+          p_student_id:
+            studentId
+        }
       )
 
     ]);
@@ -11424,7 +12306,8 @@ async function openTeacherStudentDetail(
     financialSettingsResult.error ||
     historyResult.error ||
     makeupResult.error ||
-    commentsResult.error
+    commentsResult.error ||
+    guardiansResult.error
   ) {
 
     console.error(
@@ -11433,7 +12316,8 @@ async function openTeacherStudentDetail(
       financialSettingsResult.error ||
       historyResult.error ||
       makeupResult.error ||
-      commentsResult.error
+      commentsResult.error ||
+      guardiansResult.error
     );
 
 
@@ -11479,6 +12363,10 @@ async function openTeacherStudentDetail(
 
   const studentComments =
     commentsResult.data || [];
+
+
+  const guardians =
+    guardiansResult.data || [];
 
 
   area.innerHTML = `
@@ -11927,6 +12815,161 @@ async function openTeacherStudentDetail(
       </div>
 
 
+      <div
+        style="
+          margin-top:20px;
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Acesso de responsavel
+            </h4>
+
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              O responsavel possui login proprio e acesso somente para consulta.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="addTeacherStudentGuardianButton"
+          >
+            + Cadastrar / vincular responsavel
+          </button>
+
+        </div>
+
+
+        <div
+          id="teacherStudentGuardianFormArea"
+          style="
+            margin-top:14px;
+          "
+        ></div>
+
+
+        <div
+          style="
+            display:grid;
+            gap:8px;
+            margin-top:14px;
+          "
+        >
+
+          ${
+            guardians.length === 0
+
+              ? `
+
+                <div
+                  style="
+                    padding:12px;
+                    background:#f7faff;
+                    border-radius:8px;
+                  "
+                >
+                  Nenhum responsavel vinculado.
+                </div>
+
+              `
+
+              : guardians
+                  .map(
+                    guardian => `
+
+                      <div
+                        style="
+                          display:flex;
+                          justify-content:space-between;
+                          align-items:center;
+                          gap:10px;
+                          flex-wrap:wrap;
+                          padding:12px;
+                          border:1px solid #e5e5e5;
+                          border-radius:8px;
+                        "
+                      >
+
+                        <div>
+
+                          <strong>
+                            ${escapeHtml(
+                              guardian.guardian_name
+                            )}
+                          </strong>
+
+
+                          <div
+                            style="
+                              margin-top:3px;
+                              color:#666;
+                            "
+                          >
+                            ${escapeHtml(
+                              guardian.guardian_email
+                            )}
+                          </div>
+
+                        </div>
+
+
+                        <button
+                          type="button"
+                          class="secondary-button unlink-teacher-student-guardian-button"
+                          data-guardian-profile-id="${guardian.guardian_profile_id}"
+                          data-guardian-name="${escapeHtml(
+                            guardian.guardian_name
+                          )}"
+                          style="
+                            border-color:#c0392b;
+                            color:#c0392b;
+                          "
+                        >
+                          Remover vinculo
+                        </button>
+
+                      </div>
+
+                    `
+                  )
+                  .join("")
+          }
+
+        </div>
+
+      </div>
+
+
       <h4
         style="
           margin-top:28px;
@@ -12106,6 +13149,53 @@ async function openTeacherStudentDetail(
   }
 
 
+  const addGuardianButton =
+    document.getElementById(
+      "addTeacherStudentGuardianButton"
+    );
+
+
+  if (addGuardianButton) {
+
+    addGuardianButton.addEventListener(
+      "click",
+      () => {
+
+        openTeacherStudentGuardianForm(
+          studentId,
+          student
+            ? student.student_name
+            : "Aluno"
+        );
+
+      }
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(
+      ".unlink-teacher-student-guardian-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          unlinkTeacherStudentGuardian(
+            studentId,
+            button.dataset.guardianProfileId,
+            button.dataset.guardianName
+          );
+
+        }
+      );
+
+    });
+
+
   const closeButton =
     document.getElementById(
       "closeTeacherStudentDetailButton"
@@ -12176,6 +13266,853 @@ async function openTeacherStudentDetail(
     }
 
   }
+
+}
+
+
+// =====================================================
+// FORMULARIO DE RESPONSAVEL
+// =====================================================
+
+function openTeacherStudentGuardianForm(
+  studentId,
+  studentName
+) {
+
+  const area =
+    document.getElementById(
+      "teacherStudentGuardianFormArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:15px;
+        border:1px solid #ddd;
+        border-radius:8px;
+        background:#f7faff;
+      "
+    >
+
+      <strong>
+        Responsavel por
+        ${escapeHtml(
+          studentName || "Aluno"
+        )}
+      </strong>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+          gap:12px;
+          margin-top:14px;
+        "
+      >
+
+        <div>
+
+          <label
+            for="newGuardianName"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Nome
+          </label>
+
+
+          <input
+            type="text"
+            id="newGuardianName"
+            autocomplete="off"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="newGuardianEmail"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            E-mail
+          </label>
+
+
+          <input
+            type="email"
+            id="newGuardianEmail"
+            autocomplete="off"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="newGuardianPassword"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Senha inicial
+          </label>
+
+
+          <input
+            type="password"
+            id="newGuardianPassword"
+            autocomplete="new-password"
+            minlength="6"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="newGuardianPasswordConfirm"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Confirmar senha
+          </label>
+
+
+          <input
+            type="password"
+            id="newGuardianPasswordConfirm"
+            autocomplete="new-password"
+            minlength="6"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+      </div>
+
+
+      <p
+        style="
+          margin-top:12px;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        Se este e-mail ja for responsavel por outro aluno,
+        o sistema apenas vincula o mesmo acesso.
+      </p>
+
+
+      <div
+        style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          margin-top:14px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherStudentGuardianButton"
+        >
+          Criar / vincular acesso
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelTeacherStudentGuardianButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherStudentGuardianMessage"
+        style="
+          margin-top:10px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherStudentGuardianButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherStudentGuardian(
+          studentId
+        );
+
+      }
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelTeacherStudentGuardianButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// FINALIZAR VINCULO DO RESPONSAVEL
+// =====================================================
+
+async function finishGuardianRegistration(
+  authUserId,
+  studentId,
+  name,
+  email
+) {
+
+  return await supabaseClient.rpc(
+    "register_guardian_from_auth",
+    {
+
+      p_auth_user_id:
+        authUserId,
+
+      p_student_id:
+        studentId,
+
+      p_name:
+        name,
+
+      p_email:
+        email
+
+    }
+  );
+
+}
+
+
+// =====================================================
+// RECUPERAR RESPONSAVEL EXISTENTE
+// =====================================================
+
+async function recoverExistingGuardianAccess(
+  studentId,
+  name,
+  email
+) {
+
+  return await supabaseClient.rpc(
+    "recover_guardian_from_auth_email",
+    {
+
+      p_student_id:
+        studentId,
+
+      p_name:
+        name,
+
+      p_email:
+        email
+
+    }
+  );
+
+}
+
+
+// =====================================================
+// CRIAR / VINCULAR RESPONSAVEL
+// =====================================================
+
+async function saveTeacherStudentGuardian(
+  studentId
+) {
+
+  const nameInput =
+    document.getElementById(
+      "newGuardianName"
+    );
+
+
+  const emailInput =
+    document.getElementById(
+      "newGuardianEmail"
+    );
+
+
+  const passwordInput =
+    document.getElementById(
+      "newGuardianPassword"
+    );
+
+
+  const confirmInput =
+    document.getElementById(
+      "newGuardianPasswordConfirm"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherStudentGuardianButton"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentGuardianMessage"
+    );
+
+
+  if (
+    !nameInput ||
+    !emailInput ||
+    !passwordInput ||
+    !confirmInput
+  ) {
+    return;
+  }
+
+
+  const name =
+    nameInput.value.trim();
+
+
+  const email =
+    emailInput.value
+      .trim()
+      .toLowerCase();
+
+
+  const password =
+    passwordInput.value;
+
+
+  const confirmPassword =
+    confirmInput.value;
+
+
+  function showError(
+    text
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        text;
+
+      message.style.color =
+        "red";
+
+    }
+
+  }
+
+
+  if (!name) {
+
+    showError(
+      "Digite o nome do responsavel."
+    );
+
+    return;
+  }
+
+
+  if (!email) {
+
+    showError(
+      "Digite o e-mail do responsavel."
+    );
+
+    return;
+  }
+
+
+  if (
+    password.length < 6
+  ) {
+
+    showError(
+      "A senha deve ter pelo menos 6 caracteres."
+    );
+
+    return;
+  }
+
+
+  if (
+    password !==
+      confirmPassword
+  ) {
+
+    showError(
+      "As senhas nao conferem."
+    );
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Criando acesso...";
+
+  }
+
+
+  let authClient;
+
+
+  try {
+
+    authClient =
+      createStudentAccessAuthClient();
+
+  }
+
+  catch (error) {
+
+    showError(
+      error.message ||
+      "Nao foi possivel iniciar o cadastro."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar / vincular acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    data: authData,
+    error: authError
+  } =
+    await authClient.auth.signUp({
+
+      email,
+
+      password,
+
+      options: {
+
+        data: {
+
+          name,
+
+          role:
+            "guardian"
+
+        }
+
+      }
+
+    });
+
+
+  async function tryRecovery() {
+
+    const {
+      error
+    } =
+      await recoverExistingGuardianAccess(
+        studentId,
+        name,
+        email
+      );
+
+
+    return error;
+
+  }
+
+
+  if (authError) {
+
+    const authErrorText =
+      String(
+        authError.message || ""
+      ).toLowerCase();
+
+
+    const existing =
+      authErrorText.includes(
+        "already registered"
+      )
+      ||
+      authErrorText.includes(
+        "already exists"
+      )
+      ||
+      authErrorText.includes(
+        "user already"
+      );
+
+
+    if (!existing) {
+
+      showError(
+        authError.message ||
+        "Nao foi possivel criar o acesso."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar / vincular acesso";
+
+      }
+
+
+      return;
+    }
+
+
+    const recoveryError =
+      await tryRecovery();
+
+
+    if (recoveryError) {
+
+      showError(
+        recoveryError.message ||
+        "Este e-mail ja possui outro tipo de acesso."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar / vincular acesso";
+
+      }
+
+
+      return;
+    }
+
+
+    await openTeacherStudentDetail(
+      studentId
+    );
+
+
+    alert(
+      "Responsavel existente vinculado ao aluno."
+    );
+
+
+    return;
+  }
+
+
+  const authUser =
+    authData
+      ? authData.user
+      : null;
+
+
+  if (
+    !authUser ||
+    !authUser.id
+  ) {
+
+    showError(
+      "O Supabase nao retornou o usuario criado."
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar / vincular acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    Array.isArray(
+      authUser.identities
+    )
+    &&
+    authUser.identities.length ===
+      0
+  ) {
+
+    const recoveryError =
+      await tryRecovery();
+
+
+    if (recoveryError) {
+
+      showError(
+        recoveryError.message ||
+        "Este e-mail ja possui outro tipo de acesso."
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar / vincular acesso";
+
+      }
+
+
+      return;
+    }
+
+
+    await openTeacherStudentDetail(
+      studentId
+    );
+
+
+    alert(
+      "Responsavel existente vinculado ao aluno."
+    );
+
+
+    return;
+  }
+
+
+  const {
+    error: guardianError
+  } =
+    await finishGuardianRegistration(
+      authUser.id,
+      studentId,
+      name,
+      email
+    );
+
+
+  if (guardianError) {
+
+    console.error(
+      "Erro ao vincular responsavel:",
+      guardianError
+    );
+
+
+    showError(
+      "O acesso foi criado, mas o vinculo falhou: "
+      +
+      (
+        guardianError.message ||
+        "erro desconhecido"
+      )
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar / vincular acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  await openTeacherStudentDetail(
+    studentId
+  );
+
+
+  alert(
+    "Acesso do responsavel criado e vinculado."
+  );
+
+}
+
+
+// =====================================================
+// REMOVER VINCULO DO RESPONSAVEL
+// =====================================================
+
+async function unlinkTeacherStudentGuardian(
+  studentId,
+  guardianProfileId,
+  guardianName
+) {
+
+  const confirmed =
+    window.confirm(
+
+      "Remover o vinculo de \"" +
+      String(
+        guardianName || ""
+      ) +
+      "\" com este aluno?\n\n" +
+
+      "O login do responsavel nao sera apagado, pois ele pode estar vinculado a outro aluno."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "unlink_teacher_guardian_from_student",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_guardian_profile_id:
+          guardianProfileId
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao remover vinculo de responsavel:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel remover o vinculo."
+    );
+
+
+    return;
+  }
+
+
+  await openTeacherStudentDetail(
+    studentId
+  );
 
 }
 
