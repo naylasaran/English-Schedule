@@ -28903,73 +28903,107 @@ async function loadTeacherDashboard() {
     ]);
 
 
-  if (
-    summaryResult.error ||
-    alertsResult.error ||
-    contractSummaryResult.error ||
-    contractAlertsResult.error
-  ) {
-
-    console.error(
-      "Erro ao carregar painel do professor:",
-      summaryResult.error ||
-      alertsResult.error ||
-      contractSummaryResult.error ||
-      contractAlertsResult.error
-    );
-
-
-    area.innerHTML = `
-
-      <div class="card">
-
-        <h3
-          style="
-            margin-top:0;
-          "
-        >
-          Resumo
-        </h3>
-
-        <p>
-          Nao foi possivel carregar os alertas do painel.
-        </p>
-
-      </div>
-
-    `;
+  const dashboardErrors =
+    [
+      {
+        name:
+          "resumo geral",
+        error:
+          summaryResult.error
+      },
+      {
+        name:
+          "alertas gerais",
+        error:
+          alertsResult.error
+      },
+      {
+        name:
+          "resumo de contratos",
+        error:
+          contractSummaryResult.error
+      },
+      {
+        name:
+          "alertas de contratos",
+        error:
+          contractAlertsResult.error
+      }
+    ]
+      .filter(
+        item =>
+          Boolean(
+            item.error
+          )
+      );
 
 
-    return;
-  }
+  dashboardErrors.forEach(
+    item => {
+
+      console.error(
+        "Erro no " +
+        item.name +
+        " do painel:",
+        item.error
+      );
+
+    }
+  );
 
 
   const summary =
     (
+      !summaryResult.error
+      &&
       Array.isArray(
         summaryResult.data
       )
         ? summaryResult.data[0]
-        : summaryResult.data
+        : (
+            !summaryResult.error
+              ? summaryResult.data
+              : null
+          )
     )
     || {};
 
 
   const contractSummary =
     (
+      !contractSummaryResult.error
+      &&
       Array.isArray(
         contractSummaryResult.data
       )
         ? contractSummaryResult.data[0]
-        : contractSummaryResult.data
+        : (
+            !contractSummaryResult.error
+              ? contractSummaryResult.data
+              : null
+          )
     )
     || {};
 
 
   const alerts =
     [
-      ...(contractAlertsResult.data || []),
-      ...(alertsResult.data || [])
+      ...(
+        contractAlertsResult.error
+          ? []
+          : (
+              contractAlertsResult.data ||
+              []
+            )
+      ),
+      ...(
+        alertsResult.error
+          ? []
+          : (
+              alertsResult.data ||
+              []
+            )
+      )
     ]
       .sort(
         (
@@ -29084,6 +29118,46 @@ async function loadTeacherDashboard() {
         )}
 
       </div>
+
+
+      ${
+        dashboardErrors.length > 0
+
+          ? `
+
+            <div
+              style="
+                margin-top:16px;
+                padding:10px 12px;
+                border-radius:8px;
+                background:#fff3cd;
+                color:#6b5400;
+              "
+            >
+              Parte do painel apresentou erro, mas as demais
+              informacoes continuam sendo exibidas.
+
+              <div
+                style="
+                  margin-top:4px;
+                  font-size:12px;
+                "
+              >
+                ${escapeHtml(
+                  dashboardErrors
+                    .map(
+                      item =>
+                        item.name
+                    )
+                    .join(", ")
+                )}
+              </div>
+            </div>
+
+          `
+
+          : ""
+      }
 
 
       <div
