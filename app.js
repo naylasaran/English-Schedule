@@ -1300,11 +1300,56 @@ function renderFinancialCard(item) {
         style="
           font-size:24px;
           font-weight:bold;
-          margin:15px 0;
+          margin:15px 0 7px;
         "
       >
         ${amount}
       </p>
+
+
+      ${
+        item.billing_type ===
+          "per_lesson"
+
+          ? `
+
+            <p
+              style="
+                margin-top:0;
+                color:#555;
+              "
+            >
+              <strong>
+                Calculo:
+              </strong>
+
+              ${Number(
+                item.lesson_count || 0
+              )}
+              aula(s)
+
+              x
+
+              ${formatCurrency(
+                item.lesson_unit_value || 0
+              )}
+            </p>
+
+          `
+
+          : `
+
+            <p
+              style="
+                margin-top:0;
+                color:#555;
+              "
+            >
+              Cobranca mensal
+            </p>
+
+          `
+      }
 
 
       <p>
@@ -6224,6 +6269,167 @@ function setTeacherPage(page) {
 
             </div>
 
+
+            <div>
+
+              <label
+                for="newStudentBillingType"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Tipo de cobranca
+              </label>
+
+              <select
+                id="newStudentBillingType"
+                style="
+                  width:100%;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+                <option value="monthly">
+                  Valor mensal
+                </option>
+
+                <option value="per_lesson">
+                  Valor por aula
+                </option>
+              </select>
+
+            </div>
+
+
+            <div
+              id="newStudentMonthlyFeeField"
+            >
+
+              <label
+                for="newStudentMonthlyFee"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Valor mensal
+              </label>
+
+              <input
+                id="newStudentMonthlyFee"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div
+              id="newStudentLessonFeeField"
+              style="
+                display:none;
+              "
+            >
+
+              <label
+                for="newStudentLessonFee"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Valor por aula
+              </label>
+
+              <input
+                id="newStudentLessonFee"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div>
+
+              <label
+                for="newStudentDueDay"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Dia do vencimento
+              </label>
+
+              <input
+                id="newStudentDueDay"
+                type="number"
+                min="1"
+                max="31"
+                step="1"
+                value="1"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+            </div>
+
+
+            <div
+              style="
+                display:flex;
+                align-items:flex-end;
+              "
+            >
+
+              <label
+                style="
+                  display:block;
+                  padding:10px 0;
+                "
+              >
+
+                <input
+                  type="checkbox"
+                  id="newStudentInvoiceDefault"
+                >
+
+                Normalmente precisa de nota fiscal
+
+              </label>
+
+            </div>
+
           </div>
 
 
@@ -6426,6 +6632,25 @@ function setTeacherPage(page) {
 
         }
       );
+
+    }
+
+
+    const billingTypeSelect =
+      document.getElementById(
+        "newStudentBillingType"
+      );
+
+
+    if (billingTypeSelect) {
+
+      billingTypeSelect.addEventListener(
+        "change",
+        updateNewStudentBillingFields
+      );
+
+
+      updateNewStudentBillingFields();
 
     }
 
@@ -8331,6 +8556,58 @@ function createStudentAccessAuthClient() {
 
 
 // =====================================================
+// CAMPOS DE COBRANCA NO CADASTRO
+// =====================================================
+
+function updateNewStudentBillingFields() {
+
+  const typeSelect =
+    document.getElementById(
+      "newStudentBillingType"
+    );
+
+
+  const monthlyField =
+    document.getElementById(
+      "newStudentMonthlyFeeField"
+    );
+
+
+  const lessonField =
+    document.getElementById(
+      "newStudentLessonFeeField"
+    );
+
+
+  if (
+    !typeSelect ||
+    !monthlyField ||
+    !lessonField
+  ) {
+    return;
+  }
+
+
+  const perLesson =
+    typeSelect.value ===
+      "per_lesson";
+
+
+  monthlyField.style.display =
+    perLesson
+      ? "none"
+      : "block";
+
+
+  lessonField.style.display =
+    perLesson
+      ? "block"
+      : "none";
+
+}
+
+
+// =====================================================
 // FINALIZAR PROFILE + STUDENT
 // =====================================================
 
@@ -8339,7 +8616,12 @@ async function finishStudentRegistration(
   name,
   email,
   duration,
-  schedule
+  schedule,
+  billingType,
+  monthlyFee,
+  lessonFee,
+  dueDay,
+  invoiceRequired
 ) {
 
   return await supabaseClient.rpc(
@@ -8363,7 +8645,22 @@ async function finishStudentRegistration(
           schedule
         )
           ? schedule
-          : []
+          : [],
+
+      p_billing_type:
+        billingType,
+
+      p_monthly_fee:
+        monthlyFee,
+
+      p_lesson_fee:
+        lessonFee,
+
+      p_payment_due_day:
+        dueDay,
+
+      p_invoice_required_default:
+        invoiceRequired
 
     }
   );
@@ -8379,7 +8676,12 @@ async function recoverExistingStudentAccess(
   name,
   email,
   duration,
-  schedule
+  schedule,
+  billingType,
+  monthlyFee,
+  lessonFee,
+  dueDay,
+  invoiceRequired
 ) {
 
   return await supabaseClient.rpc(
@@ -8400,7 +8702,22 @@ async function recoverExistingStudentAccess(
           schedule
         )
           ? schedule
-          : []
+          : [],
+
+      p_billing_type:
+        billingType,
+
+      p_monthly_fee:
+        monthlyFee,
+
+      p_lesson_fee:
+        lessonFee,
+
+      p_payment_due_day:
+        dueDay,
+
+      p_invoice_required_default:
+        invoiceRequired
 
     }
   );
@@ -8444,6 +8761,36 @@ async function saveNewStudentWithAccess() {
     );
 
 
+  const billingTypeSelect =
+    document.getElementById(
+      "newStudentBillingType"
+    );
+
+
+  const monthlyFeeInput =
+    document.getElementById(
+      "newStudentMonthlyFee"
+    );
+
+
+  const lessonFeeInput =
+    document.getElementById(
+      "newStudentLessonFee"
+    );
+
+
+  const dueDayInput =
+    document.getElementById(
+      "newStudentDueDay"
+    );
+
+
+  const invoiceInput =
+    document.getElementById(
+      "newStudentInvoiceDefault"
+    );
+
+
   const button =
     document.getElementById(
       "saveNewStudentButton"
@@ -8461,7 +8808,11 @@ async function saveNewStudentWithAccess() {
     !emailInput ||
     !passwordInput ||
     !confirmInput ||
-    !durationSelect
+    !durationSelect ||
+    !billingTypeSelect ||
+    !monthlyFeeInput ||
+    !lessonFeeInput ||
+    !dueDayInput
   ) {
     return;
   }
@@ -8488,6 +8839,41 @@ async function saveNewStudentWithAccess() {
   const duration =
     Number(
       durationSelect.value
+    );
+
+
+  const billingType =
+    billingTypeSelect.value;
+
+
+  const monthlyFee =
+    monthlyFeeInput.value ===
+      ""
+      ? null
+      : Number(
+          monthlyFeeInput.value
+        );
+
+
+  const lessonFee =
+    lessonFeeInput.value ===
+      ""
+      ? null
+      : Number(
+          lessonFeeInput.value
+        );
+
+
+  const dueDay =
+    Number(
+      dueDayInput.value
+    );
+
+
+  const invoiceRequired =
+    Boolean(
+      invoiceInput &&
+      invoiceInput.checked
     );
 
 
@@ -8573,6 +8959,81 @@ async function saveNewStudentWithAccess() {
 
     showError(
       "Selecione uma duracao valida."
+    );
+
+    return;
+  }
+
+
+  if (
+    billingType !== "monthly" &&
+    billingType !== "per_lesson"
+  ) {
+
+    showError(
+      "Selecione o tipo de cobranca."
+    );
+
+    return;
+  }
+
+
+  if (
+    billingType === "monthly"
+    &&
+    (
+      monthlyFee === null
+      ||
+      Number.isNaN(
+        monthlyFee
+      )
+      ||
+      monthlyFee < 0
+    )
+  ) {
+
+    showError(
+      "Digite o valor mensal do aluno."
+    );
+
+    return;
+  }
+
+
+  if (
+    billingType === "per_lesson"
+    &&
+    (
+      lessonFee === null
+      ||
+      Number.isNaN(
+        lessonFee
+      )
+      ||
+      lessonFee < 0
+    )
+  ) {
+
+    showError(
+      "Digite o valor por aula do aluno."
+    );
+
+    return;
+  }
+
+
+  if (
+    Number.isNaN(
+      dueDay
+    )
+    ||
+    dueDay < 1
+    ||
+    dueDay > 31
+  ) {
+
+    showError(
+      "O dia de vencimento deve estar entre 1 e 31."
     );
 
     return;
@@ -8736,7 +9197,12 @@ async function saveNewStudentWithAccess() {
           name,
           email,
           duration,
-          schedule
+          schedule,
+          billingType,
+          monthlyFee,
+          lessonFee,
+          dueDay,
+          invoiceRequired
         );
 
 
@@ -8858,7 +9324,12 @@ async function saveNewStudentWithAccess() {
           name,
           email,
           duration,
-          schedule
+          schedule,
+          billingType,
+          monthlyFee,
+          lessonFee,
+          dueDay,
+          invoiceRequired
         );
 
 
@@ -8924,7 +9395,12 @@ async function saveNewStudentWithAccess() {
       name,
       email,
       duration,
-      schedule
+      schedule,
+      billingType,
+      monthlyFee,
+      lessonFee,
+      dueDay,
+      invoiceRequired
     );
 
 
@@ -9007,6 +9483,69 @@ async function completeStudentRegistrationUi(
 
   durationSelect.value =
     "60";
+
+
+  const billingTypeSelect =
+    document.getElementById(
+      "newStudentBillingType"
+    );
+
+
+  const monthlyFeeInput =
+    document.getElementById(
+      "newStudentMonthlyFee"
+    );
+
+
+  const lessonFeeInput =
+    document.getElementById(
+      "newStudentLessonFee"
+    );
+
+
+  const dueDayInput =
+    document.getElementById(
+      "newStudentDueDay"
+    );
+
+
+  const invoiceInput =
+    document.getElementById(
+      "newStudentInvoiceDefault"
+    );
+
+
+  if (billingTypeSelect) {
+    billingTypeSelect.value =
+      "monthly";
+  }
+
+
+  if (monthlyFeeInput) {
+    monthlyFeeInput.value =
+      "";
+  }
+
+
+  if (lessonFeeInput) {
+    lessonFeeInput.value =
+      "";
+  }
+
+
+  if (dueDayInput) {
+    dueDayInput.value =
+      "1";
+  }
+
+
+  if (invoiceInput) {
+    invoiceInput.checked =
+      false;
+  }
+
+
+  updateNewStudentBillingFields();
 
 
   resetStudentFixedScheduleEditor(
@@ -10828,6 +11367,65 @@ async function openTeacherStudentDetail(
           <div>
 
             <label
+              for="teacherStudentBillingType"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Tipo de cobranca
+            </label>
+
+
+            <select
+              id="teacherStudentBillingType"
+              style="
+                width:100%;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+              <option
+                value="monthly"
+                ${
+                  (
+                    financialSettings.billing_type ||
+                    "monthly"
+                  ) ===
+                  "monthly"
+                    ? "selected"
+                    : ""
+                }
+              >
+                Valor mensal
+              </option>
+
+
+              <option
+                value="per_lesson"
+                ${
+                  financialSettings.billing_type ===
+                  "per_lesson"
+                    ? "selected"
+                    : ""
+                }
+              >
+                Valor por aula
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div
+            id="teacherStudentMonthlyFeeField"
+          >
+
+            <label
               for="teacherStudentMonthlyFee"
               style="
                 display:block;
@@ -10848,6 +11446,49 @@ async function openTeacherStudentDetail(
                 financialSettings.monthly_fee != null
                   ? Number(
                       financialSettings.monthly_fee
+                    ).toFixed(
+                      2
+                    )
+                  : ""
+              }"
+              placeholder="0,00"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+
+          <div
+            id="teacherStudentLessonFeeField"
+          >
+
+            <label
+              for="teacherStudentLessonFee"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Valor por aula
+            </label>
+
+
+            <input
+              type="number"
+              id="teacherStudentLessonFee"
+              min="0"
+              step="0.01"
+              value="${
+                financialSettings.lesson_fee != null
+                  ? Number(
+                      financialSettings.lesson_fee
                     ).toFixed(
                       2
                     )
@@ -11059,6 +11700,25 @@ async function openTeacherStudentDetail(
   }
 
 
+  const studentBillingTypeSelect =
+    document.getElementById(
+      "teacherStudentBillingType"
+    );
+
+
+  if (studentBillingTypeSelect) {
+
+    studentBillingTypeSelect.addEventListener(
+      "change",
+      updateTeacherStudentFinancialSettingsVisibility
+    );
+
+
+    updateTeacherStudentFinancialSettingsVisibility();
+
+  }
+
+
   const saveFinancialSettingsButton =
     document.getElementById(
       "saveTeacherStudentFinancialSettingsButton"
@@ -11111,6 +11771,58 @@ async function openTeacherStudentDetail(
 
 
 // =====================================================
+// CAMPOS DA CONFIGURACAO FINANCEIRA DO ALUNO
+// =====================================================
+
+function updateTeacherStudentFinancialSettingsVisibility() {
+
+  const typeSelect =
+    document.getElementById(
+      "teacherStudentBillingType"
+    );
+
+
+  const monthlyField =
+    document.getElementById(
+      "teacherStudentMonthlyFeeField"
+    );
+
+
+  const lessonField =
+    document.getElementById(
+      "teacherStudentLessonFeeField"
+    );
+
+
+  if (
+    !typeSelect ||
+    !monthlyField ||
+    !lessonField
+  ) {
+    return;
+  }
+
+
+  const perLesson =
+    typeSelect.value ===
+      "per_lesson";
+
+
+  monthlyField.style.display =
+    perLesson
+      ? "none"
+      : "block";
+
+
+  lessonField.style.display =
+    perLesson
+      ? "block"
+      : "none";
+
+}
+
+
+// =====================================================
 // SALVAR CONFIGURACAO FINANCEIRA DO ALUNO
 // =====================================================
 
@@ -11118,9 +11830,21 @@ async function saveTeacherStudentFinancialSettings(
   studentId
 ) {
 
-  const feeInput =
+  const typeSelect =
+    document.getElementById(
+      "teacherStudentBillingType"
+    );
+
+
+  const monthlyFeeInput =
     document.getElementById(
       "teacherStudentMonthlyFee"
+    );
+
+
+  const lessonFeeInput =
+    document.getElementById(
+      "teacherStudentLessonFee"
     );
 
 
@@ -11148,12 +11872,30 @@ async function saveTeacherStudentFinancialSettings(
     );
 
 
-  const fee =
-    feeInput
+  const billingType =
+    typeSelect
+      ? typeSelect.value
+      : "monthly";
+
+
+  const monthlyFee =
+    monthlyFeeInput &&
+    monthlyFeeInput.value !==
+      ""
       ? Number(
-          feeInput.value
+          monthlyFeeInput.value
         )
-      : NaN;
+      : null;
+
+
+  const lessonFee =
+    lessonFeeInput &&
+    lessonFeeInput.value !==
+      ""
+      ? Number(
+          lessonFeeInput.value
+        )
+      : null;
 
 
   const dueDay =
@@ -11165,17 +11907,54 @@ async function saveTeacherStudentFinancialSettings(
 
 
   if (
-    Number.isNaN(
-      fee
+    billingType ===
+      "monthly"
+    &&
+    (
+      monthlyFee === null
+      ||
+      Number.isNaN(
+        monthlyFee
+      )
+      ||
+      monthlyFee < 0
     )
-    ||
-    fee < 0
   ) {
 
     if (message) {
 
       message.textContent =
         "Digite um valor mensal valido.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    billingType ===
+      "per_lesson"
+    &&
+    (
+      lessonFee === null
+      ||
+      Number.isNaN(
+        lessonFee
+      )
+      ||
+      lessonFee < 0
+    )
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite um valor por aula valido.";
 
       message.style.color =
         "red";
@@ -11233,8 +12012,14 @@ async function saveTeacherStudentFinancialSettings(
         p_student_id:
           studentId,
 
+        p_billing_type:
+          billingType,
+
         p_monthly_fee:
-          fee,
+          monthlyFee,
+
+        p_lesson_fee:
+          lessonFee,
 
         p_payment_due_day:
           dueDay,
@@ -11287,7 +12072,10 @@ async function saveTeacherStudentFinancialSettings(
   if (message) {
 
     message.textContent =
-      "Configuracao financeira salva.";
+      billingType ===
+        "per_lesson"
+        ? "Cobranca por aula salva."
+        : "Cobranca mensal salva.";
 
     message.style.color =
       "green";
@@ -12642,6 +13430,47 @@ function renderTeacherFinancialRecordCard(
             )}
           </div>
 
+
+          ${
+            item.billing_type ===
+              "per_lesson"
+
+              ? `
+
+                <div
+                  style="
+                    margin-top:5px;
+                    color:#555;
+                    font-size:13px;
+                  "
+                >
+                  ${Number(
+                    item.lesson_count || 0
+                  )}
+                  aula(s)
+                  x
+                  ${formatCurrency(
+                    item.lesson_unit_value || 0
+                  )}
+                </div>
+
+              `
+
+              : `
+
+                <div
+                  style="
+                    margin-top:5px;
+                    color:#555;
+                    font-size:13px;
+                  "
+                >
+                  Cobranca mensal
+                </div>
+
+              `
+          }
+
         </div>
 
 
@@ -12998,6 +13827,28 @@ function openTeacherFinancialForm(
               border-radius:8px;
             "
           >
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="calculateTeacherFinancialAmountButton"
+            style="
+              margin-top:8px;
+            "
+          >
+            Calcular valor automatico
+          </button>
+
+
+          <div
+            id="teacherFinancialCalculationInfo"
+            style="
+              margin-top:7px;
+              font-size:13px;
+              color:#555;
+            "
+          ></div>
 
         </div>
 
@@ -13365,6 +14216,22 @@ function openTeacherFinancialForm(
   }
 
 
+  const calculateButton =
+    document.getElementById(
+      "calculateTeacherFinancialAmountButton"
+    );
+
+
+  if (calculateButton) {
+
+    calculateButton.addEventListener(
+      "click",
+      calculateTeacherFinancialAmount
+    );
+
+  }
+
+
   const saveButton =
     document.getElementById(
       "saveTeacherFinancialButton"
@@ -13401,6 +14268,236 @@ function openTeacherFinancialForm(
     behavior: "smooth",
     block: "start"
   });
+
+}
+
+
+// =====================================================
+// CALCULAR VALOR AUTOMATICO DO MES
+// =====================================================
+
+async function calculateTeacherFinancialAmount() {
+
+  const studentSelect =
+    document.getElementById(
+      "teacherFinancialStudent"
+    );
+
+
+  const amountInput =
+    document.getElementById(
+      "teacherFinancialAmount"
+    );
+
+
+  const info =
+    document.getElementById(
+      "teacherFinancialCalculationInfo"
+    );
+
+
+  const button =
+    document.getElementById(
+      "calculateTeacherFinancialAmountButton"
+    );
+
+
+  const studentId =
+    studentSelect
+      ? studentSelect.value
+      : "";
+
+
+  if (!studentId) {
+
+    if (info) {
+
+      info.textContent =
+        "Selecione o aluno primeiro.";
+
+      info.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Calculando...";
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "calculate_teacher_student_monthly_financial",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_year:
+          year,
+
+        p_month:
+          month
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Calcular valor automatico";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao calcular financeiro:",
+      error
+    );
+
+
+    if (info) {
+
+      info.textContent =
+        error.message ||
+        "Nao foi possivel calcular.";
+
+      info.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const result =
+    Array.isArray(
+      data
+    )
+      ? data[0]
+      : data;
+
+
+  if (!result) {
+
+    if (info) {
+
+      info.textContent =
+        "Nenhum calculo retornado.";
+
+      info.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (amountInput) {
+
+    amountInput.value =
+      Number(
+        result.calculated_amount || 0
+      ).toFixed(
+        2
+      );
+
+  }
+
+
+  if (info) {
+
+    if (
+      result.billing_type ===
+        "per_lesson"
+    ) {
+
+      info.innerHTML = `
+
+        <strong>
+          ${Number(
+            result.lesson_count || 0
+          )}
+          aula(s)
+        </strong>
+
+        x
+
+        <strong>
+          ${formatCurrency(
+            result.unit_value
+          )}
+        </strong>
+
+        =
+
+        <strong>
+          ${formatCurrency(
+            result.calculated_amount
+          )}
+        </strong>
+
+        <br>
+
+        <span>
+          Reposicoes nao sao cobradas novamente.
+        </span>
+
+      `;
+
+    }
+
+    else {
+
+      info.innerHTML = `
+
+        Valor mensal configurado:
+        <strong>
+          ${formatCurrency(
+            result.calculated_amount
+          )}
+        </strong>
+
+      `;
+
+    }
+
+
+    info.style.color =
+      "#246b37";
+
+  }
 
 }
 
