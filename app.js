@@ -13202,6 +13202,7 @@ async function openTeacherStudentDetail(
 
   const [
     contractResult,
+    contractHistoryResult,
     scheduleResult,
     financialSettingsResult,
     historyResult,
@@ -13213,6 +13214,14 @@ async function openTeacherStudentDetail(
 
       supabaseClient.rpc(
         "get_teacher_student_contract",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_contract_history",
         {
           p_student_id:
             studentId
@@ -13272,6 +13281,7 @@ async function openTeacherStudentDetail(
 
   if (
     contractResult.error ||
+    contractHistoryResult.error ||
     scheduleResult.error ||
     financialSettingsResult.error ||
     historyResult.error ||
@@ -13283,6 +13293,7 @@ async function openTeacherStudentDetail(
     console.error(
       "Erro ao carregar detalhes do aluno:",
       contractResult.error ||
+      contractHistoryResult.error ||
       scheduleResult.error ||
       financialSettingsResult.error ||
       historyResult.error ||
@@ -13318,6 +13329,10 @@ async function openTeacherStudentDetail(
         : contractResult.data
     )
     || {};
+
+
+  const contractHistory =
+    contractHistoryResult.data || [];
 
 
   const fixedSchedule =
@@ -13622,16 +13637,33 @@ async function openTeacherStudentDetail(
         </div>
 
 
-        <button
-          type="button"
-          class="secondary-button"
-          id="saveTeacherStudentContractButton"
+        <div
           style="
+            display:flex;
+            gap:9px;
+            flex-wrap:wrap;
             margin-top:14px;
           "
         >
-          Salvar contrato
-        </button>
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="saveTeacherStudentContractButton"
+          >
+            Salvar alteracoes
+          </button>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="renewTeacherStudentContractButton"
+          >
+            Renovar contrato
+          </button>
+
+        </div>
 
 
         <p
@@ -13640,6 +13672,62 @@ async function openTeacherStudentDetail(
             margin-top:10px;
           "
         ></p>
+
+
+        <details
+          style="
+            margin-top:16px;
+            border-top:1px solid #e5e5e5;
+            padding-top:14px;
+          "
+        >
+
+          <summary
+            style="
+              cursor:pointer;
+              font-weight:bold;
+            "
+          >
+            Historico de contratos
+            (${contractHistory.length})
+          </summary>
+
+
+          <div
+            style="
+              display:grid;
+              gap:9px;
+              margin-top:12px;
+            "
+          >
+
+            ${
+              contractHistory.length === 0
+
+                ? `
+
+                  <div
+                    style="
+                      padding:12px;
+                      border-radius:8px;
+                      background:#f7faff;
+                    "
+                  >
+                    Ainda nao existem contratos anteriores.
+                  </div>
+
+                `
+
+                : contractHistory
+                    .map(
+                      renderTeacherStudentContractHistoryRow
+                    )
+                    .join("")
+            }
+
+          </div>
+
+        </details>
 
       </div>
 
@@ -14437,6 +14525,28 @@ async function openTeacherStudentDetail(
       () => {
 
         saveTeacherStudentContract(
+          studentId
+        );
+
+      }
+    );
+
+  }
+
+
+  const renewContractButton =
+    document.getElementById(
+      "renewTeacherStudentContractButton"
+    );
+
+
+  if (renewContractButton) {
+
+    renewContractButton.addEventListener(
+      "click",
+      () => {
+
+        renewTeacherStudentContract(
           studentId
         );
 
@@ -15985,6 +16095,324 @@ async function unlinkTeacherStudentGuardian(
     );
 
   }
+
+}
+
+
+// =====================================================
+// HISTORICO DE CONTRATOS
+// =====================================================
+
+function renderTeacherStudentContractHistoryRow(
+  item
+) {
+
+  const startDate =
+    item.contract_start_date
+      ? formatDate(
+          new Date(
+            item.contract_start_date +
+            "T12:00:00"
+          )
+        )
+      : "Nao informado";
+
+
+  const endDate =
+    item.contract_end_date
+      ? formatDate(
+          new Date(
+            item.contract_end_date +
+            "T12:00:00"
+          )
+        )
+      : "Sem data de termino";
+
+
+  return `
+
+    <div
+      style="
+        padding:12px;
+        border:1px solid #e5e5e5;
+        border-radius:8px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${startDate}
+          ate
+          ${endDate}
+        </strong>
+
+
+        <span
+          style="
+            color:#666;
+            font-size:12px;
+          "
+        >
+          ${
+            item.archived_reason ===
+              "renewed"
+              ? "Renovado"
+              : "Alterado"
+          }
+        </span>
+
+      </div>
+
+
+      ${
+        item.contract_notes
+
+          ? `
+
+            <div
+              style="
+                margin-top:7px;
+                white-space:pre-wrap;
+              "
+            >
+              ${escapeHtml(
+                item.contract_notes
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        item.archived_at
+
+          ? `
+
+            <div
+              style="
+                margin-top:7px;
+                color:#777;
+                font-size:12px;
+              "
+            >
+              Arquivado em
+              ${escapeHtml(
+                formatDateTime(
+                  item.archived_at
+                )
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// RENOVAR CONTRATO DO ALUNO
+// =====================================================
+
+async function renewTeacherStudentContract(
+  studentId
+) {
+
+  const startInput =
+    document.getElementById(
+      "teacherStudentContractStartDate"
+    );
+
+
+  const endInput =
+    document.getElementById(
+      "teacherStudentContractEndDate"
+    );
+
+
+  const notesInput =
+    document.getElementById(
+      "teacherStudentContractNotes"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentContractMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "renewTeacherStudentContractButton"
+    );
+
+
+  const startDate =
+    startInput
+      ? startInput.value
+      : "";
+
+
+  const endDate =
+    endInput &&
+    endInput.value
+      ? endInput.value
+      : null;
+
+
+  if (!startDate) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe a data de inicio do novo contrato.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    endDate &&
+    endDate <
+      startDate
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "A data de termino nao pode ser anterior ao inicio.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+
+      "Renovar o contrato deste aluno?\n\n" +
+
+      "O contrato atual sera preservado no historico e estas datas passarao a ser o novo contrato ativo."
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Renovando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "renew_teacher_student_contract",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_contract_start_date:
+          startDate,
+
+        p_contract_end_date:
+          endDate,
+
+        p_contract_notes:
+          notesInput
+            ? notesInput.value.trim() || null
+            : null
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Renovar contrato";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao renovar contrato:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel renovar o contrato.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  await openTeacherStudentDetail(
+    studentId
+  );
+
+
+  await loadTeacherDashboard();
+
+
+  alert(
+    "Contrato renovado. O contrato anterior foi preservado no historico."
+  );
 
 }
 
