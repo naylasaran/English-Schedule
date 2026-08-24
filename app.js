@@ -2067,6 +2067,89 @@ function renderAdminTeacherManagement() {
 
       <div
         style="
+          margin-top:18px;
+          padding:14px;
+          border-radius:9px;
+          background:#eef5ff;
+          border:1px solid #d9e3f2;
+        "
+      >
+
+        <strong>
+          Dados para pagamento do sistema
+        </strong>
+
+
+        <div
+          style="
+            display:flex;
+            gap:10px;
+            align-items:end;
+            flex-wrap:wrap;
+            margin-top:10px;
+          "
+        >
+
+          <div
+            style="
+              flex:1;
+              min-width:220px;
+            "
+          >
+
+            <label
+              for="adminSystemPixKey"
+              style="
+                display:block;
+                font-size:12px;
+                font-weight:bold;
+                margin-bottom:5px;
+              "
+            >
+              PIX para pagamento
+            </label>
+
+
+            <input
+              type="text"
+              id="adminSystemPixKey"
+              placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatoria"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ccc;
+                border-radius:7px;
+              "
+            >
+
+          </div>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="saveAdminSystemPixButton"
+          >
+            Salvar PIX
+          </button>
+
+        </div>
+
+
+        <p
+          id="adminSystemPixMessage"
+          style="
+            margin:8px 0 0;
+            font-size:13px;
+          "
+        ></p>
+
+      </div>
+
+
+      <div
+        style="
           display:flex;
           justify-content:space-between;
           align-items:center;
@@ -2405,6 +2488,25 @@ function renderAdminTeacherManagement() {
 
   }
 
+
+  const savePixButton =
+    document.getElementById(
+      "saveAdminSystemPixButton"
+    );
+
+
+  if (savePixButton) {
+
+    savePixButton.addEventListener(
+      "click",
+      saveAdminSystemPix
+    );
+
+  }
+
+
+  loadAdminSystemPix();
+
 }
 
 
@@ -2489,9 +2591,9 @@ function getAdminQaChecks() {
       title:
         "Mensalidade do professor no sistema",
       instruction:
-        "No ADM, configure valor e dia do vencimento para um professor, marque o mes como pago e abra o Perfil desse professor.",
+        "No ADM, configure PIX do sistema, valor, vencimento, necessidade de nota fiscal e status de pagamento. Depois abra o Perfil do professor.",
       expected:
-        "ADM e professor veem o mesmo valor, vencimento e status. Ao marcar Pago, o professor tambem visualiza Pago."
+        "O professor ve o PIX correto, valor, vencimento, status e se a nota fiscal e necessaria."
     },
 
     {
@@ -5085,6 +5187,149 @@ async function saveAdminTeacher() {
 }
 
 
+async function loadAdminSystemPix() {
+
+  const input =
+    document.getElementById(
+      "adminSystemPixKey"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_system_billing_settings"
+    );
+
+
+  if (error) {
+
+    console.warn(
+      "Nao foi possivel carregar o PIX do sistema:",
+      error
+    );
+
+    return;
+  }
+
+
+  const settings =
+    (
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data
+    )
+    || {};
+
+
+  input.value =
+    settings.pix_key || "";
+
+}
+
+
+// =====================================================
+// SALVAR PIX GLOBAL DO SISTEMA
+// =====================================================
+
+async function saveAdminSystemPix() {
+
+  const input =
+    document.getElementById(
+      "adminSystemPixKey"
+    );
+
+
+  const message =
+    document.getElementById(
+      "adminSystemPixMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveAdminSystemPixButton"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_admin_system_billing_settings",
+      {
+        p_pix_key:
+          input.value.trim() || null
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar PIX";
+
+  }
+
+
+  if (error) {
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o PIX.";
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "PIX atualizado com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+}
+
+
 function getAdminTeacherSystemMonthParts() {
 
   const input =
@@ -5705,6 +5950,49 @@ function renderAdminTeacherCard(
 
           </div>
 
+
+          <div
+            style="
+              display:flex;
+              align-items:end;
+            "
+          >
+
+            <label
+              style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                min-height:39px;
+                cursor:pointer;
+              "
+            >
+
+              <input
+                type="checkbox"
+                class="admin-teacher-system-invoice"
+                data-teacher-id="${teacher.teacher_id}"
+                ${
+                  teacher.invoice_required ===
+                    true
+                  ||
+                  (
+                    teacher.invoice_required == null
+                    &&
+                    teacher.system_invoice_required ===
+                      true
+                  )
+                    ? "checked"
+                    : ""
+                }
+              >
+
+              Precisa de nota fiscal
+
+            </label>
+
+          </div>
+
         </div>
 
 
@@ -5885,6 +6173,14 @@ async function saveAdminTeacherSystemBilling(
     );
 
 
+  const invoiceInput =
+    document.querySelector(
+      '.admin-teacher-system-invoice[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
   const button =
     document.querySelector(
       '.save-admin-teacher-system-billing-button[data-teacher-id="' +
@@ -5994,6 +6290,12 @@ async function saveAdminTeacherSystemBilling(
           Boolean(
             paidInput &&
             paidInput.checked
+          ),
+
+        p_invoice_required:
+          Boolean(
+            invoiceInput &&
+            invoiceInput.checked
           )
 
       }
@@ -36058,6 +36360,78 @@ async function loadTeacherProfilePage() {
                 </strong>
 
               </div>
+
+
+              <div>
+
+                <div
+                  style="
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Nota fiscal
+                </div>
+
+                <strong>
+                  ${
+                    systemFinancial.invoice_required ===
+                      true
+                    ||
+                    (
+                      systemFinancial.invoice_required == null
+                      &&
+                      systemFinancial.system_invoice_required ===
+                        true
+                    )
+
+                      ? "Necessaria"
+
+                      : "Nao necessaria"
+                  }
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <div
+              style="
+                margin-top:13px;
+                padding:11px 12px;
+                border-radius:8px;
+                background:#ffffff;
+              "
+            >
+
+              <div
+                style="
+                  color:#666;
+                  font-size:12px;
+                "
+              >
+                PIX para pagamento
+              </div>
+
+
+              <strong
+                style="
+                  display:block;
+                  margin-top:3px;
+                  word-break:break-all;
+                "
+              >
+                ${
+                  systemFinancial.pix_key
+
+                    ? escapeHtml(
+                        systemFinancial.pix_key
+                      )
+
+                    : "PIX ainda nao informado pelo administrador."
+                }
+              </strong>
 
             </div>
 
