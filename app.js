@@ -23,6 +23,12 @@ let currentTeacherFinancialStudents = [];
 let currentTeacherProfileSettings = null;
 let currentStudentTeacherSettings = null;
 let currentAdminTeachers = [];
+let currentTeacherHolidayWeek = [];
+let currentStudentHolidayWeek = [];
+let currentTeacherRulesImagePath = null;
+let teacherRulesImageRemoved = false;
+let currentTeacherMaterialStudents = [];
+let currentTeacherMaterials = [];
 let editingTeacherFinancialId = null;
 let editingTeacherPlanId = null;
 
@@ -301,6 +307,9 @@ async function showStudentArea() {
         "";
 
     });
+
+
+  ensureStudentMaterialsNavButton();
 
 
   studentScreen.classList.remove(
@@ -1498,6 +1507,8 @@ async function showTeacherArea() {
 
   ensureTeacherProfileNavButton();
 
+  ensureTeacherMaterialsNavButton();
+
 
   await loadCurrentTeacherProfileSettings();
 
@@ -1519,6 +1530,146 @@ async function showTeacherArea() {
 
 
   setTeacherPage("agenda");
+}
+
+
+// =====================================================
+// BOTAO MATERIAIS DO ALUNO
+// =====================================================
+
+function ensureStudentMaterialsNavButton() {
+
+  if (
+    document.querySelector(
+      '[data-student-page="materials"]'
+    )
+  ) {
+    return;
+  }
+
+
+  const firstButton =
+    document.querySelector(
+      "[data-student-page]"
+    );
+
+
+  if (
+    !firstButton ||
+    !firstButton.parentElement
+  ) {
+    return;
+  }
+
+
+  const button =
+    document.createElement(
+      "button"
+    );
+
+
+  button.type =
+    "button";
+
+
+  button.className =
+    firstButton.className;
+
+
+  button.dataset.studentPage =
+    "materials";
+
+
+  button.textContent =
+    "Materiais";
+
+
+  button.addEventListener(
+    "click",
+    () => {
+
+      setStudentPage(
+        "materials"
+      );
+
+    }
+  );
+
+
+  firstButton.parentElement.appendChild(
+    button
+  );
+
+}
+
+
+// =====================================================
+// BOTAO MATERIAIS DO PROFESSOR
+// =====================================================
+
+function ensureTeacherMaterialsNavButton() {
+
+  if (
+    document.querySelector(
+      '[data-teacher-page="materials"]'
+    )
+  ) {
+    return;
+  }
+
+
+  const firstButton =
+    document.querySelector(
+      "[data-teacher-page]"
+    );
+
+
+  if (
+    !firstButton ||
+    !firstButton.parentElement
+  ) {
+    return;
+  }
+
+
+  const button =
+    document.createElement(
+      "button"
+    );
+
+
+  button.type =
+    "button";
+
+
+  button.className =
+    firstButton.className;
+
+
+  button.dataset.teacherPage =
+    "materials";
+
+
+  button.textContent =
+    "Materiais";
+
+
+  button.addEventListener(
+    "click",
+    () => {
+
+      setTeacherPage(
+        "materials"
+      );
+
+    }
+  );
+
+
+  firstButton.parentElement.appendChild(
+    button
+  );
+
 }
 
 
@@ -3322,7 +3473,15 @@ function setStudentPage(page) {
           style="
             text-align:center;
             font-weight:bold;
-            margin-bottom:20px;
+            margin-bottom:14px;
+          "
+        ></div>
+
+
+        <div
+          id="studentHolidayArea"
+          style="
+            margin-bottom:16px;
           "
         ></div>
 
@@ -3455,6 +3614,46 @@ function setStudentPage(page) {
 
       });
 
+
+    return;
+  }
+
+
+  // ===================================================
+  // MATERIAIS
+  // ===================================================
+
+  if (page === "materials") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Materiais
+        </h3>
+
+
+        <p>
+          Links e materiais disponibilizados pelo seu professor.
+        </p>
+
+
+        <div
+          id="studentMaterialsContent"
+          style="
+            margin-top:18px;
+          "
+        >
+          Carregando materiais...
+        </div>
+
+      </div>
+
+    `;
+
+
+    loadStudentMaterials();
 
     return;
   }
@@ -3944,7 +4143,7 @@ async function loadStudentRules() {
     error
   } =
     await supabaseClient.rpc(
-      "get_student_rules"
+      "get_student_rules_content"
     );
 
 
@@ -3965,15 +4164,9 @@ async function loadStudentRules() {
           border-radius:10px;
         "
       >
-
         <strong>
-          N\xe3o foi poss\xedvel carregar as regras.
+          Nao foi possivel carregar as regras.
         </strong>
-
-        <p>
-          Tente novamente mais tarde.
-        </p>
-
       </div>
 
     `;
@@ -3982,13 +4175,33 @@ async function loadStudentRules() {
   }
 
 
+  const content =
+    (
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data
+    )
+    || {};
+
+
   const rules =
-    typeof data === "string"
-      ? data.trim()
-      : "";
+    String(
+      content.rules_text || ""
+    ).trim();
 
 
-  if (!rules) {
+  const imageUrl =
+    getRulesImagePublicUrl(
+      content.rules_image_path
+    );
+
+
+  if (
+    !rules &&
+    !imageUrl
+  ) {
 
     container.innerHTML = `
 
@@ -4000,16 +4213,9 @@ async function loadStudentRules() {
           border-radius:10px;
         "
       >
-
         <strong>
           Nenhuma regra cadastrada.
         </strong>
-
-        <p>
-          As regras aparecer\xe3o aqui
-          quando forem definidas pelo professor.
-        </p>
-
       </div>
 
     `;
@@ -4029,11 +4235,57 @@ async function loadStudentRules() {
       "
     >
 
-      ${escapeHtml(rules)}
+      ${
+        rules
+
+          ? `
+
+            <div
+              style="
+                white-space:pre-wrap;
+                line-height:1.6;
+              "
+            >
+              ${escapeHtml(
+                rules
+              )}
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        imageUrl
+
+          ? `
+
+            <img
+              src="${escapeHtml(
+                imageUrl
+              )}"
+              alt="Imagem das regras"
+              style="
+                display:block;
+                max-width:100%;
+                max-height:700px;
+                object-fit:contain;
+                margin-top:${rules ? "18px" : "0"};
+                border-radius:10px;
+              "
+            >
+
+          `
+
+          : ""
+      }
 
     </div>
 
   `;
+
 }
 
 
@@ -6681,6 +6933,44 @@ async function loadStudentWeeklySchedule() {
           )
       );
 
+
+  const {
+    data: studentHolidayData,
+    error: studentHolidayError
+  } =
+    await supabaseClient.rpc(
+      "get_my_holidays_for_week",
+      {
+        p_week_start:
+          weekStart
+      }
+    );
+
+
+  if (studentHolidayError) {
+
+    console.warn(
+      "Nao foi possivel carregar os feriados da semana:",
+      studentHolidayError
+    );
+
+
+    currentStudentHolidayWeek =
+      [];
+
+  }
+
+  else {
+
+    currentStudentHolidayWeek =
+      studentHolidayData || [];
+
+  }
+
+
+  renderStudentHolidayArea();
+
+
   let weeklyMakeupReservations = [];
   let weeklyLessonHistory = [];
   let weeklyPausePeriods = [];
@@ -6959,6 +7249,47 @@ function renderStudentWeeklySchedule(
                 ${formatDate(day.date)}
               </small>
 
+
+              ${
+                day.holiday
+
+                  ? `
+
+                    <div
+                      style="
+                        margin-top:4px;
+                        font-size:11px;
+                        font-weight:normal;
+                      "
+                    >
+                      ${escapeHtml(
+                        day.holiday.holiday_name
+                      )}
+
+                      <br>
+
+                      ${
+                        day.holiday.has_classes ===
+                          false
+
+                          ? "Sem aula"
+
+                          : (
+                              day.holiday.has_classes ===
+                                true
+
+                                ? "Aula normal"
+
+                                : "Decisao pendente"
+                            )
+                      }
+                    </div>
+
+                  `
+
+                  : ""
+              }
+
             </th>
 
           `
@@ -7059,6 +7390,57 @@ function renderStudentWeeklySchedule(
           formatDateForDatabase(
             slotDate
           );
+
+
+        const holiday =
+          currentStudentHolidayWeek.find(
+            item =>
+              String(
+                item.holiday_date
+              ) ===
+              slotDateDb
+          )
+          || null;
+
+
+        if (
+          holiday
+          &&
+          holiday.has_classes ===
+            false
+        ) {
+
+          cell.classList.add(
+            "unavailable"
+          );
+
+
+          cell.innerHTML = `
+
+            <strong>
+              Feriado
+            </strong>
+
+            <br>
+
+            <small>
+              Sem aula
+            </small>
+
+          `;
+
+
+          cell.title =
+            holiday.holiday_name;
+
+
+          row.appendChild(
+            cell
+          );
+
+
+          continue;
+        }
 
 
         const pausePeriod =
@@ -9322,6 +9704,209 @@ function setTeacherPage(page) {
 
 
   // ===================================================
+  // MATERIAIS DO PROFESSOR
+  // ===================================================
+
+  if (page === "materials") {
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <h3>
+          Materiais dos alunos
+        </h3>
+
+
+        <p>
+          Cadastre links de materias, exercicios, PDFs,
+          videos, sites ou outros materiais.
+        </p>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:12px;
+            margin-top:16px;
+          "
+        >
+
+          <div>
+
+            <label
+              for="teacherMaterialStudent"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Aluno
+            </label>
+
+
+            <select
+              id="teacherMaterialStudent"
+              style="
+                width:100%;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+              <option value="">
+                Selecione o aluno
+              </option>
+            </select>
+
+          </div>
+
+
+          <div>
+
+            <label
+              for="teacherMaterialTitle"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Titulo
+            </label>
+
+
+            <input
+              type="text"
+              id="teacherMaterialTitle"
+              placeholder="Ex.: Lista de exercicios - Present Perfect"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            margin-top:12px;
+          "
+        >
+
+          <label
+            for="teacherMaterialUrl"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Link
+          </label>
+
+
+          <input
+            type="url"
+            id="teacherMaterialUrl"
+            placeholder="https://..."
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div
+          style="
+            margin-top:12px;
+          "
+        >
+
+          <label
+            for="teacherMaterialDescription"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Descricao / orientacao
+          </label>
+
+
+          <textarea
+            id="teacherMaterialDescription"
+            rows="3"
+            placeholder="Opcional"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+              resize:vertical;
+              font-family:inherit;
+            "
+          ></textarea>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherMaterialButton"
+          style="
+            margin-top:14px;
+          "
+        >
+          Adicionar material
+        </button>
+
+
+        <p
+          id="teacherMaterialMessage"
+          style="
+            margin-top:10px;
+          "
+        ></p>
+
+
+        <div
+          id="teacherMaterialsList"
+          style="
+            margin-top:20px;
+          "
+        >
+          Carregando materiais...
+        </div>
+
+      </div>
+
+    `;
+
+
+    loadTeacherMaterialsPage();
+
+    return;
+  }
+
+
+  // ===================================================
   // REGRAS DO PROFESSOR
   // ===================================================
 
@@ -9355,6 +9940,49 @@ function setTeacherPage(page) {
             line-height:1.5;
           "
         ></textarea>
+
+
+        <div
+          style="
+            margin-top:16px;
+            padding:14px;
+            border:1px solid #ddd;
+            border-radius:10px;
+          "
+        >
+
+          <strong>
+            Imagem das regras
+          </strong>
+
+
+          <p
+            style="
+              margin:5px 0 10px;
+              color:#666;
+              font-size:13px;
+            "
+          >
+            JPG, PNG, WEBP ou GIF. Maximo de 5 MB.
+          </p>
+
+
+          <input
+            type="file"
+            id="teacherRulesImageInput"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+          >
+
+
+          <div
+            id="teacherRulesImagePreview"
+            style="
+              margin-top:12px;
+            "
+          ></div>
+
+        </div>
+
 
         <button
           type="button"
@@ -11436,7 +12064,15 @@ function setTeacherPage(page) {
           style="
             text-align:center;
             font-weight:bold;
-            margin-bottom:20px;
+            margin-bottom:14px;
+          "
+        ></div>
+
+
+        <div
+          id="teacherHolidayDecisionArea"
+          style="
+            margin-bottom:16px;
           "
         ></div>
 
@@ -25553,6 +26189,49 @@ async function loadTeacherWeeklySchedule() {
   `;
 
 
+  const teacherWeekStartDb =
+    formatDateForDatabase(
+      selectedTeacherWeekStart
+    );
+
+
+  const {
+    data: holidayData,
+    error: holidayError
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_holidays_for_week",
+      {
+        p_week_start:
+          teacherWeekStartDb
+      }
+    );
+
+
+  if (holidayError) {
+
+    console.warn(
+      "Nao foi possivel carregar os feriados da semana:",
+      holidayError
+    );
+
+
+    currentTeacherHolidayWeek =
+      [];
+
+  }
+
+  else {
+
+    currentTeacherHolidayWeek =
+      holidayData || [];
+
+  }
+
+
+  renderTeacherHolidayDecisionArea();
+
+
   const pauseWeekEnd =
     addDays(
       selectedTeacherWeekStart,
@@ -25750,9 +26429,21 @@ async function loadTeacherWeeklySchedule() {
       );
 
 
+    const holiday =
+      currentTeacherHolidayWeek.find(
+        item =>
+          String(
+            item.holiday_date
+          ) ===
+          dateDb
+      )
+      || null;
+
+
     days.push({
       date,
-      schedule
+      schedule,
+      holiday
     });
 
   }
@@ -25917,6 +26608,47 @@ function renderTeacherWeeklySchedule(days) {
 
             cell.style.color =
               "#777777";
+
+
+            row.appendChild(
+              cell
+            );
+
+
+            return;
+          }
+
+
+          if (
+            day.holiday
+            &&
+            day.holiday.has_classes ===
+              false
+          ) {
+
+            cell.innerHTML = `
+
+              <strong>
+                Feriado
+              </strong>
+
+              <br>
+
+              <small>
+                Sem aula
+              </small>
+
+            `;
+
+
+            cell.style.backgroundColor =
+              "#f3e8ff";
+
+            cell.style.color =
+              "#6b3fa0";
+
+            cell.title =
+              day.holiday.holiday_name;
 
 
             row.appendChild(
@@ -32596,6 +33328,1105 @@ async function saveTeacherProfilePage() {
 
 
 // =====================================================
+// FERIADOS - PAINEL DO PROFESSOR NA AGENDA
+// =====================================================
+
+function renderTeacherHolidayDecisionArea() {
+
+  const area =
+    document.getElementById(
+      "teacherHolidayDecisionArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (
+    currentTeacherHolidayWeek.length ===
+      0
+  ) {
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #d9c9ee;
+        border-radius:10px;
+        background:#faf6ff;
+      "
+    >
+
+      <strong>
+        Feriado nacional nesta semana
+      </strong>
+
+
+      <div
+        style="
+          display:grid;
+          gap:10px;
+          margin-top:10px;
+        "
+      >
+
+        ${currentTeacherHolidayWeek
+          .map(
+            holiday => `
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  gap:10px;
+                  flex-wrap:wrap;
+                  padding:10px;
+                  background:#ffffff;
+                  border-radius:8px;
+                "
+              >
+
+                <div>
+
+                  <strong>
+                    ${escapeHtml(
+                      holiday.holiday_name
+                    )}
+                  </strong>
+
+
+                  <div
+                    style="
+                      margin-top:3px;
+                      color:#666;
+                      font-size:13px;
+                    "
+                  >
+                    ${formatDate(
+                      new Date(
+                        String(
+                          holiday.holiday_date
+                        )
+                        +
+                        "T12:00:00"
+                      )
+                    )}
+
+                    -
+                    ${
+                      holiday.has_classes ===
+                        false
+
+                        ? "Sem aula"
+
+                        : (
+                            holiday.has_classes ===
+                              true
+
+                              ? "Aula normal"
+
+                              : "Decisao pendente"
+                          )
+                    }
+                  </div>
+
+                </div>
+
+
+                <div
+                  style="
+                    display:flex;
+                    gap:7px;
+                    flex-wrap:wrap;
+                  "
+                >
+
+                  <button
+                    type="button"
+                    class="secondary-button teacher-holiday-decision-button"
+                    data-holiday-date="${holiday.holiday_date}"
+                    data-has-classes="true"
+                  >
+                    Ter aula normalmente
+                  </button>
+
+
+                  <button
+                    type="button"
+                    class="secondary-button teacher-holiday-decision-button"
+                    data-holiday-date="${holiday.holiday_date}"
+                    data-has-classes="false"
+                  >
+                    Nao ter aula
+                  </button>
+
+                </div>
+
+              </div>
+
+            `
+          )
+          .join("")}
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:9px;
+          color:#666;
+          font-size:12px;
+        "
+      >
+        Feriados estaduais, municipais ou regionais nao
+        alteram a agenda automaticamente.
+      </div>
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".teacher-holiday-decision-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        async () => {
+
+          const holidayDate =
+            button.dataset.holidayDate;
+
+
+          const hasClasses =
+            button.dataset.hasClasses ===
+              "true";
+
+
+          const {
+            error
+          } =
+            await supabaseClient.rpc(
+              "set_teacher_holiday_decision",
+              {
+                p_holiday_date:
+                  holidayDate,
+
+                p_has_classes:
+                  hasClasses
+              }
+            );
+
+
+          if (error) {
+
+            alert(
+              error.message ||
+              "Nao foi possivel salvar a decisao do feriado."
+            );
+
+
+            return;
+          }
+
+
+          await loadTeacherWeeklySchedule();
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// FERIADOS - AVISO PARA O ALUNO
+// =====================================================
+
+function renderStudentHolidayArea() {
+
+  const area =
+    document.getElementById(
+      "studentHolidayArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (
+    currentStudentHolidayWeek.length ===
+      0
+  ) {
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:12px 14px;
+        border-radius:9px;
+        background:#faf6ff;
+        border:1px solid #d9c9ee;
+      "
+    >
+
+      ${currentStudentHolidayWeek
+        .map(
+          holiday => `
+
+            <div
+              style="
+                margin:4px 0;
+              "
+            >
+
+              <strong>
+                ${escapeHtml(
+                  holiday.holiday_name
+                )}
+              </strong>
+
+              -
+              ${
+                holiday.has_classes ===
+                  false
+
+                  ? "Nao havera aula."
+
+                  : (
+                      holiday.has_classes ===
+                        true
+
+                        ? "Aulas normais."
+
+                        : "O professor ainda nao registrou uma alteracao; a agenda permanece normal."
+                    )
+              }
+
+            </div>
+
+          `
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// PAGINA DE MATERIAIS DO PROFESSOR
+// =====================================================
+
+async function loadTeacherMaterialsPage() {
+
+  const studentSelect =
+    document.getElementById(
+      "teacherMaterialStudent"
+    );
+
+
+  const list =
+    document.getElementById(
+      "teacherMaterialsList"
+    );
+
+
+  if (
+    !studentSelect ||
+    !list
+  ) {
+    return;
+  }
+
+
+  const [
+    studentsResult,
+    materialsResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_material_students"
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_materials",
+        {
+          p_student_id:
+            null
+        }
+      )
+
+    ]);
+
+
+  if (
+    studentsResult.error ||
+    materialsResult.error
+  ) {
+
+    console.error(
+      "Erro ao carregar materiais:",
+      studentsResult.error ||
+      materialsResult.error
+    );
+
+
+    list.innerHTML =
+      "Nao foi possivel carregar os materiais.";
+
+
+    return;
+  }
+
+
+  currentTeacherMaterialStudents =
+    studentsResult.data || [];
+
+
+  currentTeacherMaterials =
+    materialsResult.data || [];
+
+
+  studentSelect.innerHTML = `
+
+    <option value="">
+      Selecione o aluno
+    </option>
+
+    ${currentTeacherMaterialStudents
+      .map(
+        student => `
+
+          <option
+            value="${student.student_id}"
+          >
+            ${escapeHtml(
+              student.student_name
+            )}
+          </option>
+
+        `
+      )
+      .join("")}
+
+  `;
+
+
+  renderTeacherMaterialsList();
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherMaterialButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      saveTeacherMaterial
+    );
+
+  }
+
+
+  studentSelect.addEventListener(
+    "change",
+    renderTeacherMaterialsList
+  );
+
+}
+
+
+// =====================================================
+// LISTA DE MATERIAIS NO PROFESSOR
+// =====================================================
+
+function renderTeacherMaterialsList() {
+
+  const list =
+    document.getElementById(
+      "teacherMaterialsList"
+    );
+
+
+  const select =
+    document.getElementById(
+      "teacherMaterialStudent"
+    );
+
+
+  if (!list) {
+    return;
+  }
+
+
+  const selectedStudentId =
+    select
+      ? select.value
+      : "";
+
+
+  const materials =
+    selectedStudentId
+
+      ? currentTeacherMaterials.filter(
+          item =>
+            String(
+              item.student_id
+            ) ===
+            String(
+              selectedStudentId
+            )
+        )
+
+      : currentTeacherMaterials;
+
+
+  if (
+    materials.length ===
+      0
+  ) {
+
+    list.innerHTML = `
+
+      <div
+        style="
+          padding:14px;
+          border-radius:9px;
+          background:#f7faff;
+        "
+      >
+        Nenhum material cadastrado
+        ${
+          selectedStudentId
+            ? "para este aluno"
+            : ""
+        }.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  list.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:10px;
+      "
+    >
+
+      ${materials
+        .map(
+          item => `
+
+            <div
+              style="
+                padding:14px;
+                border:1px solid #ddd;
+                border-radius:9px;
+                background:#ffffff;
+              "
+            >
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:flex-start;
+                  gap:10px;
+                  flex-wrap:wrap;
+                "
+              >
+
+                <div>
+
+                  <strong>
+                    ${escapeHtml(
+                      item.title
+                    )}
+                  </strong>
+
+
+                  <div
+                    style="
+                      margin-top:3px;
+                      color:#666;
+                      font-size:13px;
+                    "
+                  >
+                    ${escapeHtml(
+                      item.student_name
+                    )}
+                  </div>
+
+                </div>
+
+
+                <button
+                  type="button"
+                  class="secondary-button delete-teacher-material-button"
+                  data-material-id="${item.material_id}"
+                  style="
+                    color:#c0392b;
+                    border-color:#c0392b;
+                  "
+                >
+                  Remover
+                </button>
+
+              </div>
+
+
+              ${
+                item.description
+
+                  ? `
+
+                    <div
+                      style="
+                        margin-top:8px;
+                        white-space:pre-wrap;
+                      "
+                    >
+                      ${escapeHtml(
+                        item.description
+                      )}
+                    </div>
+
+                  `
+
+                  : ""
+              }
+
+
+              <a
+                href="${escapeHtml(
+                  item.url
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="
+                  display:inline-block;
+                  margin-top:9px;
+                  word-break:break-all;
+                "
+              >
+                Abrir material
+              </a>
+
+            </div>
+
+          `
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".delete-teacher-material-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteTeacherMaterial(
+            button.dataset.materialId
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// SALVAR MATERIAL
+// =====================================================
+
+async function saveTeacherMaterial() {
+
+  const studentSelect =
+    document.getElementById(
+      "teacherMaterialStudent"
+    );
+
+
+  const titleInput =
+    document.getElementById(
+      "teacherMaterialTitle"
+    );
+
+
+  const urlInput =
+    document.getElementById(
+      "teacherMaterialUrl"
+    );
+
+
+  const descriptionInput =
+    document.getElementById(
+      "teacherMaterialDescription"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherMaterialMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherMaterialButton"
+    );
+
+
+  if (
+    !studentSelect ||
+    !titleInput ||
+    !urlInput
+  ) {
+    return;
+  }
+
+
+  const studentId =
+    studentSelect.value;
+
+
+  const title =
+    titleInput.value.trim();
+
+
+  const url =
+    urlInput.value.trim();
+
+
+  if (!studentId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione o aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (!title) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe o titulo do material.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    !/^https?:\/\//i.test(
+      url
+    )
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "O link precisa comecar com http:// ou https://.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Adicionando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_material",
+      {
+        p_student_id:
+          studentId,
+
+        p_title:
+          title,
+
+        p_url:
+          url,
+
+        p_description:
+          descriptionInput
+            ? descriptionInput.value.trim() || null
+            : null
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Adicionar material";
+
+  }
+
+
+  if (error) {
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel adicionar o material.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  titleInput.value =
+    "";
+
+
+  urlInput.value =
+    "";
+
+
+  if (descriptionInput) {
+
+    descriptionInput.value =
+      "";
+
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Material adicionado com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  const {
+    data,
+    error: reloadError
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_materials",
+      {
+        p_student_id:
+          null
+      }
+    );
+
+
+  if (!reloadError) {
+
+    currentTeacherMaterials =
+      data || [];
+
+
+    renderTeacherMaterialsList();
+
+  }
+
+}
+
+
+// =====================================================
+// REMOVER MATERIAL
+// =====================================================
+
+async function deleteTeacherMaterial(
+  materialId
+) {
+
+  if (
+    !window.confirm(
+      "Remover este material do aluno?"
+    )
+  ) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "delete_teacher_material",
+      {
+        p_material_id:
+          materialId
+      }
+    );
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel remover o material."
+    );
+
+
+    return;
+  }
+
+
+  currentTeacherMaterials =
+    currentTeacherMaterials.filter(
+      item =>
+        String(
+          item.material_id
+        ) !==
+        String(
+          materialId
+        )
+    );
+
+
+  renderTeacherMaterialsList();
+
+}
+
+
+// =====================================================
+// MATERIAIS DO ALUNO
+// =====================================================
+
+async function loadStudentMaterials() {
+
+  const container =
+    document.getElementById(
+      "studentMaterialsContent"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_materials"
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar materiais do aluno:",
+      error
+    );
+
+
+    container.innerHTML =
+      "Nao foi possivel carregar seus materiais.";
+
+
+    return;
+  }
+
+
+  const materials =
+    data || [];
+
+
+  if (
+    materials.length ===
+      0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:16px;
+          border-radius:9px;
+          background:#f7faff;
+        "
+      >
+        Nenhum material foi disponibilizado ainda.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:12px;
+      "
+    >
+
+      ${materials
+        .map(
+          item => `
+
+            <div
+              style="
+                padding:15px;
+                border:1px solid #ddd;
+                border-radius:10px;
+                background:#ffffff;
+              "
+            >
+
+              <strong
+                style="
+                  font-size:17px;
+                "
+              >
+                ${escapeHtml(
+                  item.title
+                )}
+              </strong>
+
+
+              ${
+                item.description
+
+                  ? `
+
+                    <div
+                      style="
+                        margin-top:8px;
+                        white-space:pre-wrap;
+                      "
+                    >
+                      ${escapeHtml(
+                        item.description
+                      )}
+                    </div>
+
+                  `
+
+                  : ""
+              }
+
+
+              <a
+                href="${escapeHtml(
+                  item.url
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+                style="
+                  display:inline-block;
+                  margin-top:11px;
+                "
+              >
+                Abrir material
+              </a>
+
+            </div>
+
+          `
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
 // PAINEL OPERACIONAL DO PROFESSOR
 // =====================================================
 
@@ -33362,6 +35193,12 @@ async function loadTeacherRules() {
     );
 
 
+  const preview =
+    document.getElementById(
+      "teacherRulesImagePreview"
+    );
+
+
   if (!input) {
     return;
   }
@@ -33372,23 +35209,24 @@ async function loadTeacherRules() {
 
 
   const {
-    data: teacherId,
-    error: teacherError
+    data,
+    error
   } =
     await supabaseClient.rpc(
-      "get_current_teacher_id"
+      "get_teacher_rules_content"
     );
 
 
-  if (teacherError) {
+  if (error) {
 
     console.error(
-      "Erro ao descobrir professor:",
-      teacherError
+      "Erro ao carregar regras:",
+      error
     );
 
 
-    input.value = "";
+    input.value =
+      "";
 
 
     const message =
@@ -33400,7 +35238,7 @@ async function loadTeacherRules() {
     if (message) {
 
       message.textContent =
-        "N\xe3o foi poss\xedvel identificar o professor.";
+        "Nao foi possivel carregar as regras.";
 
       message.style.color =
         "red";
@@ -33412,56 +35250,31 @@ async function loadTeacherRules() {
   }
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("teacher_settings")
-      .select("rules_text")
-      .eq(
-        "teacher_id",
-        teacherId
+  const content =
+    (
+      Array.isArray(
+        data
       )
-      .maybeSingle();
+        ? data[0]
+        : data
+    )
+    || {};
 
 
-  if (error) {
-
-    console.error(
-      "Erro ao carregar regras:",
-      error
-    );
+  input.value =
+    content.rules_text || "";
 
 
-    input.value = "";
+  currentTeacherRulesImagePath =
+    content.rules_image_path ||
+    null;
 
 
-    const message =
-      document.getElementById(
-        "teacherRulesMessage"
-      );
+  teacherRulesImageRemoved =
+    false;
 
 
-    if (message) {
-
-      message.textContent =
-        "N\xe3o foi poss\xedvel carregar as regras.";
-
-      message.style.color =
-        "red";
-
-    }
-
-
-  }
-
-  else {
-
-    input.value =
-      data?.rules_text || "";
-
-  }
+  renderTeacherRulesImagePreview();
 
 
   const saveButton =
@@ -33478,6 +35291,136 @@ async function loadTeacherRules() {
     );
 
   }
+
+}
+
+
+// =====================================================
+// URL PUBLICA DA IMAGEM DAS REGRAS
+// =====================================================
+
+function getRulesImagePublicUrl(
+  path
+) {
+
+  if (!path) {
+    return "";
+  }
+
+
+  const {
+    data
+  } =
+    supabaseClient.storage
+      .from(
+        "rules-images"
+      )
+      .getPublicUrl(
+        path
+      );
+
+
+  return (
+    data &&
+    data.publicUrl
+  )
+    ? data.publicUrl
+    : "";
+
+}
+
+
+// =====================================================
+// PREVIEW DA IMAGEM DAS REGRAS
+// =====================================================
+
+function renderTeacherRulesImagePreview() {
+
+  const preview =
+    document.getElementById(
+      "teacherRulesImagePreview"
+    );
+
+
+  if (!preview) {
+    return;
+  }
+
+
+  const url =
+    getRulesImagePublicUrl(
+      currentTeacherRulesImagePath
+    );
+
+
+  if (
+    !url ||
+    teacherRulesImageRemoved
+  ) {
+
+    preview.innerHTML =
+      "<small>Nenhuma imagem salva.</small>";
+
+    return;
+  }
+
+
+  preview.innerHTML = `
+
+    <img
+      src="${escapeHtml(
+        url
+      )}"
+      alt="Imagem atual das regras"
+      style="
+        display:block;
+        max-width:100%;
+        max-height:350px;
+        object-fit:contain;
+        border-radius:9px;
+      "
+    >
+
+
+    <button
+      type="button"
+      class="secondary-button"
+      id="removeTeacherRulesImageButton"
+      style="
+        margin-top:9px;
+        border-color:#c0392b;
+        color:#c0392b;
+      "
+    >
+      Remover imagem
+    </button>
+
+  `;
+
+
+  const removeButton =
+    document.getElementById(
+      "removeTeacherRulesImageButton"
+    );
+
+
+  if (removeButton) {
+
+    removeButton.addEventListener(
+      "click",
+      () => {
+
+        teacherRulesImageRemoved =
+          true;
+
+
+        renderTeacherRulesImagePreview();
+
+      }
+    );
+
+  }
+
 }
 
 
@@ -33490,6 +35433,12 @@ async function saveTeacherRules() {
   const input =
     document.getElementById(
       "teacherRulesInput"
+    );
+
+
+  const imageInput =
+    document.getElementById(
+      "teacherRulesImageInput"
     );
 
 
@@ -33514,9 +35463,81 @@ async function saveTeacherRules() {
     input.value.trim();
 
 
+  const oldImagePath =
+    currentTeacherRulesImagePath;
+
+
+  let nextImagePath =
+    teacherRulesImageRemoved
+      ? null
+      : currentTeacherRulesImagePath;
+
+
+  const file =
+    imageInput &&
+    imageInput.files
+      ? imageInput.files[0]
+      : null;
+
+
+  if (file) {
+
+    const allowedTypes =
+      [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+      ];
+
+
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+
+      if (message) {
+
+        message.textContent =
+          "Use uma imagem JPG, PNG, WEBP ou GIF.";
+
+        message.style.color =
+          "red";
+
+      }
+
+
+      return;
+    }
+
+
+    if (
+      file.size >
+        5 * 1024 * 1024
+    ) {
+
+      if (message) {
+
+        message.textContent =
+          "A imagem deve ter no maximo 5 MB.";
+
+        message.style.color =
+          "red";
+
+      }
+
+
+      return;
+    }
+
+  }
+
+
   if (button) {
 
-    button.disabled = true;
+    button.disabled =
+      true;
 
     button.textContent =
       "Salvando...";
@@ -33532,15 +35553,106 @@ async function saveTeacherRules() {
   }
 
 
+  if (file) {
+
+    const extension =
+      (
+        file.name
+          .split(".")
+          .pop()
+          ||
+        "jpg"
+      )
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9]/g,
+          ""
+        );
+
+
+    nextImagePath =
+      currentUser.id
+      +
+      "/rules-"
+      +
+      Date.now()
+      +
+      "."
+      +
+      extension;
+
+
+    const {
+      error: uploadError
+    } =
+      await supabaseClient.storage
+        .from(
+          "rules-images"
+        )
+        .upload(
+          nextImagePath,
+          file,
+          {
+            cacheControl:
+              "3600",
+
+            upsert:
+              false,
+
+            contentType:
+              file.type
+          }
+        );
+
+
+    if (uploadError) {
+
+      console.error(
+        "Erro ao enviar imagem das regras:",
+        uploadError
+      );
+
+
+      if (message) {
+
+        message.textContent =
+          uploadError.message ||
+          "Nao foi possivel enviar a imagem.";
+
+        message.style.color =
+          "red";
+
+      }
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Salvar regras";
+
+      }
+
+
+      return;
+    }
+
+  }
+
+
   const {
-    data,
     error
   } =
     await supabaseClient.rpc(
-      "update_rules",
+      "save_teacher_rules_content",
       {
         p_rules_text:
-          rules
+          rules,
+
+        p_rules_image_path:
+          nextImagePath
       }
     );
 
@@ -33553,11 +35665,27 @@ async function saveTeacherRules() {
     );
 
 
+    if (
+      file &&
+      nextImagePath
+    ) {
+
+      await supabaseClient.storage
+        .from(
+          "rules-images"
+        )
+        .remove([
+          nextImagePath
+        ]);
+
+    }
+
+
     if (message) {
 
       message.textContent =
         error.message ||
-        "N\xe3o foi poss\xedvel salvar as regras.";
+        "Nao foi possivel salvar as regras.";
 
       message.style.color =
         "red";
@@ -33567,7 +35695,8 @@ async function saveTeacherRules() {
 
     if (button) {
 
-      button.disabled = false;
+      button.disabled =
+        false;
 
       button.textContent =
         "Salvar regras";
@@ -33577,6 +35706,42 @@ async function saveTeacherRules() {
 
     return;
   }
+
+
+  currentTeacherRulesImagePath =
+    nextImagePath;
+
+
+  teacherRulesImageRemoved =
+    false;
+
+
+  if (
+    oldImagePath &&
+    oldImagePath !==
+      nextImagePath
+  ) {
+
+    await supabaseClient.storage
+      .from(
+        "rules-images"
+      )
+      .remove([
+        oldImagePath
+      ]);
+
+  }
+
+
+  if (imageInput) {
+
+    imageInput.value =
+      "";
+
+  }
+
+
+  renderTeacherRulesImagePreview();
 
 
   if (message) {
@@ -33592,12 +35757,14 @@ async function saveTeacherRules() {
 
   if (button) {
 
-    button.disabled = false;
+    button.disabled =
+      false;
 
     button.textContent =
       "Salvar regras";
 
   }
+
 }
 
 
