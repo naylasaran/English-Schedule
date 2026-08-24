@@ -18,6 +18,8 @@ let currentStudentId = null;
 let currentTeacherStudents = [];
 let currentTeacherPausePeriods = [];
 let currentTeacherPlans = [];
+let currentTeacherFinancialRecords = [];
+let editingTeacherFinancialId = null;
 let editingTeacherPlanId = null;
 
 let currentStudentSchedule = [];
@@ -1273,6 +1275,87 @@ function renderFinancialCard(item) {
       >
         ${amount}
       </p>
+
+
+      ${
+        item.due_date
+
+          ? `
+
+            <p>
+              <strong>Vencimento:</strong>
+              ${formatDate(
+                new Date(
+                  item.due_date +
+                  "T12:00:00"
+                )
+              )}
+            </p>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        item.paid_at
+
+          ? `
+
+            <p>
+              <strong>Pagamento:</strong>
+              ${formatDate(
+                new Date(
+                  item.paid_at
+                )
+              )}
+            </p>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        Number(
+          item.discount || 0
+        ) > 0
+
+          ? `
+
+            <p>
+              <strong>Desconto:</strong>
+              ${formatCurrency(
+                item.discount
+              )}
+            </p>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        item.invoice_required
+
+          ? `
+
+            <p>
+              <strong>Nota fiscal:</strong>
+              ${
+                item.invoice_issued
+                  ? "Emitida"
+                  : "Pendente"
+              }
+            </p>
+
+          `
+
+          : ""
+      }
 
 
       <p>
@@ -6577,6 +6660,241 @@ function setTeacherPage(page) {
 
 
   // ===================================================
+  // FINANCEIRO
+  // ===================================================
+
+  if (page === "financial") {
+
+    const now =
+      new Date();
+
+
+    const currentMonth =
+      String(
+        now.getFullYear()
+      )
+      +
+      "-"
+      +
+      String(
+        now.getMonth() + 1
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    content.innerHTML = `
+
+      <div class="card">
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h3
+              style="
+                margin-bottom:6px;
+              "
+            >
+              Financeiro
+            </h3>
+
+            <p
+              style="
+                margin:0;
+              "
+            >
+              Cadastre e acompanhe as mensalidades
+              dos seus alunos.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="newTeacherFinancialButton"
+          >
+            + Nova mensalidade
+          </button>
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:12px;
+            margin-top:20px;
+          "
+        >
+
+          <div>
+
+            <label
+              for="teacherFinancialMonthFilter"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:8px;
+              "
+            >
+              Mes
+            </label>
+
+
+            <input
+              type="month"
+              id="teacherFinancialMonthFilter"
+              value="${currentMonth}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+
+          <div>
+
+            <label
+              for="teacherFinancialStudentFilter"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:8px;
+              "
+            >
+              Aluno
+            </label>
+
+
+            <select
+              id="teacherFinancialStudentFilter"
+              style="
+                width:100%;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+              <option value="">
+                Todos os alunos
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="teacherFinancialSummary"
+          style="
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <div
+          id="teacherFinancialFormArea"
+          style="
+            display:none;
+            margin-top:20px;
+          "
+        ></div>
+
+
+        <div
+          id="teacherFinancialList"
+          style="
+            margin-top:20px;
+          "
+        >
+          Carregando financeiro...
+        </div>
+
+      </div>
+
+    `;
+
+
+    const newButton =
+      document.getElementById(
+        "newTeacherFinancialButton"
+      );
+
+
+    if (newButton) {
+
+      newButton.addEventListener(
+        "click",
+        () => {
+
+          openTeacherFinancialForm();
+
+        }
+      );
+
+    }
+
+
+    const monthFilter =
+      document.getElementById(
+        "teacherFinancialMonthFilter"
+      );
+
+
+    if (monthFilter) {
+
+      monthFilter.addEventListener(
+        "change",
+        loadTeacherFinancialRecords
+      );
+
+    }
+
+
+    const studentFilter =
+      document.getElementById(
+        "teacherFinancialStudentFilter"
+      );
+
+
+    if (studentFilter) {
+
+      studentFilter.addEventListener(
+        "change",
+        loadTeacherFinancialRecords
+      );
+
+    }
+
+
+    loadTeacherFinancialPage();
+
+    return;
+  }
+
+
+  // ===================================================
   // PRESENCA / FALTAS
   // ===================================================
 
@@ -11177,8 +11495,1680 @@ function renderTeacherStudentHistoryRow(
 
 
 // =====================================================
+// FINANCEIRO DO PROFESSOR
+// =====================================================
+
+async function loadTeacherFinancialPage() {
+
+  if (
+    currentTeacherStudents.length === 0
+  ) {
+
+    await loadTeacherStudents();
+
+  }
+
+
+  const studentFilter =
+    document.getElementById(
+      "teacherFinancialStudentFilter"
+    );
+
+
+  if (studentFilter) {
+
+    studentFilter.innerHTML = `
+
+      <option value="">
+        Todos os alunos
+      </option>
+
+      ${currentTeacherStudents
+        .map(
+          student => `
+
+            <option
+              value="${student.student_id}"
+            >
+              ${escapeHtml(
+                student.student_name
+              )}
+            </option>
+
+          `
+        )
+        .join("")}
+
+    `;
+
+  }
+
+
+  await loadTeacherFinancialRecords();
+
+}
+
+
+// =====================================================
+// MES / ANO DO FILTRO
+// =====================================================
+
+function getTeacherFinancialMonthParts() {
+
+  const input =
+    document.getElementById(
+      "teacherFinancialMonthFilter"
+    );
+
+
+  const value =
+    input
+      ? input.value
+      : "";
+
+
+  const parts =
+    String(
+      value || ""
+    ).split("-");
+
+
+  let year =
+    Number(
+      parts[0]
+    );
+
+
+  let month =
+    Number(
+      parts[1]
+    );
+
+
+  if (
+    !year ||
+    month < 1 ||
+    month > 12
+  ) {
+
+    const now =
+      new Date();
+
+
+    year =
+      now.getFullYear();
+
+    month =
+      now.getMonth() + 1;
+
+  }
+
+
+  return {
+    year,
+    month
+  };
+
+}
+
+
+// =====================================================
+// CARREGAR LANCAMENTOS
+// =====================================================
+
+async function loadTeacherFinancialRecords() {
+
+  const list =
+    document.getElementById(
+      "teacherFinancialList"
+    );
+
+
+  if (!list) {
+    return;
+  }
+
+
+  list.innerHTML =
+    "Carregando financeiro...";
+
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  const studentFilter =
+    document.getElementById(
+      "teacherFinancialStudentFilter"
+    );
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_teacher_financial_records",
+      {
+
+        p_year:
+          year,
+
+        p_month:
+          month,
+
+        p_student_id:
+          studentFilter &&
+          studentFilter.value
+            ? studentFilter.value
+            : null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar financeiro:",
+      error
+    );
+
+
+    list.innerHTML = `
+
+      <p>
+        Nao foi possivel carregar o financeiro.
+      </p>
+
+    `;
+
+
+    return;
+  }
+
+
+  currentTeacherFinancialRecords =
+    data || [];
+
+
+  renderTeacherFinancialSummary();
+
+  renderTeacherFinancialRecords();
+
+}
+
+
+// =====================================================
+// RESUMO DO MES
+// =====================================================
+
+function renderTeacherFinancialSummary() {
+
+  const container =
+    document.getElementById(
+      "teacherFinancialSummary"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  let total =
+    0;
+
+  let paid =
+    0;
+
+  let pending =
+    0;
+
+  let overdue =
+    0;
+
+
+  currentTeacherFinancialRecords.forEach(
+    item => {
+
+      const amount =
+        Number(
+          item.amount || 0
+        );
+
+
+      total +=
+        amount;
+
+
+      const status =
+        String(
+          item.payment_status || ""
+        ).toLowerCase();
+
+
+      if (
+        status === "paid"
+      ) {
+
+        paid +=
+          amount;
+
+      }
+
+      else if (
+        status === "overdue"
+      ) {
+
+        overdue +=
+          amount;
+
+      }
+
+      else {
+
+        pending +=
+          amount;
+
+      }
+
+    }
+  );
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:10px;
+      "
+    >
+
+      ${renderTeacherFinancialStat(
+        "Total do mes",
+        total
+      )}
+
+      ${renderTeacherFinancialStat(
+        "Pago",
+        paid
+      )}
+
+      ${renderTeacherFinancialStat(
+        "Pendente",
+        pending
+      )}
+
+      ${renderTeacherFinancialStat(
+        "Atrasado",
+        overdue
+      )}
+
+    </div>
+
+  `;
+
+}
+
+
+function renderTeacherFinancialStat(
+  label,
+  amount
+) {
+
+  return `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          font-size:13px;
+          color:#666;
+        "
+      >
+        ${escapeHtml(
+          label
+        )}
+      </div>
+
+
+      <div
+        style="
+          font-size:22px;
+          font-weight:bold;
+          margin-top:5px;
+        "
+      >
+        ${formatCurrency(
+          amount
+        )}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// LISTA FINANCEIRA
+// =====================================================
+
+function renderTeacherFinancialRecords() {
+
+  const container =
+    document.getElementById(
+      "teacherFinancialList"
+    );
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (
+    currentTeacherFinancialRecords.length === 0
+  ) {
+
+    container.innerHTML = `
+
+      <div
+        style="
+          padding:20px;
+          text-align:center;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
+        Nenhuma mensalidade cadastrada neste mes.
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      style="
+        display:grid;
+        gap:12px;
+      "
+    >
+
+      ${currentTeacherFinancialRecords
+        .map(
+          renderTeacherFinancialRecordCard
+        )
+        .join("")}
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".edit-teacher-financial-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const item =
+            currentTeacherFinancialRecords.find(
+              record =>
+                String(
+                  record.financial_id
+                ) ===
+                String(
+                  button.dataset.financialId
+                )
+            );
+
+
+          if (item) {
+
+            openTeacherFinancialForm(
+              item
+            );
+
+          }
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".delete-teacher-financial-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          deleteTeacherFinancialRecord(
+            button.dataset.financialId,
+            button.dataset.studentName
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD FINANCEIRO DO PROFESSOR
+// =====================================================
+
+function renderTeacherFinancialRecordCard(
+  item
+) {
+
+  const dueDate =
+    item.due_date
+      ? formatDate(
+          new Date(
+            item.due_date +
+            "T12:00:00"
+          )
+        )
+      : "Nao informado";
+
+
+  const paidDate =
+    item.paid_at
+      ? formatDate(
+          new Date(
+            item.paid_at
+          )
+        )
+      : "";
+
+
+  return `
+
+    <div
+      style="
+        padding:17px;
+        border:1px solid #ddd;
+        border-radius:10px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong
+            style="
+              font-size:18px;
+            "
+          >
+            ${escapeHtml(
+              item.student_name
+            )}
+          </strong>
+
+
+          <div
+            style="
+              margin-top:5px;
+              font-size:22px;
+              font-weight:bold;
+            "
+          >
+            ${formatCurrency(
+              item.amount
+            )}
+          </div>
+
+        </div>
+
+
+        <strong>
+          ${formatPaymentStatus(
+            item.payment_status
+          )}
+        </strong>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+          gap:8px;
+          margin-top:13px;
+        "
+      >
+
+        <div>
+          <strong>Vencimento:</strong>
+          ${dueDate}
+        </div>
+
+
+        ${
+          paidDate
+
+            ? `
+
+              <div>
+                <strong>Pagamento:</strong>
+                ${paidDate}
+              </div>
+
+            `
+
+            : ""
+        }
+
+
+        ${
+          Number(
+            item.discount || 0
+          ) > 0
+
+            ? `
+
+              <div>
+                <strong>Desconto:</strong>
+                ${formatCurrency(
+                  item.discount
+                )}
+              </div>
+
+            `
+
+            : ""
+        }
+
+
+        <div>
+          <strong>NF:</strong>
+
+          ${
+            item.invoice_required
+              ? (
+                  item.invoice_issued
+                    ? "Emitida"
+                    : "Necessaria / pendente"
+                )
+              : "Nao necessaria"
+          }
+        </div>
+
+      </div>
+
+
+      ${
+        item.notes
+
+          ? `
+
+            <p
+              style="
+                margin-top:12px;
+                white-space:pre-wrap;
+              "
+            >
+              <strong>Observacoes:</strong>
+              ${escapeHtml(
+                item.notes
+              )}
+            </p>
+
+          `
+
+          : ""
+      }
+
+
+      <div
+        style="
+          display:flex;
+          gap:8px;
+          flex-wrap:wrap;
+          margin-top:14px;
+        "
+      >
+
+        <button
+          type="button"
+          class="secondary-button edit-teacher-financial-button"
+          data-financial-id="${item.financial_id}"
+        >
+          Editar
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button delete-teacher-financial-button"
+          data-financial-id="${item.financial_id}"
+          data-student-name="${escapeHtml(
+            item.student_name
+          )}"
+          style="
+            border-color:#c0392b;
+            color:#c0392b;
+          "
+        >
+          Excluir
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// FORMULARIO FINANCEIRO
+// =====================================================
+
+function openTeacherFinancialForm(
+  item = null
+) {
+
+  const area =
+    document.getElementById(
+      "teacherFinancialFormArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  editingTeacherFinancialId =
+    item
+      ? item.financial_id
+      : null;
+
+
+  const selectedStudentId =
+    item
+      ? item.student_id
+      : "";
+
+
+  const selectedStatus =
+    item
+      ? item.payment_status
+      : "pending";
+
+
+  const dueDate =
+    item &&
+    item.due_date
+      ? item.due_date
+      : (
+          String(year)
+          +
+          "-"
+          +
+          String(month).padStart(
+            2,
+            "0"
+          )
+          +
+          "-01"
+        );
+
+
+  const paidDate =
+    item &&
+    item.paid_at
+      ? String(
+          item.paid_at
+        ).slice(
+          0,
+          10
+        )
+      : "";
+
+
+  area.style.display =
+    "block";
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:18px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#f7faff;
+      "
+    >
+
+      <h4
+        style="
+          margin-top:0;
+        "
+      >
+        ${
+          item
+            ? "Editar mensalidade"
+            : "Nova mensalidade"
+        }
+      </h4>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+          gap:14px;
+        "
+      >
+
+        <div>
+
+          <label
+            for="teacherFinancialStudent"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Aluno
+          </label>
+
+
+          <select
+            id="teacherFinancialStudent"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            <option value="">
+              Selecione
+            </option>
+
+            ${currentTeacherStudents
+              .map(
+                student => `
+
+                  <option
+                    value="${student.student_id}"
+                    ${
+                      String(
+                        student.student_id
+                      ) ===
+                      String(
+                        selectedStudentId
+                      )
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${escapeHtml(
+                      student.student_name
+                    )}
+                  </option>
+
+                `
+              )
+              .join("")}
+
+          </select>
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherFinancialAmount"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Valor da mensalidade
+          </label>
+
+
+          <input
+            type="number"
+            id="teacherFinancialAmount"
+            min="0"
+            step="0.01"
+            value="${
+              item
+                ? Number(
+                    item.amount || 0
+                  ).toFixed(
+                    2
+                  )
+                : ""
+            }"
+            placeholder="0,00"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherFinancialDueDate"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Vencimento
+          </label>
+
+
+          <input
+            type="date"
+            id="teacherFinancialDueDate"
+            value="${dueDate}"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherFinancialStatus"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Status
+          </label>
+
+
+          <select
+            id="teacherFinancialStatus"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            <option
+              value="pending"
+              ${
+                selectedStatus ===
+                "pending"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Pendente
+            </option>
+
+            <option
+              value="paid"
+              ${
+                selectedStatus ===
+                "paid"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Pago
+            </option>
+
+            <option
+              value="overdue"
+              ${
+                selectedStatus ===
+                "overdue"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Atrasado
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherFinancialPaidDate"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Data do pagamento
+          </label>
+
+
+          <input
+            type="date"
+            id="teacherFinancialPaidDate"
+            value="${paidDate}"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherFinancialDiscount"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Desconto
+          </label>
+
+
+          <input
+            type="number"
+            id="teacherFinancialDiscount"
+            min="0"
+            step="0.01"
+            value="${
+              item
+                ? Number(
+                    item.discount || 0
+                  ).toFixed(
+                    2
+                  )
+                : "0.00"
+            }"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:18px;
+          flex-wrap:wrap;
+          margin-top:16px;
+        "
+      >
+
+        <label>
+
+          <input
+            type="checkbox"
+            id="teacherFinancialInvoiceRequired"
+            ${
+              item &&
+              item.invoice_required
+                ? "checked"
+                : ""
+            }
+          >
+
+          Precisa de nota fiscal
+
+        </label>
+
+
+        <label>
+
+          <input
+            type="checkbox"
+            id="teacherFinancialInvoiceIssued"
+            ${
+              item &&
+              item.invoice_issued
+                ? "checked"
+                : ""
+            }
+          >
+
+          Nota fiscal emitida
+
+        </label>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:16px;
+        "
+      >
+
+        <label
+          for="teacherFinancialNotes"
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:7px;
+          "
+        >
+          Observacoes
+        </label>
+
+
+        <textarea
+          id="teacherFinancialNotes"
+          rows="4"
+          maxlength="2000"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:10px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            resize:vertical;
+            font-family:inherit;
+          "
+        >${escapeHtml(
+          item
+            ? item.notes || ""
+            : ""
+        )}</textarea>
+
+      </div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:16px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="saveTeacherFinancialButton"
+        >
+          Salvar mensalidade
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelTeacherFinancialButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="teacherFinancialMessage"
+        style="
+          margin-top:10px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherFinancialStatus"
+    );
+
+
+  const paidInput =
+    document.getElementById(
+      "teacherFinancialPaidDate"
+    );
+
+
+  function updatePaidDateState() {
+
+    if (
+      !statusSelect ||
+      !paidInput
+    ) {
+      return;
+    }
+
+
+    paidInput.disabled =
+      statusSelect.value !==
+        "paid";
+
+
+    if (
+      statusSelect.value ===
+        "paid"
+      &&
+      !paidInput.value
+    ) {
+
+      paidInput.value =
+        formatDateForDatabase(
+          new Date()
+        );
+
+    }
+
+
+    if (
+      statusSelect.value !==
+        "paid"
+    ) {
+
+      paidInput.value =
+        "";
+
+    }
+
+  }
+
+
+  updatePaidDateState();
+
+
+  if (statusSelect) {
+
+    statusSelect.addEventListener(
+      "change",
+      updatePaidDateState
+    );
+
+  }
+
+
+  const saveButton =
+    document.getElementById(
+      "saveTeacherFinancialButton"
+    );
+
+
+  if (saveButton) {
+
+    saveButton.addEventListener(
+      "click",
+      saveTeacherFinancialRecord
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelTeacherFinancialButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      closeTeacherFinancialForm
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+// =====================================================
+// FECHAR FORMULARIO
+// =====================================================
+
+function closeTeacherFinancialForm() {
+
+  editingTeacherFinancialId =
+    null;
+
+
+  const area =
+    document.getElementById(
+      "teacherFinancialFormArea"
+    );
+
+
+  if (area) {
+
+    area.style.display =
+      "none";
+
+    area.innerHTML =
+      "";
+
+  }
+
+}
+
+
+// =====================================================
+// SALVAR FINANCEIRO
+// =====================================================
+
+async function saveTeacherFinancialRecord() {
+
+  const studentSelect =
+    document.getElementById(
+      "teacherFinancialStudent"
+    );
+
+
+  const amountInput =
+    document.getElementById(
+      "teacherFinancialAmount"
+    );
+
+
+  const dueInput =
+    document.getElementById(
+      "teacherFinancialDueDate"
+    );
+
+
+  const statusSelect =
+    document.getElementById(
+      "teacherFinancialStatus"
+    );
+
+
+  const paidInput =
+    document.getElementById(
+      "teacherFinancialPaidDate"
+    );
+
+
+  const discountInput =
+    document.getElementById(
+      "teacherFinancialDiscount"
+    );
+
+
+  const invoiceRequired =
+    document.getElementById(
+      "teacherFinancialInvoiceRequired"
+    );
+
+
+  const invoiceIssued =
+    document.getElementById(
+      "teacherFinancialInvoiceIssued"
+    );
+
+
+  const notes =
+    document.getElementById(
+      "teacherFinancialNotes"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherFinancialMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherFinancialButton"
+    );
+
+
+  const studentId =
+    studentSelect
+      ? studentSelect.value
+      : "";
+
+
+  const amount =
+    amountInput
+      ? Number(
+          amountInput.value
+        )
+      : NaN;
+
+
+  const discount =
+    discountInput
+      ? Number(
+          discountInput.value || 0
+        )
+      : 0;
+
+
+  if (!studentId) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione o aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    Number.isNaN(
+      amount
+    )
+    ||
+    amount < 0
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Digite um valor valido.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    year,
+    month
+  } =
+    getTeacherFinancialMonthParts();
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_monthly_financial",
+      {
+
+        p_financial_id:
+          editingTeacherFinancialId,
+
+        p_student_id:
+          studentId,
+
+        p_year:
+          year,
+
+        p_month:
+          month,
+
+        p_amount:
+          amount,
+
+        p_payment_status:
+          statusSelect
+            ? statusSelect.value
+            : "pending",
+
+        p_due_date:
+          dueInput &&
+          dueInput.value
+            ? dueInput.value
+            : null,
+
+        p_paid_date:
+          paidInput &&
+          paidInput.value
+            ? paidInput.value
+            : null,
+
+        p_discount:
+          discount,
+
+        p_invoice_required:
+          Boolean(
+            invoiceRequired &&
+            invoiceRequired.checked
+          ),
+
+        p_invoice_issued:
+          Boolean(
+            invoiceIssued &&
+            invoiceIssued.checked
+          ),
+
+        p_notes:
+          notes
+            ? notes.value.trim() || null
+            : null
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar mensalidade:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar a mensalidade.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Salvar mensalidade";
+
+    }
+
+
+    return;
+  }
+
+
+  closeTeacherFinancialForm();
+
+  await loadTeacherFinancialRecords();
+
+}
+
+
+// =====================================================
+// EXCLUIR LANCAMENTO
+// =====================================================
+
+async function deleteTeacherFinancialRecord(
+  financialId,
+  studentName
+) {
+
+  const confirmed =
+    window.confirm(
+
+      "Excluir a mensalidade de \"" +
+      String(
+        studentName || ""
+      ) +
+      "\" deste mes?"
+
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "delete_teacher_monthly_financial",
+      {
+        p_financial_id:
+          financialId
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao excluir mensalidade:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Nao foi possivel excluir a mensalidade."
+    );
+
+
+    return;
+  }
+
+
+  await loadTeacherFinancialRecords();
+
+}
+
+
+// =====================================================
 // RELATORIO DE PRESENCA / FALTAS
 // =====================================================
+
+
 
 async function loadTeacherAttendancePage() {
 
