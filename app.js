@@ -2117,6 +2117,78 @@ function renderAdminTeacherManagement() {
 
       </div>
 
+
+      <div
+        style="
+          margin-top:22px;
+          padding-top:18px;
+          border-top:1px solid #ddd;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Integridade do ERP
+            </h4>
+
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              Procura inconsistencias de cadastro, agenda,
+              financeiro, reposicoes e acessos.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="runAdminIntegrityCheckButton"
+          >
+            Executar verificacao completa
+          </button>
+
+        </div>
+
+
+        <div
+          id="adminIntegrityCheckArea"
+          style="
+            margin-top:12px;
+          "
+        ></div>
+
+
+        <div
+          id="adminIntegrityDetailsArea"
+          style="
+            margin-top:12px;
+          "
+        ></div>
+
+      </div>
+
     </div>
 
   `;
@@ -2152,6 +2224,612 @@ function renderAdminTeacherManagement() {
     );
 
   }
+
+
+  const integrityButton =
+    document.getElementById(
+      "runAdminIntegrityCheckButton"
+    );
+
+
+  if (integrityButton) {
+
+    integrityButton.addEventListener(
+      "click",
+      loadAdminIntegrityCheck
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// DIAGNOSTICO DE INTEGRIDADE DO ERP
+// =====================================================
+
+async function loadAdminIntegrityCheck() {
+
+  const area =
+    document.getElementById(
+      "adminIntegrityCheckArea"
+    );
+
+
+  const detailsArea =
+    document.getElementById(
+      "adminIntegrityDetailsArea"
+    );
+
+
+  const button =
+    document.getElementById(
+      "runAdminIntegrityCheckButton"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (detailsArea) {
+
+    detailsArea.innerHTML =
+      "";
+
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Verificando...";
+
+  }
+
+
+  area.innerHTML =
+    "Executando verificacoes...";
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_erp_integrity_check"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Executar verificacao completa";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro no diagnostico de integridade:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px;
+          border-radius:8px;
+          background:#fdecea;
+          color:#8a1f17;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel executar o diagnostico."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const checks =
+    data || [];
+
+
+  const issues =
+    checks.filter(
+      item =>
+        Number(
+          item.issue_count || 0
+        ) > 0
+    );
+
+
+  const criticalCount =
+    issues
+      .filter(
+        item =>
+          item.severity ===
+            "critical"
+      )
+      .reduce(
+        (
+          total,
+          item
+        ) =>
+          total
+          +
+          Number(
+            item.issue_count || 0
+          ),
+        0
+      );
+
+
+  const warningCount =
+    issues
+      .filter(
+        item =>
+          item.severity ===
+            "warning"
+      )
+      .reduce(
+        (
+          total,
+          item
+        ) =>
+          total
+          +
+          Number(
+            item.issue_count || 0
+          ),
+        0
+      );
+
+
+  if (
+    criticalCount === 0
+    &&
+    warningCount === 0
+  ) {
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:14px;
+          border-radius:9px;
+          background:#eef8f0;
+        "
+      >
+        <strong>
+          Integridade principal: OK
+        </strong>
+
+        <div
+          style="
+            margin-top:5px;
+            color:#555;
+            font-size:13px;
+          "
+        >
+          Nenhuma inconsistencia foi encontrada nas
+          verificacoes automaticas.
+        </div>
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:14px;
+        border-radius:9px;
+        background:${
+          criticalCount > 0
+            ? "#fdecea"
+            : "#fff3cd"
+        };
+      "
+    >
+
+      <strong>
+        ${
+          criticalCount > 0
+            ? (
+                criticalCount
+                +
+                " problema(s) critico(s)"
+              )
+            : "Nenhum problema critico"
+        }
+      </strong>
+
+
+      <div
+        style="
+          margin-top:4px;
+          font-size:13px;
+        "
+      >
+        ${warningCount}
+        aviso(s) adicional(is).
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:9px;
+          margin-top:12px;
+        "
+      >
+
+        ${issues
+          .map(
+            item => `
+
+              <div
+                style="
+                  padding:11px;
+                  border-radius:8px;
+                  background:#ffffff;
+                  border:1px solid #e2e2e2;
+                "
+              >
+
+                <div
+                  style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:flex-start;
+                    gap:10px;
+                    flex-wrap:wrap;
+                  "
+                >
+
+                  <div>
+
+                    <strong>
+                      ${
+                        item.severity ===
+                          "critical"
+                          ? "CRITICO"
+                          : "ATENCAO"
+                      }
+                      -
+                      ${escapeHtml(
+                        item.title
+                      )}
+                    </strong>
+
+
+                    <div
+                      style="
+                        margin-top:4px;
+                        color:#666;
+                        font-size:13px;
+                      "
+                    >
+                      ${escapeHtml(
+                        item.detail || ""
+                      )}
+                    </div>
+
+                  </div>
+
+
+                  <div
+                    style="
+                      display:flex;
+                      align-items:center;
+                      gap:8px;
+                    "
+                  >
+
+                    <strong
+                      style="
+                        font-size:20px;
+                      "
+                    >
+                      ${Number(
+                        item.issue_count || 0
+                      )}
+                    </strong>
+
+
+                    <button
+                      type="button"
+                      class="secondary-button admin-integrity-details-button"
+                      data-check-key="${escapeHtml(
+                        item.check_key
+                      )}"
+                      data-check-title="${escapeHtml(
+                        item.title
+                      )}"
+                    >
+                      Ver detalhes
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            `
+          )
+          .join("")}
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  document
+    .querySelectorAll(
+      ".admin-integrity-details-button"
+    )
+    .forEach(buttonItem => {
+
+      buttonItem.addEventListener(
+        "click",
+        () => {
+
+          loadAdminIntegrityDetails(
+            buttonItem.dataset.checkKey,
+            buttonItem.dataset.checkTitle
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// DETALHES DE UMA INCONSISTENCIA
+// =====================================================
+
+async function loadAdminIntegrityDetails(
+  checkKey,
+  checkTitle
+) {
+
+  const area =
+    document.getElementById(
+      "adminIntegrityDetailsArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:12px;
+        border-radius:8px;
+        background:#f7faff;
+      "
+    >
+      Carregando detalhes...
+    </div>
+
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_erp_integrity_details",
+      {
+        p_check_key:
+          checkKey
+      }
+    );
+
+
+  if (error) {
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px;
+          border-radius:8px;
+          background:#fdecea;
+          color:#8a1f17;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel carregar os detalhes."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const rows =
+    data || [];
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:14px;
+        border:1px solid #ddd;
+        border-radius:9px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <strong>
+          ${escapeHtml(
+            checkTitle || "Detalhes"
+          )}
+        </strong>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="closeAdminIntegrityDetailsButton"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          gap:7px;
+          margin-top:12px;
+        "
+      >
+
+        ${
+          rows.length === 0
+
+            ? `
+
+              <div>
+                Nenhum registro encontrado.
+              </div>
+
+            `
+
+            : rows
+                .map(
+                  row => `
+
+                    <div
+                      style="
+                        padding:9px 10px;
+                        border-radius:7px;
+                        background:#f7faff;
+                      "
+                    >
+
+                      <strong>
+                        ${escapeHtml(
+                          row.primary_label || ""
+                        )}
+                      </strong>
+
+
+                      ${
+                        row.secondary_label
+
+                          ? `
+
+                            <div
+                              style="
+                                margin-top:3px;
+                                color:#666;
+                                font-size:13px;
+                              "
+                            >
+                              ${escapeHtml(
+                                row.secondary_label
+                              )}
+                            </div>
+
+                          `
+
+                          : ""
+                      }
+
+                    </div>
+
+                  `
+                )
+                .join("")
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  const closeButton =
+    document.getElementById(
+      "closeAdminIntegrityDetailsButton"
+    );
+
+
+  if (closeButton) {
+
+    closeButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior:
+      "smooth",
+
+    block:
+      "nearest"
+  });
 
 }
 
