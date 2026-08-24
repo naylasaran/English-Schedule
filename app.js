@@ -1,3 +1,7 @@
+console.log(
+  "ERP build: cadastro-horarios-v2-20260824"
+);
+
 // =====================================================
 // AGENDA DE AULAS
 // APP.JS COMPLETO
@@ -7975,7 +7979,11 @@ async function finishStudentRegistration(
         duration,
 
       p_schedule:
-        schedule
+        Array.isArray(
+          schedule
+        )
+          ? schedule
+          : []
 
     }
   );
@@ -8008,7 +8016,11 @@ async function recoverExistingStudentAccess(
         duration,
 
       p_schedule:
-        schedule
+        Array.isArray(
+          schedule
+        )
+          ? schedule
+          : []
 
     }
   );
