@@ -9305,6 +9305,20 @@ function setTeacherPage(page) {
 
     content.innerHTML = `
 
+      <div
+        id="teacherDashboardArea"
+        style="
+          margin-bottom:20px;
+        "
+      >
+
+        <div class="card">
+          Carregando resumo...
+        </div>
+
+      </div>
+
+
       <!-- ==========================================
            CANCELAMENTOS DOS ALUNOS
            ========================================== -->
@@ -9450,6 +9464,8 @@ function setTeacherPage(page) {
     // =================================================
     // SEMANA ANTERIOR
     // =================================================
+
+    loadTeacherDashboard();
 
     const previousButton =
       document.getElementById(
@@ -28394,6 +28410,532 @@ async function markTeacherCancellationAsRead(
 // =====================================================
 // CARREGAR REGRAS DO PROFESSOR
 // =====================================================
+
+// =====================================================
+// PAINEL OPERACIONAL DO PROFESSOR
+// =====================================================
+
+async function loadTeacherDashboard() {
+
+  const area =
+    document.getElementById(
+      "teacherDashboardArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const [
+    summaryResult,
+    alertsResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_dashboard_summary"
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_dashboard_alerts"
+      )
+
+    ]);
+
+
+  if (
+    summaryResult.error ||
+    alertsResult.error
+  ) {
+
+    console.error(
+      "Erro ao carregar painel do professor:",
+      summaryResult.error ||
+      alertsResult.error
+    );
+
+
+    area.innerHTML = `
+
+      <div class="card">
+
+        <h3
+          style="
+            margin-top:0;
+          "
+        >
+          Resumo
+        </h3>
+
+        <p>
+          Nao foi possivel carregar os alertas do painel.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const summary =
+    (
+      Array.isArray(
+        summaryResult.data
+      )
+        ? summaryResult.data[0]
+        : summaryResult.data
+    )
+    || {};
+
+
+  const alerts =
+    alertsResult.data || [];
+
+
+  area.innerHTML = `
+
+    <div class="card">
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:flex-start;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <h3
+            style="
+              margin:0;
+            "
+          >
+            Resumo do professor
+          </h3>
+
+
+          <p
+            style="
+              margin:6px 0 0;
+              color:#666;
+            "
+          >
+            Pendencias e informacoes importantes do ERP.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="refreshTeacherDashboardButton"
+        >
+          Atualizar resumo
+        </button>
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+          gap:10px;
+          margin-top:18px;
+        "
+      >
+
+        ${renderTeacherDashboardStat(
+          "Alunos ativos",
+          summary.active_students || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Aulas pausadas",
+          summary.paused_students || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Comentarios novos",
+          summary.unread_comments || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Mensalidades atrasadas",
+          summary.overdue_financial || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Reposicoes vencendo",
+          summary.expiring_makeups || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Menores sem responsavel",
+          summary.minors_without_guardian || 0
+        )}
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:20px;
+        "
+      >
+
+        <h4
+          style="
+            margin-bottom:10px;
+          "
+        >
+          Precisa de atencao
+        </h4>
+
+
+        ${
+          alerts.length === 0
+
+            ? `
+
+              <div
+                style="
+                  padding:14px;
+                  border-radius:9px;
+                  background:#eef8f0;
+                "
+              >
+                Nenhuma pendencia importante no momento.
+              </div>
+
+            `
+
+            : `
+
+              <div
+                style="
+                  display:grid;
+                  gap:9px;
+                "
+              >
+
+                ${alerts
+                  .map(
+                    renderTeacherDashboardAlert
+                  )
+                  .join("")}
+
+              </div>
+
+            `
+        }
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  const refreshButton =
+    document.getElementById(
+      "refreshTeacherDashboardButton"
+    );
+
+
+  if (refreshButton) {
+
+    refreshButton.addEventListener(
+      "click",
+      loadTeacherDashboard
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(
+      ".teacher-dashboard-student-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        async () => {
+
+          const studentId =
+            button.dataset.studentId;
+
+
+          setTeacherPage(
+            "students"
+          );
+
+
+          await waitForElement(
+            "teacherStudentDetailArea"
+          );
+
+
+          await openTeacherStudentDetail(
+            studentId
+          );
+
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      ".teacher-dashboard-financial-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          setTeacherPage(
+            "financial"
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// CARD NUMERICO DO PAINEL
+// =====================================================
+
+function renderTeacherDashboardStat(
+  label,
+  value
+) {
+
+  return `
+
+    <div
+      style="
+        padding:13px;
+        border:1px solid #ddd;
+        border-radius:9px;
+        background:#ffffff;
+      "
+    >
+
+      <div
+        style="
+          font-size:12px;
+          color:#666;
+        "
+      >
+        ${escapeHtml(
+          label
+        )}
+      </div>
+
+
+      <div
+        style="
+          margin-top:4px;
+          font-size:24px;
+          font-weight:bold;
+        "
+      >
+        ${Number(
+          value || 0
+        )}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// ALERTA DO PAINEL
+// =====================================================
+
+function renderTeacherDashboardAlert(
+  alert
+) {
+
+  const financial =
+    alert.alert_type ===
+      "overdue_financial";
+
+
+  return `
+
+    <div
+      style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
+        padding:12px;
+        border:1px solid #e3e3e3;
+        border-radius:9px;
+        background:#ffffff;
+      "
+    >
+
+      <div>
+
+        <strong>
+          ${escapeHtml(
+            alert.title || "Alerta"
+          )}
+        </strong>
+
+
+        <div
+          style="
+            margin-top:3px;
+          "
+        >
+          ${escapeHtml(
+            alert.student_name || ""
+          )}
+        </div>
+
+
+        ${
+          alert.detail
+
+            ? `
+
+              <div
+                style="
+                  margin-top:3px;
+                  color:#666;
+                  font-size:13px;
+                "
+              >
+                ${escapeHtml(
+                  alert.detail
+                )}
+              </div>
+
+            `
+
+            : ""
+        }
+
+
+        ${
+          alert.amount != null
+
+            ? `
+
+              <div
+                style="
+                  margin-top:4px;
+                  font-weight:bold;
+                "
+              >
+                ${formatCurrency(
+                  alert.amount
+                )}
+              </div>
+
+            `
+
+            : ""
+        }
+
+      </div>
+
+
+      <button
+        type="button"
+        class="secondary-button ${
+          financial
+            ? "teacher-dashboard-financial-button"
+            : "teacher-dashboard-student-button"
+        }"
+        ${
+          financial
+            ? ""
+            : `data-student-id="${alert.student_id}"`
+        }
+      >
+        ${
+          financial
+            ? "Abrir financeiro"
+            : "Ver aluno"
+        }
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+// =====================================================
+// ESPERAR ELEMENTO APARECER APOS TROCA DE ABA
+// =====================================================
+
+async function waitForElement(
+  id,
+  timeoutMs = 2500
+) {
+
+  const start =
+    Date.now();
+
+
+  while (
+    Date.now() - start <
+      timeoutMs
+  ) {
+
+    const element =
+      document.getElementById(
+        id
+      );
+
+
+    if (element) {
+      return element;
+    }
+
+
+    await new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          50
+        )
+    );
+
+  }
+
+
+  return null;
+
+}
+
 
 async function loadTeacherRules() {
 
