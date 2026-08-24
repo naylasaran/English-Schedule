@@ -6115,6 +6115,62 @@ function setTeacherPage(page) {
 
           <div
             style="
+              margin-top:20px;
+              padding-top:18px;
+              border-top:1px solid #ddd;
+            "
+          >
+
+            <div
+              style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
+              "
+            >
+
+              <div>
+
+                <strong>
+                  Dias e horarios das aulas fixas
+                </strong>
+
+                <div
+                  style="
+                    margin-top:4px;
+                    color:#666;
+                    font-size:13px;
+                  "
+                >
+                  Para 60 minutos, o sistema reserva
+                  automaticamente dois blocos de 30 minutos.
+                </div>
+
+              </div>
+
+
+              <button
+                type="button"
+                class="secondary-button"
+                id="addNewStudentScheduleRowButton"
+              >
+                + Adicionar dia / horario
+              </button>
+
+            </div>
+
+
+            <div
+              id="newStudentFixedScheduleRows"
+            ></div>
+
+          </div>
+
+
+          <div
+            style="
               margin-top:14px;
               padding:12px;
               background:#eef5ff;
@@ -6233,6 +6289,28 @@ function setTeacherPage(page) {
       cancelNewStudentButton.addEventListener(
         "click",
         closeRegisterStudentForm
+      );
+
+    }
+
+
+    const addStudentScheduleButton =
+      document.getElementById(
+        "addNewStudentScheduleRowButton"
+      );
+
+
+    if (addStudentScheduleButton) {
+
+      addStudentScheduleButton.addEventListener(
+        "click",
+        () => {
+
+          addStudentFixedScheduleRow(
+            "newStudentFixedScheduleRows"
+          );
+
+        }
       );
 
     }
@@ -7366,6 +7444,350 @@ let teacherStudentOverviewData = [];
 
 
 // =====================================================
+// EDITOR DE DIAS / HORARIOS FIXOS
+// =====================================================
+
+function getWeekdayOptions(
+  selectedDay = ""
+) {
+
+  const days = [
+    [1, "Segunda-feira"],
+    [2, "Terca-feira"],
+    [3, "Quarta-feira"],
+    [4, "Quinta-feira"],
+    [5, "Sexta-feira"],
+    [6, "Sabado"],
+    [7, "Domingo"]
+  ];
+
+  return days
+    .map(
+      item => `
+
+        <option
+          value="${item[0]}"
+          ${
+            String(
+              selectedDay || ""
+            ) ===
+            String(
+              item[0]
+            )
+              ? "selected"
+              : ""
+          }
+        >
+          ${item[1]}
+        </option>
+
+      `
+    )
+    .join("");
+
+}
+
+
+function addStudentFixedScheduleRow(
+  containerId,
+  initial = {}
+) {
+
+  const container =
+    document.getElementById(
+      containerId
+    );
+
+  if (!container) {
+    return;
+  }
+
+  const row =
+    document.createElement(
+      "div"
+    );
+
+  row.className =
+    "student-fixed-schedule-row";
+
+  row.style.display =
+    "grid";
+
+  row.style.gridTemplateColumns =
+    "minmax(170px,1fr) minmax(130px,1fr) auto";
+
+  row.style.gap =
+    "10px";
+
+  row.style.alignItems =
+    "end";
+
+  row.style.marginTop =
+    "10px";
+
+
+  row.innerHTML = `
+
+    <div>
+
+      <label
+        style="
+          display:block;
+          font-weight:bold;
+          margin-bottom:6px;
+        "
+      >
+        Dia
+      </label>
+
+      <select
+        data-student-schedule-day
+        style="
+          width:100%;
+          padding:10px;
+          border:1px solid #ccc;
+          border-radius:8px;
+        "
+      >
+        <option value="">
+          Selecione
+        </option>
+
+        ${getWeekdayOptions(
+          initial.day_of_week
+        )}
+      </select>
+
+    </div>
+
+
+    <div>
+
+      <label
+        style="
+          display:block;
+          font-weight:bold;
+          margin-bottom:6px;
+        "
+      >
+        Horario
+      </label>
+
+      <input
+        type="time"
+        step="1800"
+        data-student-schedule-time
+        value="${escapeHtml(
+          initial.start_time || ""
+        )}"
+        style="
+          width:100%;
+          box-sizing:border-box;
+          padding:9px;
+          border:1px solid #ccc;
+          border-radius:8px;
+        "
+      >
+
+    </div>
+
+
+    <button
+      type="button"
+      class="secondary-button remove-student-schedule-row"
+      style="
+        border-color:#c0392b;
+        color:#c0392b;
+      "
+    >
+      Remover
+    </button>
+
+  `;
+
+
+  const removeButton =
+    row.querySelector(
+      ".remove-student-schedule-row"
+    );
+
+  if (removeButton) {
+
+    removeButton.addEventListener(
+      "click",
+      () => {
+        row.remove();
+      }
+    );
+
+  }
+
+  container.appendChild(
+    row
+  );
+
+}
+
+
+function resetStudentFixedScheduleEditor(
+  containerId
+) {
+
+  const container =
+    document.getElementById(
+      containerId
+    );
+
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML =
+    "";
+
+  addStudentFixedScheduleRow(
+    containerId
+  );
+
+}
+
+
+function collectStudentFixedSchedule(
+  containerId
+) {
+
+  const container =
+    document.getElementById(
+      containerId
+    );
+
+  if (!container) {
+
+    return {
+      schedule: [],
+      error:
+        "Area de horarios nao encontrada."
+    };
+
+  }
+
+
+  const rows =
+    Array.from(
+      container.querySelectorAll(
+        ".student-fixed-schedule-row"
+      )
+    );
+
+
+  if (rows.length === 0) {
+
+    return {
+      schedule: [],
+      error:
+        "Adicione pelo menos um dia e horario."
+    };
+
+  }
+
+
+  const schedule =
+    [];
+
+
+  for (const row of rows) {
+
+    const daySelect =
+      row.querySelector(
+        "[data-student-schedule-day]"
+      );
+
+    const timeInput =
+      row.querySelector(
+        "[data-student-schedule-time]"
+      );
+
+    const day =
+      Number(
+        daySelect
+          ? daySelect.value
+          : 0
+      );
+
+    const time =
+      timeInput
+        ? timeInput.value
+        : "";
+
+
+    if (
+      day < 1 ||
+      day > 7
+    ) {
+
+      return {
+        schedule: [],
+        error:
+          "Selecione o dia de todas as aulas."
+      };
+
+    }
+
+
+    if (!time) {
+
+      return {
+        schedule: [],
+        error:
+          "Escolha o horario de todas as aulas."
+      };
+
+    }
+
+
+    const parts =
+      time.split(":");
+
+    const minute =
+      Number(
+        parts[1] || 0
+      );
+
+
+    if (
+      minute !== 0 &&
+      minute !== 30
+    ) {
+
+      return {
+        schedule: [],
+        error:
+          "Os horarios precisam comecar em :00 ou :30."
+      };
+
+    }
+
+
+    schedule.push({
+      day_of_week:
+        day,
+      start_time:
+        time
+    });
+
+  }
+
+
+  return {
+    schedule,
+    error:
+      null
+  };
+
+}
+
+
+// =====================================================
 // CADASTRAR ALUNO + ACESSO
 // =====================================================
 
@@ -7395,6 +7817,24 @@ function openRegisterStudentForm() {
   if (nameInput) {
 
     nameInput.focus();
+
+  }
+
+
+  const scheduleContainer =
+    document.getElementById(
+      "newStudentFixedScheduleRows"
+    );
+
+
+  if (
+    scheduleContainer &&
+    scheduleContainer.children.length === 0
+  ) {
+
+    resetStudentFixedScheduleEditor(
+      "newStudentFixedScheduleRows"
+    );
 
   }
 
@@ -7514,7 +7954,8 @@ async function finishStudentRegistration(
   authUserId,
   name,
   email,
-  duration
+  duration,
+  schedule
 ) {
 
   return await supabaseClient.rpc(
@@ -7531,7 +7972,10 @@ async function finishStudentRegistration(
         email,
 
       p_class_duration_minutes:
-        duration
+        duration,
+
+      p_schedule:
+        schedule
 
     }
   );
@@ -7546,7 +7990,8 @@ async function finishStudentRegistration(
 async function recoverExistingStudentAccess(
   name,
   email,
-  duration
+  duration,
+  schedule
 ) {
 
   return await supabaseClient.rpc(
@@ -7560,7 +8005,10 @@ async function recoverExistingStudentAccess(
         email,
 
       p_class_duration_minutes:
-        duration
+        duration,
+
+      p_schedule:
+        schedule
 
     }
   );
@@ -7651,6 +8099,16 @@ async function saveNewStudentWithAccess() {
     );
 
 
+  const scheduleResult =
+    collectStudentFixedSchedule(
+      "newStudentFixedScheduleRows"
+    );
+
+
+  const schedule =
+    scheduleResult.schedule;
+
+
   function showError(
     text
   ) {
@@ -7723,6 +8181,18 @@ async function saveNewStudentWithAccess() {
 
     showError(
       "Selecione uma duracao valida."
+    );
+
+    return;
+  }
+
+
+  if (
+    scheduleResult.error
+  ) {
+
+    showError(
+      scheduleResult.error
     );
 
     return;
@@ -7873,7 +8343,8 @@ async function saveNewStudentWithAccess() {
         await recoverExistingStudentAccess(
           name,
           email,
-          duration
+          duration,
+          schedule
         );
 
 
@@ -7992,10 +8463,11 @@ async function saveNewStudentWithAccess() {
       error: recoveryError
     } =
       await recoverExistingStudentAccess(
-        name,
-        email,
-        duration
-      );
+          name,
+          email,
+          duration,
+          schedule
+        );
 
 
     if (recoveryError) {
@@ -8059,7 +8531,8 @@ async function saveNewStudentWithAccess() {
       authUser.id,
       name,
       email,
-      duration
+      duration,
+      schedule
     );
 
 
@@ -8144,12 +8617,17 @@ async function completeStudentRegistrationUi(
     "60";
 
 
+  resetStudentFixedScheduleEditor(
+    "newStudentFixedScheduleRows"
+  );
+
+
   if (message) {
 
     message.innerHTML = `
 
       <strong>
-        Aluno e acesso cadastrados com sucesso.
+        Aluno, acesso e horarios cadastrados com sucesso.
       </strong>
 
       <br>
@@ -8399,11 +8877,9 @@ function renderTeacherStudentOverview(
 
           if (currentlyPaused) {
 
-            toggleTeacherStudentPause(
+            openTeacherStudentResumeOptions(
               button.dataset.studentId,
-              button.dataset.studentName,
-              true,
-              true
+              button.dataset.studentName
             );
 
           }
@@ -8616,6 +9092,393 @@ function renderTeacherStudentOverviewCard(
 
 
 // =====================================================
+// ATIVAR AULAS COM NOVOS DIAS / HORARIOS
+// =====================================================
+
+function openTeacherStudentResumeOptions(
+  studentId,
+  studentName
+) {
+
+  const area =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const student =
+    teacherStudentOverviewData.find(
+      item =>
+        String(
+          item.student_id
+        ) ===
+        String(
+          studentId
+        )
+    );
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #246b37;
+      "
+    >
+
+      <h3>
+        Ativar aulas
+      </h3>
+
+
+      <p>
+        <strong>Aluno:</strong>
+
+        ${escapeHtml(
+          studentName ||
+          "Aluno"
+        )}
+      </p>
+
+
+      <div
+        style="
+          padding:14px;
+          background:#fff3cd;
+          border-radius:8px;
+          margin-top:15px;
+        "
+      >
+
+        <strong>
+          Escolha a nova agenda fixa.
+        </strong>
+
+        <p
+          style="
+            margin-bottom:0;
+          "
+        >
+          O horario que o aluno tinha antes da pausa
+          nao sera restaurado automaticamente.
+          Para ativar as aulas e obrigatorio escolher
+          novamente os dias e horarios.
+        </p>
+
+      </div>
+
+
+      <p
+        style="
+          margin-top:16px;
+        "
+      >
+        Duracao da aula:
+        <strong>
+          ${Number(
+            student
+              ? student.class_duration_minutes
+              : 0
+          )}
+          minutos
+        </strong>
+      </p>
+
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:18px;
+        "
+      >
+
+        <strong>
+          Novos dias e horarios
+        </strong>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="addResumeStudentScheduleRowButton"
+        >
+          + Adicionar dia / horario
+        </button>
+
+      </div>
+
+
+      <div
+        id="resumeStudentFixedScheduleRows"
+      ></div>
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="action-button"
+          id="confirmResumeStudentButton"
+        >
+          Ativar com nova agenda
+        </button>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="cancelResumeStudentButton"
+        >
+          Cancelar
+        </button>
+
+      </div>
+
+
+      <p
+        id="resumeStudentMessage"
+        style="
+          margin-top:12px;
+        "
+      ></p>
+
+    </div>
+
+  `;
+
+
+  resetStudentFixedScheduleEditor(
+    "resumeStudentFixedScheduleRows"
+  );
+
+
+  const addButton =
+    document.getElementById(
+      "addResumeStudentScheduleRowButton"
+    );
+
+
+  if (addButton) {
+
+    addButton.addEventListener(
+      "click",
+      () => {
+
+        addStudentFixedScheduleRow(
+          "resumeStudentFixedScheduleRows"
+        );
+
+      }
+    );
+
+  }
+
+
+  const confirmButton =
+    document.getElementById(
+      "confirmResumeStudentButton"
+    );
+
+
+  if (confirmButton) {
+
+    confirmButton.addEventListener(
+      "click",
+      () => {
+
+        resumeTeacherStudentWithNewSchedule(
+          studentId,
+          studentName
+        );
+
+      }
+    );
+
+  }
+
+
+  const cancelButton =
+    document.getElementById(
+      "cancelResumeStudentButton"
+    );
+
+
+  if (cancelButton) {
+
+    cancelButton.addEventListener(
+      "click",
+      () => {
+
+        area.innerHTML =
+          "";
+
+      }
+    );
+
+  }
+
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+}
+
+
+async function resumeTeacherStudentWithNewSchedule(
+  studentId,
+  studentName
+) {
+
+  const message =
+    document.getElementById(
+      "resumeStudentMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "confirmResumeStudentButton"
+    );
+
+
+  const result =
+    collectStudentFixedSchedule(
+      "resumeStudentFixedScheduleRows"
+    );
+
+
+  if (result.error) {
+
+    if (message) {
+
+      message.textContent =
+        result.error;
+
+      message.style.color =
+        "red";
+
+    }
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Ativando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "resume_teacher_student_with_schedule",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_schedule:
+          result.schedule
+
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao ativar aluno com nova agenda:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel ativar as aulas.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Ativar com nova agenda";
+
+    }
+
+    return;
+  }
+
+
+  currentTeacherStudents =
+    [];
+
+
+  await loadTeacherStudents();
+
+  await loadTeacherStudentOverview();
+
+
+  const detailArea =
+    document.getElementById(
+      "teacherStudentDetailArea"
+    );
+
+
+  if (detailArea) {
+
+    detailArea.innerHTML =
+      "";
+
+  }
+
+
+  alert(
+    "Aulas de \"" +
+    String(
+      studentName || ""
+    ) +
+    "\" ativadas com a nova agenda."
+  );
+
+}
+
+
+// =====================================================
 // ESCOLHER COMO FICA O HORARIO DURANTE A PAUSA
 // =====================================================
 
@@ -8763,8 +9626,9 @@ function openTeacherStudentPauseOptions(
           >
             O horario ficara livre somente durante o periodo
             da pausa e podera receber reposicoes.
-            Quando as aulas forem ativadas novamente,
-            o horario fixo do aluno volta automaticamente.
+            Ao ativar as aulas novamente, o professor
+            devera escolher novos dias e horarios.
+            O horario antigo nao volta automaticamente.
           </div>
 
         </label>
@@ -8897,23 +9761,12 @@ async function toggleTeacherStudentPause(
 
   if (!newPaused) {
 
-    const confirmed =
-      window.confirm(
+    openTeacherStudentResumeOptions(
+      studentId,
+      studentName
+    );
 
-        "Ativar novamente as aulas de \"" +
-        String(
-          studentName || ""
-        ) +
-        "\"?\n\n" +
-
-        "A agenda fixa voltara a funcionar normalmente a partir de hoje."
-
-      );
-
-
-    if (!confirmed) {
-      return;
-    }
+    return;
 
   }
 
