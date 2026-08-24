@@ -7979,6 +7979,152 @@ function setTeacherPage(page) {
             "
           >
 
+            <strong>
+              Contrato
+            </strong>
+
+
+            <div
+              style="
+                margin-top:4px;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              O periodo contratual tambem sera usado
+              no calculo financeiro por aula.
+            </div>
+
+
+            <div
+              style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+                gap:12px;
+                margin-top:14px;
+              "
+            >
+
+              <div>
+
+                <label
+                  for="newStudentContractStartDate"
+                  style="
+                    display:block;
+                    font-weight:bold;
+                    margin-bottom:7px;
+                  "
+                >
+                  Inicio do contrato
+                </label>
+
+
+                <input
+                  type="date"
+                  id="newStudentContractStartDate"
+                  value="${formatDateForDatabase(
+                    new Date()
+                  )}"
+                  style="
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:10px;
+                    border:1px solid #ccc;
+                    border-radius:8px;
+                  "
+                >
+
+              </div>
+
+
+              <div>
+
+                <label
+                  for="newStudentContractEndDate"
+                  style="
+                    display:block;
+                    font-weight:bold;
+                    margin-bottom:7px;
+                  "
+                >
+                  Termino do contrato
+                </label>
+
+
+                <input
+                  type="date"
+                  id="newStudentContractEndDate"
+                  style="
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:10px;
+                    border:1px solid #ccc;
+                    border-radius:8px;
+                  "
+                >
+
+
+                <div
+                  style="
+                    margin-top:5px;
+                    color:#666;
+                    font-size:12px;
+                  "
+                >
+                  Pode ficar em branco para contrato sem data de termino.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div
+              style="
+                margin-top:12px;
+              "
+            >
+
+              <label
+                for="newStudentContractNotes"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:7px;
+                "
+              >
+                Observacoes contratuais
+              </label>
+
+
+              <textarea
+                id="newStudentContractNotes"
+                rows="3"
+                maxlength="3000"
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                  resize:vertical;
+                  font-family:inherit;
+                "
+              ></textarea>
+
+            </div>
+
+          </div>
+
+
+          <div
+            style="
+              margin-top:20px;
+              padding-top:18px;
+              border-top:1px solid #ddd;
+            "
+          >
+
             <div
               style="
                 display:flex;
@@ -10196,6 +10342,51 @@ function updateNewStudentBillingFields() {
 
 
 // =====================================================
+// SALVAR CONTRATO LOGO APOS O CADASTRO DO ALUNO
+// =====================================================
+
+async function saveStudentContractAfterRegistration(
+  studentId,
+  contractStartDate,
+  contractEndDate,
+  contractNotes
+) {
+
+  if (!studentId) {
+
+    return {
+      error: {
+        message:
+          "O cadastro do aluno nao retornou o ID necessario para salvar o contrato."
+      }
+    };
+
+  }
+
+
+  return await supabaseClient.rpc(
+    "save_teacher_student_contract",
+    {
+
+      p_student_id:
+        studentId,
+
+      p_contract_start_date:
+        contractStartDate,
+
+      p_contract_end_date:
+        contractEndDate,
+
+      p_contract_notes:
+        contractNotes
+
+    }
+  );
+
+}
+
+
+// =====================================================
 // FINALIZAR PROFILE + STUDENT
 // =====================================================
 
@@ -10363,6 +10554,24 @@ async function saveNewStudentWithAccess() {
     );
 
 
+  const contractStartInput =
+    document.getElementById(
+      "newStudentContractStartDate"
+    );
+
+
+  const contractEndInput =
+    document.getElementById(
+      "newStudentContractEndDate"
+    );
+
+
+  const contractNotesInput =
+    document.getElementById(
+      "newStudentContractNotes"
+    );
+
+
   const billingTypeSelect =
     document.getElementById(
       "newStudentBillingType"
@@ -10412,6 +10621,9 @@ async function saveNewStudentWithAccess() {
     !confirmInput ||
     !durationSelect ||
     !birthDateInput ||
+    !contractStartInput ||
+    !contractEndInput ||
+    !contractNotesInput ||
     !billingTypeSelect ||
     !monthlyFeeInput ||
     !lessonFeeInput ||
@@ -10447,6 +10659,21 @@ async function saveNewStudentWithAccess() {
 
   const birthDate =
     birthDateInput.value;
+
+
+  const contractStartDate =
+    contractStartInput.value;
+
+
+  const contractEndDate =
+    contractEndInput.value ||
+    null;
+
+
+  const contractNotes =
+    contractNotesInput.value
+      .trim() ||
+    null;
 
 
   const billingType =
@@ -10600,6 +10827,30 @@ async function saveNewStudentWithAccess() {
 
     showError(
       "Informe uma data de nascimento valida."
+    );
+
+    return;
+  }
+
+
+  if (!contractStartDate) {
+
+    showError(
+      "Informe a data de inicio do contrato."
+    );
+
+    return;
+  }
+
+
+  if (
+    contractEndDate &&
+    contractEndDate <
+      contractStartDate
+  ) {
+
+    showError(
+      "A data de termino do contrato nao pode ser anterior ao inicio."
     );
 
     return;
@@ -10832,6 +11083,7 @@ async function saveNewStudentWithAccess() {
 
 
       const {
+        data: recoveredStudentId,
         error: recoveryError
       } =
         await recoverExistingStudentAccess(
@@ -10849,6 +11101,50 @@ async function saveNewStudentWithAccess() {
 
 
       if (!recoveryError) {
+
+        const {
+          error: contractError
+        } =
+          await saveStudentContractAfterRegistration(
+            recoveredStudentId,
+            contractStartDate,
+            contractEndDate,
+            contractNotes
+          );
+
+
+        if (contractError) {
+
+          console.error(
+            "Aluno recuperado, mas o contrato falhou:",
+            contractError
+          );
+
+
+          showError(
+            "O aluno foi cadastrado, mas nao foi possivel salvar o contrato: "
+            +
+            (
+              contractError.message ||
+              "erro desconhecido"
+            )
+          );
+
+
+          if (button) {
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "Criar aluno e acesso";
+
+          }
+
+
+          return;
+        }
+
 
         await completeStudentRegistrationUi(
           nameInput,
@@ -10960,6 +11256,7 @@ async function saveNewStudentWithAccess() {
 
 
     const {
+      data: recoveredStudentId,
       error: recoveryError
     } =
       await recoverExistingStudentAccess(
@@ -11005,6 +11302,50 @@ async function saveNewStudentWithAccess() {
     }
 
 
+    const {
+      error: contractError
+    } =
+      await saveStudentContractAfterRegistration(
+        recoveredStudentId,
+        contractStartDate,
+        contractEndDate,
+        contractNotes
+      );
+
+
+    if (contractError) {
+
+      console.error(
+        "Aluno recuperado, mas o contrato falhou:",
+        contractError
+      );
+
+
+      showError(
+        "O aluno foi cadastrado, mas nao foi possivel salvar o contrato: "
+        +
+        (
+          contractError.message ||
+          "erro desconhecido"
+        )
+      );
+
+
+      if (button) {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          "Criar aluno e acesso";
+
+      }
+
+
+      return;
+    }
+
+
     await completeStudentRegistrationUi(
       nameInput,
       emailInput,
@@ -11031,6 +11372,7 @@ async function saveNewStudentWithAccess() {
 
 
   const {
+    data: newStudentId,
     error: studentError
   } =
     await finishStudentRegistration(
@@ -11060,6 +11402,50 @@ async function saveNewStudentWithAccess() {
       "O acesso foi criado no Supabase, mas o cadastro do aluno falhou: " +
       (
         studentError.message ||
+        "erro desconhecido"
+      )
+    );
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Criar aluno e acesso";
+
+    }
+
+
+    return;
+  }
+
+
+  const {
+    error: contractError
+  } =
+    await saveStudentContractAfterRegistration(
+      newStudentId,
+      contractStartDate,
+      contractEndDate,
+      contractNotes
+    );
+
+
+  if (contractError) {
+
+    console.error(
+      "Aluno criado, mas o contrato falhou:",
+      contractError
+    );
+
+
+    showError(
+      "O aluno e o acesso foram criados, mas nao foi possivel salvar o contrato: "
+      +
+      (
+        contractError.message ||
         "erro desconhecido"
       )
     );
@@ -11143,6 +11529,50 @@ async function completeStudentRegistrationUi(
   }
 
 
+  const contractStartInput =
+    document.getElementById(
+      "newStudentContractStartDate"
+    );
+
+
+  const contractEndInput =
+    document.getElementById(
+      "newStudentContractEndDate"
+    );
+
+
+  const contractNotesInput =
+    document.getElementById(
+      "newStudentContractNotes"
+    );
+
+
+  if (contractStartInput) {
+
+    contractStartInput.value =
+      formatDateForDatabase(
+        new Date()
+      );
+
+  }
+
+
+  if (contractEndInput) {
+
+    contractEndInput.value =
+      "";
+
+  }
+
+
+  if (contractNotesInput) {
+
+    contractNotesInput.value =
+      "";
+
+  }
+
+
   const billingTypeSelect =
     document.getElementById(
       "newStudentBillingType"
@@ -11216,7 +11646,7 @@ async function completeStudentRegistrationUi(
     message.innerHTML = `
 
       <strong>
-        Aluno, acesso e horarios cadastrados com sucesso.
+        Aluno, acesso, contrato e horarios cadastrados com sucesso.
       </strong>
 
       <br>
