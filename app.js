@@ -6585,6 +6585,14 @@ function setStudentPage(page) {
     content.innerHTML = `
 
       <div
+        id="studentClassLinkArea"
+        style="
+          margin-bottom:16px;
+        "
+      ></div>
+
+
+      <div
         id="studentNoticesArea"
         style="margin-bottom:20px;"
       ></div>
@@ -6757,6 +6765,17 @@ function setStudentPage(page) {
         };
 
     }
+
+
+    loadStudentClassLink()
+      .catch(error => {
+
+        console.error(
+          "Erro ao carregar link da aula:",
+          error
+        );
+
+      });
 
 
     loadStudentNotices()
@@ -6991,6 +7010,121 @@ function setStudentPage(page) {
 
     return;
   }
+
+}
+
+
+// =====================================================
+// LINK DA AULA NO TOPO DA AGENDA DO ALUNO
+// =====================================================
+
+async function loadStudentClassLink() {
+
+  const area =
+    document.getElementById(
+      "studentClassLinkArea"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_my_class_link"
+    );
+
+
+  if (error) {
+
+    area.innerHTML =
+      "";
+
+    throw error;
+  }
+
+
+  const item =
+    (
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data
+    )
+    || {};
+
+
+  if (!item.class_link) {
+
+    area.innerHTML =
+      "";
+
+    return;
+  }
+
+
+  area.innerHTML = `
+
+    <div
+      class="card"
+      style="
+        border-left:5px solid #2f6fed;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
+      "
+    >
+
+      <div>
+
+        <strong
+          style="
+            font-size:18px;
+          "
+        >
+          Link da minha aula
+        </strong>
+
+
+        <div
+          style="
+            margin-top:5px;
+            color:#666;
+            font-size:13px;
+          "
+        >
+          Use este botao para entrar na sua sala de aula.
+        </div>
+
+      </div>
+
+
+      <a
+        href="${escapeHtml(
+          item.class_link
+        )}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="action-button"
+        style="
+          text-decoration:none;
+          display:inline-block;
+        "
+      >
+        Entrar na aula
+      </a>
+
+    </div>
+
+  `;
 
 }
 
@@ -14196,7 +14330,15 @@ function setTeacherPage(page) {
             </div>
 
 
-            <div>
+            <div
+              style="
+                grid-column:1 / -1;
+                padding:14px;
+                border:1px solid #d9e3f2;
+                border-radius:9px;
+                background:#eef5ff;
+              "
+            >
 
               <label
                 for="newStudentClassLink"
@@ -14206,7 +14348,7 @@ function setTeacherPage(page) {
                   margin-bottom:8px;
                 "
               >
-                Link da aula
+                Link da aula (Meet / Zoom / Teams)
               </label>
 
               <input
@@ -18587,7 +18729,12 @@ async function loadTeacherStudentOverview() {
 
 
   teacherStudentOverviewData =
-    data || [];
+    (data || [])
+      .filter(
+        student =>
+          student.active !==
+            false
+      );
 
 
   renderTeacherStudentOverview();
@@ -19992,6 +20139,135 @@ async function deleteTeacherStudent(
 
 
 // =====================================================
+// SALVAR LINK DO ALUNO EM "VER ALUNO"
+// =====================================================
+
+async function saveTeacherStudentClassLink(
+  studentId
+) {
+
+  const input =
+    document.getElementById(
+      "teacherStudentClassLinkInput"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentClassLinkMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherStudentClassLinkButton"
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const value =
+    input.value.trim() ||
+    null;
+
+
+  if (
+    value &&
+    !/^https?:\/\//i.test(
+      value
+    )
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "O link precisa comecar com http:// ou https://.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_student_class_link",
+      {
+        p_student_id:
+          studentId,
+
+        p_class_link:
+          value
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar link";
+
+  }
+
+
+  if (error) {
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o link.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (message) {
+
+    message.textContent =
+      "Link salvo com sucesso.";
+
+    message.style.color =
+      "green";
+
+  }
+
+
+  await loadTeacherClassLinksForAgenda();
+
+}
+
+
+// =====================================================
 // DETALHE DO ALUNO
 // =====================================================
 
@@ -20056,7 +20332,8 @@ async function openTeacherStudentDetail(
     historyResult,
     makeupResult,
     commentsResult,
-    guardiansResult
+    guardiansResult,
+    classLinkResult
   ] =
     await Promise.all([
 
@@ -20122,6 +20399,14 @@ async function openTeacherStudentDetail(
           p_student_id:
             studentId
         }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_class_link",
+        {
+          p_student_id:
+            studentId
+        }
       )
 
     ]);
@@ -20135,7 +20420,8 @@ async function openTeacherStudentDetail(
     historyResult.error ||
     makeupResult.error ||
     commentsResult.error ||
-    guardiansResult.error
+    guardiansResult.error ||
+    classLinkResult.error
   ) {
 
     console.error(
@@ -20147,7 +20433,8 @@ async function openTeacherStudentDetail(
       historyResult.error ||
       makeupResult.error ||
       commentsResult.error ||
-      guardiansResult.error
+      guardiansResult.error ||
+      classLinkResult.error
     );
 
 
@@ -20212,6 +20499,17 @@ async function openTeacherStudentDetail(
 
   const guardians =
     guardiansResult.data || [];
+
+
+  const classLink =
+    (
+      Array.isArray(
+        classLinkResult.data
+      )
+        ? classLinkResult.data[0]
+        : classLinkResult.data
+    )
+    || {};
 
 
   area.innerHTML = `
@@ -20576,6 +20874,112 @@ async function openTeacherStudentDetail(
           </div>
 
         </details>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:24px;
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#eef5ff;
+        "
+      >
+
+        <h4
+          style="
+            margin:0;
+          "
+        >
+          Link da aula
+        </h4>
+
+
+        <p
+          style="
+            margin:5px 0 12px;
+            color:#666;
+            font-size:13px;
+          "
+        >
+          Voce pode cadastrar ou alterar o link permanente
+          deste aluno a qualquer momento.
+        </p>
+
+
+        <div
+          style="
+            display:flex;
+            gap:8px;
+            align-items:center;
+            flex-wrap:wrap;
+          "
+        >
+
+          <input
+            type="url"
+            id="teacherStudentClassLinkInput"
+            maxlength="2000"
+            value="${escapeHtml(
+              classLink.class_link || ""
+            )}"
+            placeholder="https://meet.google.com/..."
+            style="
+              flex:1;
+              min-width:230px;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+
+          ${
+            classLink.class_link
+
+              ? `
+
+                <a
+                  href="${escapeHtml(
+                    classLink.class_link
+                  )}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="secondary-button"
+                  style="
+                    text-decoration:none;
+                  "
+                >
+                  Abrir aula
+                </a>
+
+              `
+
+              : ""
+          }
+
+
+          <button
+            type="button"
+            class="action-button"
+            id="saveTeacherStudentClassLinkButton"
+          >
+            Salvar link
+          </button>
+
+        </div>
+
+
+        <p
+          id="teacherStudentClassLinkMessage"
+          style="
+            margin:9px 0 0;
+            font-size:13px;
+          "
+        ></p>
 
       </div>
 
@@ -21516,6 +21920,28 @@ async function openTeacherStudentDetail(
       );
 
     });
+
+
+  const classLinkSaveButton =
+    document.getElementById(
+      "saveTeacherStudentClassLinkButton"
+    );
+
+
+  if (classLinkSaveButton) {
+
+    classLinkSaveButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherStudentClassLink(
+          studentId
+        );
+
+      }
+    );
+
+  }
 
 
   const closeButton =
