@@ -76,12 +76,14 @@ const forgotPasswordButton =
 
 async function loadProfile(userId) {
 
-  const { data, error } =
-    await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_current_profile"
+    );
+
 
   if (error) {
 
@@ -93,7 +95,16 @@ async function loadProfile(userId) {
     return null;
   }
 
-  return data;
+
+  return (
+    Array.isArray(
+      data
+    )
+      ? data[0]
+      : data
+  )
+  || null;
+
 }
 
 
@@ -2043,6 +2054,69 @@ function renderAdminTeacherManagement() {
         Carregando professores...
       </div>
 
+
+      <div
+        style="
+          margin-top:22px;
+          padding-top:18px;
+          border-top:1px solid #ddd;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Seguranca do ERP
+            </h4>
+
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              Verificacao rapida das permissoes principais.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="secondary-button"
+            id="runAdminSecurityCheckButton"
+          >
+            Executar diagnostico
+          </button>
+
+        </div>
+
+
+        <div
+          id="adminSecurityCheckArea"
+          style="
+            margin-top:12px;
+          "
+        ></div>
+
+      </div>
+
     </div>
 
   `;
@@ -2062,6 +2136,211 @@ function renderAdminTeacherManagement() {
     );
 
   }
+
+
+  const securityButton =
+    document.getElementById(
+      "runAdminSecurityCheckButton"
+    );
+
+
+  if (securityButton) {
+
+    securityButton.addEventListener(
+      "click",
+      loadAdminSecurityCheck
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// DIAGNOSTICO DE SEGURANCA DO ADM
+// =====================================================
+
+async function loadAdminSecurityCheck() {
+
+  const area =
+    document.getElementById(
+      "adminSecurityCheckArea"
+    );
+
+
+  const button =
+    document.getElementById(
+      "runAdminSecurityCheckButton"
+    );
+
+
+  if (!area) {
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Verificando...";
+
+  }
+
+
+  area.innerHTML =
+    "Verificando permissoes...";
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_admin_security_check"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Executar diagnostico";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro no diagnostico de seguranca:",
+      error
+    );
+
+
+    area.innerHTML = `
+
+      <div
+        style="
+          padding:12px;
+          border-radius:8px;
+          background:#fdecea;
+          color:#8a1f17;
+        "
+      >
+        ${escapeHtml(
+          error.message ||
+          "Nao foi possivel executar o diagnostico."
+        )}
+      </div>
+
+    `;
+
+
+    return;
+  }
+
+
+  const checks =
+    data || [];
+
+
+  const warningCount =
+    checks.filter(
+      item =>
+        item.status ===
+          "warning"
+    ).length;
+
+
+  area.innerHTML = `
+
+    <div
+      style="
+        padding:12px 14px;
+        border-radius:9px;
+        background:${
+          warningCount === 0
+            ? "#eef8f0"
+            : "#fff3cd"
+        };
+      "
+    >
+
+      <strong>
+        ${
+          warningCount === 0
+            ? "Diagnostico principal: OK"
+            : (
+                warningCount
+                +
+                " ponto(s) precisam de revisao"
+              )
+        }
+      </strong>
+
+
+      <div
+        style="
+          display:grid;
+          gap:8px;
+          margin-top:10px;
+        "
+      >
+
+        ${checks
+          .map(
+            item => `
+
+              <div
+                style="
+                  padding:9px 10px;
+                  background:#ffffff;
+                  border-radius:7px;
+                "
+              >
+
+                <strong>
+                  ${
+                    item.status ===
+                      "ok"
+                      ? "OK"
+                      : "ATENCAO"
+                  }
+                  -
+                  ${escapeHtml(
+                    item.check_name
+                  )}
+                </strong>
+
+
+                <div
+                  style="
+                    margin-top:3px;
+                    color:#666;
+                    font-size:13px;
+                  "
+                >
+                  ${escapeHtml(
+                    item.detail || ""
+                  )}
+                </div>
+
+              </div>
+
+            `
+          )
+          .join("")}
+
+      </div>
+
+    </div>
+
+  `;
 
 }
 
@@ -5182,25 +5461,13 @@ async function loadStudentHistory() {
     data: comments,
     error: commentsError
   } =
-    await supabaseClient
-      .from("lesson_comments")
-      .select(
-        "id, lesson_id, student_id, comment, created_at"
-      )
-      .in(
-        "lesson_id",
-        lessonIds
-      )
-      .eq(
-        "student_id",
-        currentUser.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: true
-        }
-      );
+    await supabaseClient.rpc(
+      "get_my_lesson_comments",
+      {
+        p_lesson_ids:
+          lessonIds
+      }
+    );
 
 
   if (commentsError) {
@@ -5629,13 +5896,16 @@ async function addLessonComment(
   const {
     error
   } =
-    await supabaseClient
-      .from("lesson_comments")
-      .insert({
-        lesson_id: lessonId,
-        student_id: currentUser.id,
-        comment
-      });
+    await supabaseClient.rpc(
+      "add_my_lesson_comment",
+      {
+        p_lesson_id:
+          lessonId,
+
+        p_comment:
+          comment
+      }
+    );
 
 
   if (error) {
@@ -6542,19 +6812,13 @@ async function cancelStudentMakeup(
     data: reservation,
     error: reservationError
   } =
-    await supabaseClient
-      .from("reservations")
-      .select(`
-        id,
-        reservation_date,
-        start_time,
-        status
-      `)
-      .eq(
-        "id",
-        reservationId
-      )
-      .single();
+    await supabaseClient.rpc(
+      "get_my_reservation",
+      {
+        p_reservation_id:
+          reservationId
+      }
+    );
 
 
   if (reservationError) {
@@ -7167,22 +7431,21 @@ async function loadStudentWeeklySchedule() {
     const {
       data: reservationData,
       error: reservationError
-    } = await supabaseClient
-      .from("reservations")
-      .select(`
-        id,
-        makeup_id,
-        student_id,
-        reservation_date,
-        start_time,
-        end_time,
-        status
-      `)
-      .eq("student_id", currentStudentId)
-      .eq("status", "active")
-      .not("makeup_id", "is", null)
-      .gte("reservation_date", formatDateForDatabase(selectedWeekStart))
-      .lte("reservation_date", formatDateForDatabase(weekEnd));
+    } =
+      await supabaseClient.rpc(
+        "get_my_makeup_reservations_for_period",
+        {
+          p_from_date:
+            formatDateForDatabase(
+              selectedWeekStart
+            ),
+
+          p_to_date:
+            formatDateForDatabase(
+              weekEnd
+            )
+        }
+      );
 
     if (reservationError) {
       console.warn(
