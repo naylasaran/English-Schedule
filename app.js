@@ -2385,10 +2385,9 @@ function renderFinancialCard(item) {
     fallbackDueDate;
 
 
-  const amount =
-    formatCurrency(
-      item.amount
-    );
+  const valuesHidden =
+    item.financial_values_hidden ===
+      true;
 
 
   const status =
@@ -2427,6 +2426,7 @@ function renderFinancialCard(item) {
           ${month}/${item.year}
         </h4>
 
+
         <span
           style="
             font-weight:bold;
@@ -2438,44 +2438,37 @@ function renderFinancialCard(item) {
       </div>
 
 
-      <p
-        style="
-          font-size:24px;
-          font-weight:bold;
-          margin:15px 0 7px;
-        "
-      >
-        ${amount}
-      </p>
-
-
       ${
-        item.billing_type ===
-          "per_lesson"
+        valuesHidden
 
           ? `
 
-            <p
+            <div
               style="
-                margin-top:0;
-                color:#555;
+                margin:15px 0 10px;
+                padding:14px;
+                border-radius:9px;
+                background:#fff3cd;
+                color:#6b5400;
               "
             >
+
               <strong>
-                Calculo:
+                Valores financeiros disponiveis apenas para o responsavel.
               </strong>
 
-              ${Number(
-                item.lesson_count || 0
-              )}
-              aula(s)
 
-              x
+              <div
+                style="
+                  margin-top:5px;
+                  font-size:13px;
+                "
+              >
+                O login do aluno nao exibe mensalidade,
+                valor por aula, descontos ou valores de calculo.
+              </div>
 
-              ${formatCurrency(
-                item.lesson_unit_value || 0
-              )}
-            </p>
+            </div>
 
           `
 
@@ -2483,12 +2476,60 @@ function renderFinancialCard(item) {
 
             <p
               style="
-                margin-top:0;
-                color:#555;
+                font-size:24px;
+                font-weight:bold;
+                margin:15px 0 7px;
               "
             >
-              Cobranca mensal
+              ${formatCurrency(
+                item.amount
+              )}
             </p>
+
+
+            ${
+              item.billing_type ===
+                "per_lesson"
+
+                ? `
+
+                  <p
+                    style="
+                      margin-top:0;
+                      color:#555;
+                    "
+                  >
+                    <strong>
+                      Calculo:
+                    </strong>
+
+                    ${Number(
+                      item.lesson_count || 0
+                    )}
+                    aula(s)
+
+                    x
+
+                    ${formatCurrency(
+                      item.lesson_unit_value || 0
+                    )}
+                  </p>
+
+                `
+
+                : `
+
+                  <p
+                    style="
+                      margin-top:0;
+                      color:#555;
+                    "
+                  >
+                    Cobranca mensal
+                  </p>
+
+                `
+            }
 
           `
       }
@@ -2533,6 +2574,7 @@ function renderFinancialCard(item) {
 
 
       ${
+        !valuesHidden &&
         Number(
           item.discount || 0
         ) > 0
@@ -7407,6 +7449,46 @@ function setTeacherPage(page) {
             <div>
 
               <label
+                for="newStudentBirthDate"
+                style="
+                  display:block;
+                  font-weight:bold;
+                  margin-bottom:8px;
+                "
+              >
+                Data de nascimento
+              </label>
+
+              <input
+                id="newStudentBirthDate"
+                type="date"
+                required
+                style="
+                  width:100%;
+                  box-sizing:border-box;
+                  padding:10px;
+                  border:1px solid #ccc;
+                  border-radius:8px;
+                "
+              >
+
+              <div
+                style="
+                  margin-top:5px;
+                  color:#666;
+                  font-size:12px;
+                "
+              >
+                Menores de 18 anos nao veem valores financeiros
+                no login de aluno.
+              </div>
+
+            </div>
+
+
+            <div>
+
+              <label
                 for="newStudentDuration"
                 style="
                   display:block;
@@ -9823,7 +9905,8 @@ async function finishStudentRegistration(
   monthlyFee,
   lessonFee,
   dueDay,
-  invoiceRequired
+  invoiceRequired,
+  birthDate
 ) {
 
   return await supabaseClient.rpc(
@@ -9862,7 +9945,10 @@ async function finishStudentRegistration(
         dueDay,
 
       p_invoice_required_default:
-        invoiceRequired
+        invoiceRequired,
+
+      p_birth_date:
+        birthDate
 
     }
   );
@@ -9883,7 +9969,8 @@ async function recoverExistingStudentAccess(
   monthlyFee,
   lessonFee,
   dueDay,
-  invoiceRequired
+  invoiceRequired,
+  birthDate
 ) {
 
   return await supabaseClient.rpc(
@@ -9919,7 +10006,10 @@ async function recoverExistingStudentAccess(
         dueDay,
 
       p_invoice_required_default:
-        invoiceRequired
+        invoiceRequired,
+
+      p_birth_date:
+        birthDate
 
     }
   );
@@ -9960,6 +10050,12 @@ async function saveNewStudentWithAccess() {
   const durationSelect =
     document.getElementById(
       "newStudentDuration"
+    );
+
+
+  const birthDateInput =
+    document.getElementById(
+      "newStudentBirthDate"
     );
 
 
@@ -10011,6 +10107,7 @@ async function saveNewStudentWithAccess() {
     !passwordInput ||
     !confirmInput ||
     !durationSelect ||
+    !birthDateInput ||
     !billingTypeSelect ||
     !monthlyFeeInput ||
     !lessonFeeInput ||
@@ -10042,6 +10139,10 @@ async function saveNewStudentWithAccess() {
     Number(
       durationSelect.value
     );
+
+
+  const birthDate =
+    birthDateInput.value;
 
 
   const billingType =
@@ -10161,6 +10262,40 @@ async function saveNewStudentWithAccess() {
 
     showError(
       "Selecione uma duracao valida."
+    );
+
+    return;
+  }
+
+
+  if (!birthDate) {
+
+    showError(
+      "Informe a data de nascimento do aluno."
+    );
+
+    return;
+  }
+
+
+  const birthDateObject =
+    new Date(
+      birthDate +
+      "T12:00:00"
+    );
+
+
+  if (
+    Number.isNaN(
+      birthDateObject.getTime()
+    )
+    ||
+    birthDateObject >
+      new Date()
+  ) {
+
+    showError(
+      "Informe uma data de nascimento valida."
     );
 
     return;
@@ -10404,7 +10539,8 @@ async function saveNewStudentWithAccess() {
           monthlyFee,
           lessonFee,
           dueDay,
-          invoiceRequired
+          invoiceRequired,
+          birthDate
         );
 
 
@@ -10531,7 +10667,8 @@ async function saveNewStudentWithAccess() {
           monthlyFee,
           lessonFee,
           dueDay,
-          invoiceRequired
+          invoiceRequired,
+          birthDate
         );
 
 
@@ -10602,7 +10739,8 @@ async function saveNewStudentWithAccess() {
       monthlyFee,
       lessonFee,
       dueDay,
-      invoiceRequired
+      invoiceRequired,
+      birthDate
     );
 
 
@@ -10685,6 +10823,20 @@ async function completeStudentRegistrationUi(
 
   durationSelect.value =
     "60";
+
+
+  const birthDateInput =
+    document.getElementById(
+      "newStudentBirthDate"
+    );
+
+
+  if (birthDateInput) {
+
+    birthDateInput.value =
+      "";
+
+  }
 
 
   const billingTypeSelect =
@@ -12619,11 +12771,115 @@ async function openTeacherStudentDetail(
 
         <div
           style="
+            margin-bottom:14px;
+            padding:12px;
+            border-radius:8px;
+            background:${
+              financialSettings.financial_values_hidden
+                ? "#fff3cd"
+                : "#eef8f0"
+            };
+          "
+        >
+
+          ${
+            !financialSettings.birth_date
+
+              ? `
+
+                <strong>
+                  Data de nascimento pendente.
+                </strong>
+
+                <div
+                  style="
+                    margin-top:5px;
+                  "
+                >
+                  Por seguranca, enquanto a idade nao estiver cadastrada,
+                  os valores ficam ocultos no login do aluno.
+                </div>
+
+              `
+
+              : financialSettings.student_is_minor
+
+                ? `
+
+                  <strong>
+                    Aluno menor de 18 anos.
+                  </strong>
+
+                  <div
+                    style="
+                      margin-top:5px;
+                    "
+                  >
+                    Os valores financeiros ficam visiveis somente
+                    no acesso do responsavel.
+                  </div>
+
+                `
+
+                : `
+
+                  <strong>
+                    Aluno maior de idade.
+                  </strong>
+
+                  <div
+                    style="
+                      margin-top:5px;
+                    "
+                  >
+                    O proprio aluno pode consultar os valores financeiros.
+                  </div>
+
+                `
+          }
+
+        </div>
+
+
+        <div
+          style="
             display:grid;
             grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
             gap:12px;
           "
         >
+
+          <div>
+
+            <label
+              for="teacherStudentBirthDate"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Data de nascimento
+            </label>
+
+
+            <input
+              type="date"
+              id="teacherStudentBirthDate"
+              value="${escapeHtml(
+                financialSettings.birth_date || ""
+              )}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
 
           <div>
 
@@ -14719,6 +14975,12 @@ async function saveTeacherStudentFinancialSettings(
   studentId
 ) {
 
+  const birthDateInput =
+    document.getElementById(
+      "teacherStudentBirthDate"
+    );
+
+
   const typeSelect =
     document.getElementById(
       "teacherStudentBillingType"
@@ -14761,6 +15023,12 @@ async function saveTeacherStudentFinancialSettings(
     );
 
 
+  const birthDate =
+    birthDateInput
+      ? birthDateInput.value
+      : "";
+
+
   const billingType =
     typeSelect
       ? typeSelect.value
@@ -14793,6 +15061,46 @@ async function saveTeacherStudentFinancialSettings(
           dueDayInput.value
         )
       : NaN;
+
+
+  if (!birthDate) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe a data de nascimento do aluno.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    new Date(
+      birthDate +
+      "T12:00:00"
+    ) >
+    new Date()
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "A data de nascimento nao pode estar no futuro.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
 
 
   if (
@@ -14917,7 +15225,10 @@ async function saveTeacherStudentFinancialSettings(
           Boolean(
             invoiceInput &&
             invoiceInput.checked
-          )
+          ),
+
+        p_birth_date:
+          birthDate
 
       }
     );
@@ -14970,6 +15281,11 @@ async function saveTeacherStudentFinancialSettings(
       "green";
 
   }
+
+
+  await openTeacherStudentDetail(
+    studentId
+  );
 
 }
 
