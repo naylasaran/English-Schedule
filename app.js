@@ -10222,6 +10222,35 @@ function renderTeacherStudentOverviewCard(
       </div>
 
 
+      ${
+        Number(
+          student.unread_comments || 0
+        ) > 0
+
+          ? `
+
+            <div
+              style="
+                margin-top:12px;
+                padding:9px 11px;
+                border-radius:8px;
+                background:#fff3cd;
+                color:#7a5d00;
+                font-weight:bold;
+              "
+            >
+              ${Number(
+                student.unread_comments || 0
+              )}
+              comentario(s) novo(s) do aluno
+            </div>
+
+          `
+
+          : ""
+      }
+
+
       <div
         style="
           display:grid;
@@ -11342,7 +11371,8 @@ async function openTeacherStudentDetail(
     scheduleResult,
     financialSettingsResult,
     historyResult,
-    makeupResult
+    makeupResult,
+    commentsResult
   ] =
     await Promise.all([
 
@@ -11376,6 +11406,14 @@ async function openTeacherStudentDetail(
           p_student_id:
             studentId
         }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_lesson_comments",
+        {
+          p_student_id:
+            studentId
+        }
       )
 
     ]);
@@ -11385,7 +11423,8 @@ async function openTeacherStudentDetail(
     scheduleResult.error ||
     financialSettingsResult.error ||
     historyResult.error ||
-    makeupResult.error
+    makeupResult.error ||
+    commentsResult.error
   ) {
 
     console.error(
@@ -11393,7 +11432,8 @@ async function openTeacherStudentDetail(
       scheduleResult.error ||
       financialSettingsResult.error ||
       historyResult.error ||
-      makeupResult.error
+      makeupResult.error ||
+      commentsResult.error
     );
 
 
@@ -11435,6 +11475,10 @@ async function openTeacherStudentDetail(
 
   const makeups =
     makeupResult.data || [];
+
+
+  const studentComments =
+    commentsResult.data || [];
 
 
   area.innerHTML = `
@@ -11955,7 +11999,33 @@ async function openTeacherStudentDetail(
 
               ${history
                 .map(
-                  renderTeacherStudentHistoryRow
+                  record => {
+
+                    const comments =
+                      studentComments.filter(
+                        comment =>
+                          String(
+                            comment.lesson_date
+                          ) ===
+                          String(
+                            record.lesson_date
+                          )
+                          &&
+                          normalizeTime(
+                            comment.start_time
+                          ) ===
+                          normalizeTime(
+                            record.start_time
+                          )
+                      );
+
+
+                    return renderTeacherStudentHistoryRow(
+                      record,
+                      comments
+                    );
+
+                  }
                 )
                 .join("")}
 
@@ -12061,6 +12131,51 @@ async function openTeacherStudentDetail(
     behavior: "smooth",
     block: "start"
   });
+
+
+  if (
+    studentComments.some(
+      comment =>
+        !comment.teacher_seen_at
+    )
+  ) {
+
+    const {
+      error: seenError
+    } =
+      await supabaseClient.rpc(
+        "mark_teacher_student_comments_seen",
+        {
+          p_student_id:
+            studentId
+        }
+      );
+
+
+    if (seenError) {
+
+      console.warn(
+        "Nao foi possivel marcar os comentarios como vistos:",
+        seenError
+      );
+
+    }
+
+    else {
+
+      if (student) {
+
+        student.unread_comments =
+          0;
+
+      }
+
+
+      renderTeacherStudentOverview();
+
+    }
+
+  }
 
 }
 
@@ -12914,7 +13029,8 @@ function renderTeacherStudentMakeupRow(
 // =====================================================
 
 function renderTeacherStudentHistoryRow(
-  record
+  record,
+  comments = []
 ) {
 
   const attendance =
@@ -13002,9 +13118,129 @@ function renderTeacherStudentHistoryRow(
                 white-space:pre-wrap;
               "
             >
-              ${escapeHtml(
-                record.teacher_notes
-              )}
+              <strong>
+                Observacoes do professor:
+              </strong>
+
+              <div
+                style="
+                  margin-top:4px;
+                "
+              >
+                ${escapeHtml(
+                  record.teacher_notes
+                )}
+              </div>
+            </div>
+
+          `
+
+          : ""
+      }
+
+
+      ${
+        comments.length > 0
+
+          ? `
+
+            <div
+              style="
+                margin-top:12px;
+                padding-top:12px;
+                border-top:1px solid #e5e5e5;
+              "
+            >
+
+              <strong>
+                Comentarios do aluno
+              </strong>
+
+
+              <div
+                style="
+                  display:grid;
+                  gap:8px;
+                  margin-top:8px;
+                "
+              >
+
+                ${comments
+                  .map(
+                    comment => `
+
+                      <div
+                        style="
+                          padding:10px;
+                          border-radius:8px;
+                          background:${
+                            comment.teacher_seen_at
+                              ? "#f7f7f7"
+                              : "#fff3cd"
+                          };
+                        "
+                      >
+
+                        <div
+                          style="
+                            display:flex;
+                            justify-content:space-between;
+                            gap:8px;
+                            flex-wrap:wrap;
+                            font-size:12px;
+                            color:#666;
+                          "
+                        >
+
+                          <span>
+                            ${escapeHtml(
+                              formatDateTime(
+                                comment.created_at
+                              )
+                            )}
+                          </span>
+
+
+                          ${
+                            !comment.teacher_seen_at
+
+                              ? `
+
+                                <strong
+                                  style="
+                                    color:#7a5d00;
+                                  "
+                                >
+                                  Novo
+                                </strong>
+
+                              `
+
+                              : ""
+                          }
+
+                        </div>
+
+
+                        <div
+                          style="
+                            margin-top:5px;
+                            white-space:pre-wrap;
+                          "
+                        >
+                          ${escapeHtml(
+                            comment.comment
+                          )}
+                        </div>
+
+                      </div>
+
+                    `
+                  )
+                  .join("")}
+
+              </div>
+
             </div>
 
           `
