@@ -1,3 +1,159 @@
+
+Segui fechando o fluxo de aluno menor + responsável.
+
+Primeiro rode este SQL no Supabase:
+
+Baixar SQL — menor + responsável + relatório
+
+Depois substitua todo o app.js por este:
+
+Baixar app.js atualizado
+
+O JavaScript foi validado com node --check.
+
+Agora, na lista de alunos do professor, se o aluno for menor de 18 anos e ainda não tiver responsável vinculado, aparece um alerta destacado:
+
+Menor de 18 anos sem responsável vinculado.
+
+O aluno não vê os valores financeiros.
+Cadastre um responsável em "Ver aluno".
+Esses alunos também passam a aparecer com prioridade na lista, para não ficar fácil esquecer de cadastrar o responsável.
+
+Em Ver aluno → Acesso de responsável, o mesmo aviso aparece caso seja menor e ainda não exista responsável cadastrado.
+
+Também completei o financeiro do responsável. Agora cada mensalidade tem:
+
+Agosto/2026
+R$ 640,00
+Vencimento: 10/08/2026
+Status: Pendente
+
+8 aulas × R$ 80,00
+
+[ Ver aulas do mês ]
+Ao clicar em Ver aulas do mês, o responsável consegue conferir as aulas regulares que compõem aquele financeiro, com data, horário, presença/falta, matéria, conteúdo e observações do professor.
+
+A regra continua intacta: o responsável vê os valores completos; o aluno menor não recebe esses valores pelo backend. 
+
+
+menor_responsavel_relatorio.sql
+Código
+
+
+app_menor_responsavel_relatorio.js
+Código
+
+
+pode seguir 
+
+Segui para um painel operacional do professor no topo da agenda, para juntar as pendências importantes em um só lugar.
+
+Primeiro rode este SQL:
+
+Baixar SQL — painel e alertas do professor
+
+Depois substitua todo o app.js por este:
+
+Baixar app.js atualizado
+
+O JavaScript foi validado com node --check.
+
+Agora, ao entrar na agenda do professor, aparece um resumo com:
+
+Resumo do professor
+
+Alunos ativos
+Aulas pausadas
+Comentários novos
+Mensalidades atrasadas
+Reposições vencendo em até 7 dias
+Menores sem responsável
+Logo abaixo aparece Precisa de atenção, com os casos concretos. Por exemplo:
+
+Mensalidade atrasada
+João
+Vencimento: 10/08/2026
+R$ 500,00
+[ Abrir financeiro ]
+
+Reposição perto do vencimento
+Maria
+Prazo: 28/08/2026
+[ Ver aluno ]
+
+Menor sem responsável
+Pedro
+O aluno não vê valores financeiros e ainda não possui responsável vinculado.
+[ Ver aluno ]
+Também entram ali os comentários novos dos alunos.
+
+Os botões já levam direto para a área correspondente: Ver aluno ou Financeiro.
+
+Assim a agenda do professor passa a funcionar também como uma espécie de “central de pendências”, sem precisar ficar entrando em todas as abas para descobrir o que precisa de atenção. 
+
+
+painel_professor_alertas.sql
+Código
+
+
+app_painel_professor_alertas.js
+Código
+
+
+proximo passo 
+
+O próximo passo ficou sendo o controle de contrato do aluno.
+
+Primeiro rode este SQL:
+
+Baixar SQL — contrato do aluno
+
+Depois substitua todo o app.js por este:
+
+Baixar app.js atualizado
+
+O JavaScript foi validado com node --check.
+
+Agora, em Professor → Alunos → Ver aluno, antes dos horários fixos aparece:
+
+Contrato
+
+Início do contrato
+[ 01/08/2026 ]
+
+Término do contrato
+[ 31/12/2026 ]
+
+Observações contratuais
+[________________________]
+
+[ Salvar contrato ]
+A data de término pode ficar vazia para contratos sem prazo definido. Para alunos que já existiam, o sistema usa a data de criação do cadastro como início do contrato.
+
+Também aparece o status automaticamente: Contrato ativo, Sem data de término, Vence em breve ou Contrato vencido.
+
+No painel inicial do professor entram dois novos indicadores:
+
+Contratos vencendo
+Contratos vencidos
+E contratos que vencem nos próximos 30 dias aparecem em Precisa de atenção, com botão Ver aluno.
+
+Importante: se o contrato vencer, o sistema não desativa as aulas automaticamente. Ele apenas alerta o professor, para não alterar agenda ou acesso sem uma decisão explícita. 
+
+
+contrato_aluno.sql
+Código
+
+
+app_contrato_aluno.js
+Código
+
+Esta é uma conversa entre ChatGPT e Gabriel Baggio Montes. Respondê-la criará uma conversa derivada.
+
+
+app_contrato_aluno.js
+
+
 console.log(
   "ERP build: cadastro-horarios-v2-20260824"
 );
@@ -12771,6 +12927,7 @@ async function openTeacherStudentDetail(
 
 
   const [
+    contractResult,
     scheduleResult,
     financialSettingsResult,
     historyResult,
@@ -12779,6 +12936,14 @@ async function openTeacherStudentDetail(
     guardiansResult
   ] =
     await Promise.all([
+
+      supabaseClient.rpc(
+        "get_teacher_student_contract",
+        {
+          p_student_id:
+            studentId
+        }
+      ),
 
       supabaseClient.rpc(
         "get_teacher_student_fixed_schedule",
@@ -12832,6 +12997,7 @@ async function openTeacherStudentDetail(
 
 
   if (
+    contractResult.error ||
     scheduleResult.error ||
     financialSettingsResult.error ||
     historyResult.error ||
@@ -12842,6 +13008,7 @@ async function openTeacherStudentDetail(
 
     console.error(
       "Erro ao carregar detalhes do aluno:",
+      contractResult.error ||
       scheduleResult.error ||
       financialSettingsResult.error ||
       historyResult.error ||
@@ -12866,6 +13033,17 @@ async function openTeacherStudentDetail(
 
     return;
   }
+
+
+  const contract =
+    (
+      Array.isArray(
+        contractResult.data
+      )
+        ? contractResult.data[0]
+        : contractResult.data
+    )
+    || {};
 
 
   const fixedSchedule =
@@ -12959,6 +13137,235 @@ async function openTeacherStudentDetail(
         >
           Fechar
         </button>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:24px;
+          padding:16px;
+          border:1px solid #d9e3f2;
+          border-radius:10px;
+          background:#ffffff;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:12px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <h4
+              style="
+                margin:0;
+              "
+            >
+              Contrato
+            </h4>
+
+
+            <p
+              style="
+                margin:5px 0 0;
+                color:#666;
+                font-size:13px;
+              "
+            >
+              Registre o periodo contratual deste aluno.
+              O termino do contrato nao desativa as aulas automaticamente.
+            </p>
+
+          </div>
+
+
+          <strong
+            style="
+              padding:6px 10px;
+              border-radius:999px;
+              background:${
+                contract.contract_status ===
+                  "expired"
+                  ? "#fdecea"
+                  : (
+                      contract.contract_status ===
+                        "expiring"
+                        ? "#fff3cd"
+                        : "#eef8f0"
+                    )
+              };
+            "
+          >
+            ${
+              contract.contract_status ===
+                "expired"
+                ? "Contrato vencido"
+                : (
+                    contract.contract_status ===
+                      "expiring"
+                      ? "Vence em breve"
+                      : (
+                          contract.contract_status ===
+                            "open"
+                            ? "Sem data de termino"
+                            : "Contrato ativo"
+                        )
+                  )
+            }
+          </strong>
+
+        </div>
+
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+            gap:12px;
+            margin-top:15px;
+          "
+        >
+
+          <div>
+
+            <label
+              for="teacherStudentContractStartDate"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Inicio do contrato
+            </label>
+
+
+            <input
+              type="date"
+              id="teacherStudentContractStartDate"
+              value="${escapeHtml(
+                contract.contract_start_date || ""
+              )}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+          </div>
+
+
+          <div>
+
+            <label
+              for="teacherStudentContractEndDate"
+              style="
+                display:block;
+                font-weight:bold;
+                margin-bottom:7px;
+              "
+            >
+              Termino do contrato
+            </label>
+
+
+            <input
+              type="date"
+              id="teacherStudentContractEndDate"
+              value="${escapeHtml(
+                contract.contract_end_date || ""
+              )}"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:10px;
+                border:1px solid #ccc;
+                border-radius:8px;
+              "
+            >
+
+
+            <div
+              style="
+                margin-top:5px;
+                color:#666;
+                font-size:12px;
+              "
+            >
+              Deixe em branco se o contrato nao tiver data de termino.
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          style="
+            margin-top:14px;
+          "
+        >
+
+          <label
+            for="teacherStudentContractNotes"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Observacoes contratuais
+          </label>
+
+
+          <textarea
+            id="teacherStudentContractNotes"
+            rows="3"
+            maxlength="3000"
+            style="
+              width:100%;
+              box-sizing:border-box;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+              resize:vertical;
+              font-family:inherit;
+            "
+          >${escapeHtml(
+            contract.contract_notes || ""
+          )}</textarea>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="secondary-button"
+          id="saveTeacherStudentContractButton"
+          style="
+            margin-top:14px;
+          "
+        >
+          Salvar contrato
+        </button>
+
+
+        <p
+          id="teacherStudentContractMessage"
+          style="
+            margin-top:10px;
+          "
+        ></p>
 
       </div>
 
@@ -13741,6 +14148,28 @@ async function openTeacherStudentDetail(
     </div>
 
   `;
+
+
+  const saveContractButton =
+    document.getElementById(
+      "saveTeacherStudentContractButton"
+    );
+
+
+  if (saveContractButton) {
+
+    saveContractButton.addEventListener(
+      "click",
+      () => {
+
+        saveTeacherStudentContract(
+          studentId
+        );
+
+      }
+    );
+
+  }
 
 
   const editScheduleButton =
@@ -15282,6 +15711,181 @@ async function unlinkTeacherStudentGuardian(
     );
 
   }
+
+}
+
+
+// =====================================================
+// SALVAR CONTRATO DO ALUNO
+// =====================================================
+
+async function saveTeacherStudentContract(
+  studentId
+) {
+
+  const startInput =
+    document.getElementById(
+      "teacherStudentContractStartDate"
+    );
+
+
+  const endInput =
+    document.getElementById(
+      "teacherStudentContractEndDate"
+    );
+
+
+  const notesInput =
+    document.getElementById(
+      "teacherStudentContractNotes"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherStudentContractMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "saveTeacherStudentContractButton"
+    );
+
+
+  const startDate =
+    startInput
+      ? startInput.value
+      : "";
+
+
+  const endDate =
+    endInput &&
+    endInput.value
+      ? endInput.value
+      : null;
+
+
+  if (!startDate) {
+
+    if (message) {
+
+      message.textContent =
+        "Informe a data de inicio do contrato.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (
+    endDate &&
+    endDate <
+      startDate
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "A data de termino nao pode ser anterior ao inicio.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_teacher_student_contract",
+      {
+
+        p_student_id:
+          studentId,
+
+        p_contract_start_date:
+          startDate,
+
+        p_contract_end_date:
+          endDate,
+
+        p_contract_notes:
+          notesInput
+            ? notesInput.value.trim() || null
+            : null
+
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar contrato";
+
+  }
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao salvar contrato:",
+      error
+    );
+
+
+    if (message) {
+
+      message.textContent =
+        error.message ||
+        "Nao foi possivel salvar o contrato.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
+  await openTeacherStudentDetail(
+    studentId
+  );
+
+
+  await loadTeacherDashboard();
+
+
+  alert(
+    "Contrato atualizado com sucesso."
+  );
 
 }
 
@@ -28430,7 +29034,9 @@ async function loadTeacherDashboard() {
 
   const [
     summaryResult,
-    alertsResult
+    alertsResult,
+    contractSummaryResult,
+    contractAlertsResult
   ] =
     await Promise.all([
 
@@ -28440,6 +29046,14 @@ async function loadTeacherDashboard() {
 
       supabaseClient.rpc(
         "get_teacher_dashboard_alerts"
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_contract_dashboard_summary"
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_contract_dashboard_alerts"
       )
 
     ]);
@@ -28447,13 +29061,17 @@ async function loadTeacherDashboard() {
 
   if (
     summaryResult.error ||
-    alertsResult.error
+    alertsResult.error ||
+    contractSummaryResult.error ||
+    contractAlertsResult.error
   ) {
 
     console.error(
       "Erro ao carregar painel do professor:",
       summaryResult.error ||
-      alertsResult.error
+      alertsResult.error ||
+      contractSummaryResult.error ||
+      contractAlertsResult.error
     );
 
 
@@ -28493,8 +29111,35 @@ async function loadTeacherDashboard() {
     || {};
 
 
+  const contractSummary =
+    (
+      Array.isArray(
+        contractSummaryResult.data
+      )
+        ? contractSummaryResult.data[0]
+        : contractSummaryResult.data
+    )
+    || {};
+
+
   const alerts =
-    alertsResult.data || [];
+    [
+      ...(contractAlertsResult.data || []),
+      ...(alertsResult.data || [])
+    ]
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          Number(
+            a.sort_priority || 999
+          )
+          -
+          Number(
+            b.sort_priority || 999
+          )
+      );
 
 
   area.innerHTML = `
@@ -28582,6 +29227,16 @@ async function loadTeacherDashboard() {
         ${renderTeacherDashboardStat(
           "Menores sem responsavel",
           summary.minors_without_guardian || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Contratos vencendo",
+          contractSummary.expiring_contracts || 0
+        )}
+
+        ${renderTeacherDashboardStat(
+          "Contratos vencidos",
+          contractSummary.expired_contracts || 0
         )}
 
       </div>
