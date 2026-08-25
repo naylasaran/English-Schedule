@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: horario-ate-meia-noite-20260824"
+  "ERP build: limite-alunos-adm-meia-noite-v2-20260825"
 );
 
 // =====================================================
@@ -5783,7 +5783,8 @@ async function loadAdminTeachers() {
 
   const [
     teachersResult,
-    systemFinancialResult
+    systemFinancialResult,
+    capacityResult
   ] =
     await Promise.all([
 
@@ -5800,6 +5801,10 @@ async function loadAdminTeachers() {
           p_month:
             month
         }
+      ),
+
+      supabaseClient.rpc(
+        "get_admin_teacher_student_capacity"
       )
 
     ]);
@@ -5807,13 +5812,15 @@ async function loadAdminTeachers() {
 
   if (
     teachersResult.error ||
-    systemFinancialResult.error
+    systemFinancialResult.error ||
+    capacityResult.error
   ) {
 
     console.error(
       "Erro ao carregar professores:",
       teachersResult.error ||
-      systemFinancialResult.error
+      systemFinancialResult.error ||
+      capacityResult.error
     );
 
 
@@ -5823,7 +5830,8 @@ async function loadAdminTeachers() {
         ${escapeHtml(
           (
             teachersResult.error ||
-            systemFinancialResult.error
+            systemFinancialResult.error ||
+            capacityResult.error
           ).message ||
           "Nao foi possivel carregar os professores."
         )}
@@ -5838,6 +5846,10 @@ async function loadAdminTeachers() {
 
   currentAdminTeacherSystemFinancial =
     systemFinancialResult.data || [];
+
+
+  const teacherStudentCapacity =
+    capacityResult.data || [];
 
 
   currentAdminTeachers =
@@ -5858,9 +5870,23 @@ async function loadAdminTeachers() {
             || {};
 
 
+          const capacity =
+            teacherStudentCapacity.find(
+              item =>
+                String(
+                  item.teacher_id
+                ) ===
+                String(
+                  teacher.teacher_id
+                )
+            )
+            || {};
+
+
           return {
             ...teacher,
             ...billing,
+            ...capacity,
             system_billing_year:
               year,
             system_billing_month:
@@ -5961,6 +5987,143 @@ async function loadAdminTeachers() {
       );
 
     });
+
+
+  document
+    .querySelectorAll(
+      ".save-admin-teacher-student-limit-button"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          saveAdminTeacherStudentLimit(
+            button.dataset.teacherId
+          );
+
+        }
+      );
+
+    });
+
+}
+
+
+// =====================================================
+// ADM - SALVAR LIMITE DE ALUNOS
+// =====================================================
+
+async function saveAdminTeacherStudentLimit(
+  teacherId
+) {
+
+  const input =
+    document.querySelector(
+      '.admin-teacher-student-limit[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  const button =
+    document.querySelector(
+      '.save-admin-teacher-student-limit-button[data-teacher-id="' +
+      teacherId +
+      '"]'
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  const rawValue =
+    input.value.trim();
+
+
+  const limit =
+    rawValue === ""
+      ? null
+      : Number(
+          rawValue
+        );
+
+
+  if (
+    limit !== null
+
+    &&
+    (
+      !Number.isInteger(
+        limit
+      )
+      ||
+      limit < 1
+      ||
+      limit > 1000
+    )
+  ) {
+
+    alert(
+      "Informe um numero inteiro entre 1 e 1000, ou deixe vazio para sem limite."
+    );
+
+    return;
+  }
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Salvando...";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient.rpc(
+      "save_admin_teacher_student_limit",
+      {
+        p_teacher_id:
+          teacherId,
+
+        p_max_active_students:
+          limit
+      }
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Salvar limite";
+
+  }
+
+
+  if (error) {
+
+    alert(
+      error.message ||
+      "Nao foi possivel salvar o limite de alunos."
+    );
+
+    return;
+  }
+
+
+  await loadAdminTeachers();
 
 }
 
@@ -6162,8 +6325,34 @@ function renderAdminTeacherCard(
 
         <div>
           <strong>Alunos ativos:</strong>
+
           ${Number(
-            teacher.student_count || 0
+            teacher.active_student_count ??
+            teacher.student_count ??
+            0
+          )}
+
+          /
+
+          ${
+            teacher.max_active_students == null
+
+              ? "sem limite"
+
+              : Number(
+                  teacher.max_active_students
+                )
+          }
+        </div>
+
+
+        <div>
+          <strong>Total historico:</strong>
+
+          ${Number(
+            teacher.total_student_count ??
+            teacher.student_count ??
+            0
           )}
         </div>
 
@@ -6214,6 +6403,140 @@ function renderAdminTeacherCard(
 
             : ""
         }
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          border-radius:9px;
+          background:#eef5ff;
+          border:1px solid #d9e3f2;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <strong>
+              Limite de alunos
+            </strong>
+
+
+            <div
+              style="
+                margin-top:3px;
+                color:#666;
+                font-size:12px;
+              "
+            >
+              O limite considera alunos ativos.
+              Excluidos ficam apenas no total historico.
+            </div>
+
+          </div>
+
+
+          <strong>
+            ${Number(
+              teacher.active_student_count ??
+              teacher.student_count ??
+              0
+            )}
+            ativo(s)
+          </strong>
+
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            gap:8px;
+            align-items:end;
+            flex-wrap:wrap;
+            margin-top:11px;
+          "
+        >
+
+          <div
+            style="
+              flex:1;
+              min-width:180px;
+            "
+          >
+
+            <label
+              style="
+                display:block;
+                font-size:12px;
+                font-weight:bold;
+                margin-bottom:5px;
+              "
+            >
+              Maximo de alunos ativos
+            </label>
+
+
+            <input
+              type="number"
+              min="1"
+              max="1000"
+              step="1"
+              class="admin-teacher-student-limit"
+              data-teacher-id="${teacher.teacher_id}"
+              value="${
+                teacher.max_active_students == null
+                  ? ""
+                  : Number(
+                      teacher.max_active_students
+                    )
+              }"
+              placeholder="Sem limite"
+              style="
+                width:100%;
+                box-sizing:border-box;
+                padding:9px;
+                border:1px solid #ccc;
+                border-radius:7px;
+              "
+            >
+
+          </div>
+
+
+          <button
+            type="button"
+            class="secondary-button save-admin-teacher-student-limit-button"
+            data-teacher-id="${teacher.teacher_id}"
+          >
+            Salvar limite
+          </button>
+
+        </div>
+
+
+        <div
+          style="
+            margin-top:7px;
+            color:#666;
+            font-size:12px;
+          "
+        >
+          Deixe vazio para sem limite.
+          Nao pode ser menor que os alunos ativos atuais.
+        </div>
 
       </div>
 
@@ -18359,6 +18682,56 @@ async function saveNewStudentWithAccess() {
 
     showError(
       scheduleResult.error
+    );
+
+    return;
+  }
+
+
+  const {
+    data: capacityData,
+    error: capacityError
+  } =
+    await supabaseClient.rpc(
+      "get_my_teacher_student_capacity"
+    );
+
+
+  if (capacityError) {
+
+    showError(
+      capacityError.message ||
+      "Nao foi possivel verificar o limite de alunos."
+    );
+
+    return;
+  }
+
+
+  const capacity =
+    (
+      Array.isArray(
+        capacityData
+      )
+        ? capacityData[0]
+        : capacityData
+    )
+    || {};
+
+
+  if (
+    capacity.can_add_student ===
+      false
+  ) {
+
+    showError(
+      "O limite de "
+      +
+      Number(
+        capacity.max_active_students || 0
+      )
+      +
+      " alunos ativos definido pelo ADM foi atingido."
     );
 
     return;
