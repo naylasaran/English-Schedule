@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: dias-atendimento-professor-20260824"
+  "ERP build: horario-ate-meia-noite-20260824"
 );
 
 // =====================================================
@@ -2056,6 +2056,130 @@ function formatTeacherWorkDays(
 // HORARIO DENTRO DA JANELA DE ATENDIMENTO
 // =====================================================
 
+function timeToEndBoundaryMinutes(
+  time
+) {
+
+  const normalized =
+    normalizeTime(
+      time
+    );
+
+
+  if (
+    normalized ===
+      "00:00"
+  ) {
+
+    return 24 * 60;
+
+  }
+
+
+  return timeToMinutes(
+    normalized
+  );
+
+}
+
+
+function intervalEndToMinutes(
+  startTime,
+  endTime
+) {
+
+  const normalizedStart =
+    normalizeTime(
+      startTime
+    );
+
+
+  const normalizedEnd =
+    normalizeTime(
+      endTime
+    );
+
+
+  if (
+    normalizedEnd ===
+      "00:00"
+    &&
+    normalizedStart !==
+      "00:00"
+  ) {
+
+    return 24 * 60;
+
+  }
+
+
+  return timeToMinutes(
+    normalizedEnd
+  );
+
+}
+
+
+function minutesToClockTime(
+  minutes
+) {
+
+  const normalized =
+    (
+      (
+        Number(
+          minutes
+        )
+        %
+        (
+          24 *
+          60
+        )
+      )
+      +
+      (
+        24 *
+        60
+      )
+    )
+    %
+    (
+      24 *
+      60
+    );
+
+
+  const hours =
+    Math.floor(
+      normalized / 60
+    );
+
+
+  const mins =
+    normalized % 60;
+
+
+  return (
+    String(
+      hours
+    ).padStart(
+      2,
+      "0"
+    )
+    +
+    ":"
+    +
+    String(
+      mins
+    ).padStart(
+      2,
+      "0"
+    )
+  );
+
+}
+
+
 function isTimeInsideTeacherWorkHours(
   startTime,
   endTime,
@@ -2075,9 +2199,9 @@ function isTimeInsideTeacherWorkHours(
 
 
   const workEnd =
-    timeToMinutes(
+    timeToEndBoundaryMinutes(
       settings.work_end_time ||
-      "23:59"
+      "00:00"
     );
 
 
@@ -2088,7 +2212,8 @@ function isTimeInsideTeacherWorkHours(
 
 
   const slotEnd =
-    timeToMinutes(
+    intervalEndToMinutes(
+      startTime,
       endTime
     );
 
@@ -5104,13 +5229,13 @@ async function saveAdminTeacher() {
     timeToMinutes(
       startTime
     ) >=
-    timeToMinutes(
+    timeToEndBoundaryMinutes(
       endTime
     )
   ) {
 
     showError(
-      "Informe um horario de atendimento valido."
+      "Informe um horario de atendimento valido. O fim pode ser 00:00 para representar meia-noite."
     );
 
     return;
@@ -17061,14 +17186,27 @@ function addStudentFixedScheduleRow(
           ||
           "00:00"
         )}"
-        max="${normalizeTime(
-          (
-            currentTeacherProfileSettings &&
-            currentTeacherProfileSettings.work_end_time
-          )
-          ||
-          "23:30"
-        )}"
+        max="${
+          normalizeTime(
+            (
+              currentTeacherProfileSettings &&
+              currentTeacherProfileSettings.work_end_time
+            )
+            ||
+            "23:30"
+          ) === "00:00"
+
+            ? "23:30"
+
+            : normalizeTime(
+                (
+                  currentTeacherProfileSettings &&
+                  currentTeacherProfileSettings.work_end_time
+                )
+                ||
+                "23:30"
+              )
+        }"
         value="${escapeHtml(
           initial.start_time || ""
         )}"
@@ -17317,7 +17455,7 @@ function collectStudentFixedSchedule(
         )
         ||
         proposedEnd >
-        timeToMinutes(
+        timeToEndBoundaryMinutes(
           currentTeacherProfileSettings.work_end_time
         )
       )
@@ -31110,7 +31248,7 @@ function fillTeacherScheduleWithWorkHourGrid(
 
 
   const endMinutes =
-    timeToMinutes(
+    timeToEndBoundaryMinutes(
       settings.work_end_time
     );
 
@@ -31132,13 +31270,13 @@ function fillTeacherScheduleWithWorkHourGrid(
   ) {
 
     const startTime =
-      minutesToTime(
+      minutesToClockTime(
         minutes
       );
 
 
     const endTime =
-      minutesToTime(
+      minutesToClockTime(
         minutes + 30
       );
 
@@ -32623,12 +32761,34 @@ function isTeacherOccurrenceFinished(
     slot.attendance.end_time
   ) {
 
-    return (
+    const attendanceEnd =
       combineDateAndTime(
         date,
         slot.attendance.end_time
-      )
-      <=
+      );
+
+
+    if (
+      normalizeTime(
+        slot.attendance.end_time
+      ) ===
+        "00:00"
+      &&
+      normalizeTime(
+        slot.start_time
+      ) !==
+        "00:00"
+    ) {
+
+      attendanceEnd.setDate(
+        attendanceEnd.getDate() + 1
+      );
+
+    }
+
+
+    return (
+      attendanceEnd <=
       new Date()
     );
 
@@ -32642,7 +32802,8 @@ function isTeacherOccurrenceFinished(
 
 
   let occurrenceEnd =
-    timeToMinutes(
+    intervalEndToMinutes(
+      slot.start_time,
       slot.end_time
     );
 
@@ -32740,7 +32901,8 @@ function isTeacherOccurrenceFinished(
 
 
           const itemEnd =
-            timeToMinutes(
+            intervalEndToMinutes(
+              item.start_time,
               item.end_time
             );
 
@@ -32779,17 +32941,32 @@ function isTeacherOccurrenceFinished(
 
 
   const endTime =
-    minutesToTime(
+    minutesToClockTime(
       occurrenceEnd
     );
 
 
-  return (
+  const occurrenceEndDate =
     combineDateAndTime(
       date,
       endTime
-    )
-    <=
+    );
+
+
+  if (
+    occurrenceEnd >=
+      24 * 60
+  ) {
+
+    occurrenceEndDate.setDate(
+      occurrenceEndDate.getDate() + 1
+    );
+
+  }
+
+
+  return (
+    occurrenceEndDate <=
     new Date()
   );
 
@@ -38310,6 +38487,18 @@ async function loadTeacherProfilePage() {
           "
         >
 
+
+        <div
+          style="
+            margin-top:5px;
+            color:#666;
+            font-size:12px;
+          "
+        >
+          Selecione 00:00 para permitir aulas que terminem
+          exatamente a meia-noite.
+        </div>
+
       </div>
 
     </div>
@@ -39275,7 +39464,7 @@ async function saveTeacherProfilePage() {
     timeToMinutes(
       startTime
     ) >=
-    timeToMinutes(
+    timeToEndBoundaryMinutes(
       endTime
     )
   ) {
@@ -39283,7 +39472,7 @@ async function saveTeacherProfilePage() {
     if (message) {
 
       message.textContent =
-        "Informe um horario inicial e final validos.";
+        "Informe um horario inicial e final validos. O fim pode ser 00:00 para representar meia-noite.";
 
       message.style.color =
         "red";
