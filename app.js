@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: cadastro-horarios-v2-20260824"
+  "ERP build: regras-remarcacao-professor-20260824"
 );
 
 // =====================================================
@@ -22,6 +22,14 @@ let currentTeacherFinancialRecords = [];
 let currentTeacherFinancialStudents = [];
 let currentTeacherProfileSettings = null;
 let currentStudentTeacherSettings = null;
+
+let currentStudentTeacherRescheduleRules = {
+  makeup_reschedule_notice_hours: 2,
+  monthly_makeup_limit: 8,
+  makeup_reschedule_max_count: 1,
+  lesson_reschedule_notice_hours: 2
+};
+
 let currentAdminTeachers = [];
 let currentAdminTeacherSystemFinancial = [];
 let currentTeacherHolidayWeek = [];
@@ -304,7 +312,64 @@ async function loadCurrentStudentId() {
 
 
 // =====================================================
-// \xc1REA DO ALUNO
+// REGRAS DE REMARCACAO DO PROFESSOR PARA O ALUNO
+// =====================================================
+
+async function loadStudentTeacherRescheduleRules() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      "get_student_teacher_reschedule_rules"
+    );
+
+
+  if (error) {
+
+    console.warn(
+      "Nao foi possivel carregar as regras de remarcacao:",
+      error
+    );
+
+
+    currentStudentTeacherRescheduleRules = {
+      makeup_reschedule_notice_hours: 2,
+      monthly_makeup_limit: 8,
+      makeup_reschedule_max_count: 1,
+      lesson_reschedule_notice_hours: 2
+    };
+
+
+    return currentStudentTeacherRescheduleRules;
+
+  }
+
+
+  currentStudentTeacherRescheduleRules =
+    (
+      Array.isArray(
+        data
+      )
+        ? data[0]
+        : data
+    )
+    || {
+      makeup_reschedule_notice_hours: 2,
+      monthly_makeup_limit: 8,
+      makeup_reschedule_max_count: 1,
+      lesson_reschedule_notice_hours: 2
+    };
+
+
+  return currentStudentTeacherRescheduleRules;
+
+}
+
+
+// =====================================================
+// \u00C1REA DO ALUNO
 // =====================================================
 
 async function showStudentArea() {
@@ -347,6 +412,9 @@ async function showStudentArea() {
     `;
 
   }
+
+
+  await loadStudentTeacherRescheduleRules();
 
 
   setStudentPage("agenda");
@@ -9504,8 +9572,17 @@ function renderMakeupCard(makeup) {
         </p>
 
         <p>
-          <strong>Cancelamentos do aluno:</strong>
+          <strong>
+            Remarca\u00E7\u00F5es usadas:
+          </strong>
+
           ${cancellationCount}
+          de
+          ${Number(
+            currentStudentTeacherRescheduleRules
+              .makeup_reschedule_max_count ||
+            1
+          )}
         </p>
 
         ${reservationInfo}
@@ -9819,10 +9896,14 @@ async function cancelStudentMakeup(
   }
 
 
+  await loadStudentTeacherRescheduleRules();
+
+
   const button =
     document.querySelector(
       `.cancel-makeup-button[data-reservation-id="${reservationId}"]`
     );
+
 
   const message =
     document.getElementById(
@@ -9830,25 +9911,34 @@ async function cancelStudentMakeup(
     );
 
 
-  const {
-    data: reservation,
-    error: reservationError
-  } =
-    await supabaseClient.rpc(
-      "get_my_reservation",
-      {
-        p_reservation_id:
-          reservationId
-      }
-    );
+  const [
+    reservationResult,
+    makeupsResult
+  ] =
+    await Promise.all([
+
+      supabaseClient.rpc(
+        "get_my_reservation",
+        {
+          p_reservation_id:
+            reservationId
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_my_makeups"
+      )
+
+    ]);
 
 
-  if (reservationError) {
+  if (reservationResult.error) {
 
     console.error(
       "Erro ao consultar reserva:",
-      reservationError
+      reservationResult.error
     );
+
 
     if (message) {
 
@@ -9860,8 +9950,55 @@ async function cancelStudentMakeup(
 
     }
 
+
     return;
   }
+
+
+  const reservation =
+    reservationResult.data;
+
+
+  const makeup =
+    makeupsResult.error
+
+      ? null
+
+      : (
+          makeupsResult.data || []
+        ).find(
+          item =>
+            String(
+              item.reservation_id || ""
+            ) ===
+            String(
+              reservationId
+            )
+        )
+        || null;
+
+
+  const usedReschedules =
+    Number(
+      makeup?.cancellation_count ||
+      0
+    );
+
+
+  const maximumReschedules =
+    Number(
+      currentStudentTeacherRescheduleRules
+        .makeup_reschedule_max_count ||
+      1
+    );
+
+
+  const minimumHours =
+    Number(
+      currentStudentTeacherRescheduleRules
+        .makeup_reschedule_notice_hours ||
+      2
+    );
 
 
   const reservationDateTime =
@@ -9873,6 +10010,7 @@ async function cancelStudentMakeup(
       ) +
       ":00"
     );
+
 
   const now =
     new Date();
@@ -9890,9 +10028,6 @@ async function cancelStudentMakeup(
   }
 
 
-  const minimumHours =
-    2;
-
   const hoursUntilClass =
     (
       reservationDateTime.getTime()
@@ -9905,9 +10040,15 @@ async function cancelStudentMakeup(
       60
     );
 
+
   const lateCancellation =
     hoursUntilClass <
     minimumHours;
+
+
+  const rescheduleLimitReached =
+    usedReschedules >=
+    maximumReschedules;
 
 
   let confirmationText;
@@ -9916,18 +10057,59 @@ async function cancelStudentMakeup(
   if (lateCancellation) {
 
     confirmationText =
-      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n" +
-      "Faltam menos de 2 horas para a aula.\n\n" +
-      "Essa aula n\u00E3o poder\u00E1 ser reposta depois.";
+      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n"
+      +
+      "Faltam menos de "
+      +
+      minimumHours
+      +
+      " horas para a aula.\n\n"
+      +
+      "Essa reposi\u00E7\u00E3o ser\u00E1 perdida.";
+
+  }
+
+  else if (rescheduleLimitReached) {
+
+    confirmationText =
+      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n"
+      +
+      "O limite de "
+      +
+      maximumReschedules
+      +
+      " remarca\u00E7\u00E3o"
+      +
+      (
+        maximumReschedules === 1
+          ? ""
+          : "\u00F5es"
+      )
+      +
+      " j\u00E1 foi usado.\n\n"
+      +
+      "Ao cancelar novamente, esta reposi\u00E7\u00E3o ser\u00E1 perdida.";
 
   }
 
   else {
 
     confirmationText =
-      "Tem certeza que deseja cancelar esta reposi\u00E7\u00E3o?\n\n" +
-      "No primeiro cancelamento, a reposi\u00E7\u00E3o volta uma vez. " +
-      "No segundo cancelamento, ela ser\u00E1 perdida.";
+      "Tem certeza que deseja remarcar esta reposi\u00E7\u00E3o?\n\n"
+      +
+      "Esta ser\u00E1 a remarca\u00E7\u00E3o "
+      +
+      (
+        usedReschedules + 1
+      )
+      +
+      " de "
+      +
+      maximumReschedules
+      +
+      ".\n\n"
+      +
+      "A reposi\u00E7\u00E3o voltar\u00E1 para dispon\u00EDvel.";
 
   }
 
@@ -9958,7 +10140,7 @@ async function cancelStudentMakeup(
     error
   } =
     await supabaseClient.rpc(
-      "cancel_reservation",
+      "cancel_reservation_with_teacher_rules",
       {
         p_reservation_id:
           reservationId
@@ -10006,16 +10188,38 @@ async function cancelStudentMakeup(
     if (lateCancellation) {
 
       message.textContent =
-        "Reposi\u00E7\u00E3o cancelada. Como o cancelamento foi feito com menos de 2 horas de anteced\u00EAncia, o direito \u00E0 reposi\u00E7\u00E3o foi perdido.";
+        "Reposi\u00E7\u00E3o cancelada. Como n\u00E3o houve a anteced\u00EAncia de "
+        +
+        minimumHours
+        +
+        " horas, o direito \u00E0 reposi\u00E7\u00E3o foi perdido.";
+
+    }
+
+    else if (rescheduleLimitReached) {
+
+      message.textContent =
+        "Reposi\u00E7\u00E3o cancelada. O limite de remarca\u00E7\u00F5es j\u00E1 havia sido usado, por isso o direito foi perdido.";
 
     }
 
     else {
 
       message.textContent =
-        "Reposi\u00E7\u00E3o cancelada com sucesso.";
+        "Reposi\u00E7\u00E3o liberada para nova marca\u00E7\u00E3o. Remarca\u00E7\u00E3o "
+        +
+        (
+          usedReschedules + 1
+        )
+        +
+        " de "
+        +
+        maximumReschedules
+        +
+        " utilizada.";
 
     }
+
 
     message.style.color =
       "green";
@@ -12569,9 +12773,13 @@ async function openLessonCancellation(
   // ANTECED\u00CANCIA
   // ===================================================
 
+  await loadStudentTeacherRescheduleRules();
+
+
   const minimumHours =
     Number(
-      lesson.minimum_cancellation_hours ||
+      currentStudentTeacherRescheduleRules
+        .lesson_reschedule_notice_hours ||
       2
     );
 
@@ -12969,7 +13177,7 @@ async function confirmLessonCancellation(
     error
   } =
     await supabaseClient.rpc(
-      "cancel_lesson_by_student_with_message",
+      "cancel_lesson_by_student_with_rules",
       {
         p_lesson_date:
           lessonDateDb,
@@ -13660,7 +13868,7 @@ async function confirmRealReservation(
     error
   } =
     await supabaseClient.rpc(
-      "reserve_makeup_v2",
+      "reserve_makeup_with_teacher_rules",
       {
         p_makeup_id:
           makeupId,
@@ -13813,9 +14021,9 @@ function setTeacherPage(page) {
 
 
         <p>
-          Estes horarios determinam o intervalo exibido
-          na agenda e os horarios permitidos para aulas
-          e reposicoes.
+          Configure seus dados, horario de atendimento
+          e regras de remarcacao. As regras definidas aqui
+          valem para todos os seus alunos.
         </p>
 
 
@@ -35164,7 +35372,7 @@ async function confirmTeacherMakeupBooking(
     error
   } =
     await supabaseClient.rpc(
-      "teacher_reserve_makeup",
+      "teacher_reserve_makeup_with_rules",
       {
 
         p_makeup_id:
@@ -37507,6 +37715,52 @@ async function loadTeacherProfilePage() {
 
 
   const {
+    data: rescheduleRulesData,
+    error: rescheduleRulesError
+  } =
+    await supabaseClient.rpc(
+      "get_my_teacher_reschedule_rules"
+    );
+
+
+  const rescheduleRules =
+    rescheduleRulesError
+
+      ? {
+          makeup_reschedule_notice_hours: 2,
+          monthly_makeup_limit: 8,
+          makeup_reschedule_max_count: 1,
+          lesson_reschedule_notice_hours: 2
+        }
+
+      : (
+          (
+            Array.isArray(
+              rescheduleRulesData
+            )
+              ? rescheduleRulesData[0]
+              : rescheduleRulesData
+          )
+          || {
+            makeup_reschedule_notice_hours: 2,
+            monthly_makeup_limit: 8,
+            makeup_reschedule_max_count: 1,
+            lesson_reschedule_notice_hours: 2
+          }
+        );
+
+
+  if (rescheduleRulesError) {
+
+    console.warn(
+      "Nao foi possivel carregar as regras de remarcacao:",
+      rescheduleRulesError
+    );
+
+  }
+
+
+  const {
     data: systemFinancialData,
     error: systemFinancialError
   } =
@@ -37749,6 +38003,269 @@ async function loadTeacherProfilePage() {
             border-radius:8px;
           "
         >
+
+      </div>
+
+    </div>
+
+
+    <div
+      style="
+        margin-top:18px;
+        padding:15px;
+        border:1px solid #d9e3f2;
+        border-radius:10px;
+        background:#eef5ff;
+      "
+    >
+
+      <h4
+        style="
+          margin:0;
+        "
+      >
+        Regras de remarca\u00E7\u00E3o
+      </h4>
+
+
+      <p
+        style="
+          margin:5px 0 14px;
+          color:#666;
+          font-size:13px;
+        "
+      >
+        Estas regras valem para todos os seus alunos.
+      </p>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+          gap:14px;
+        "
+      >
+
+        <div>
+
+          <label
+            for="teacherMakeupRescheduleNotice"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Aluno remarcar reposi\u00E7\u00E3o
+          </label>
+
+
+          <select
+            id="teacherMakeupRescheduleNotice"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            ${[2, 6, 24]
+              .map(
+                value => `
+
+                  <option
+                    value="${value}"
+                    ${
+                      Number(
+                        rescheduleRules
+                          .makeup_reschedule_notice_hours
+                      ) === value
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${value}h de anteced\u00EAncia
+                  </option>
+
+                `
+              )
+              .join("")}
+
+          </select>
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherMonthlyMakeupLimit"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Quantidade de reposi\u00E7\u00F5es por m\u00EAs
+          </label>
+
+
+          <select
+            id="teacherMonthlyMakeupLimit"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            ${[2, 4, 6, 8]
+              .map(
+                value => `
+
+                  <option
+                    value="${value}"
+                    ${
+                      Number(
+                        rescheduleRules
+                          .monthly_makeup_limit
+                      ) === value
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${value} por m\u00EAs
+                  </option>
+
+                `
+              )
+              .join("")}
+
+          </select>
+
+
+          <div
+            style="
+              margin-top:5px;
+              color:#666;
+              font-size:12px;
+            "
+          >
+            Conta reposi\u00E7\u00F5es agendadas ou realizadas
+            no m\u00EAs. Reposi\u00E7\u00F5es canceladas n\u00E3o contam.
+          </div>
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherMakeupRescheduleMaxCount"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Quantas vezes pode remarcar a reposi\u00E7\u00E3o
+          </label>
+
+
+          <select
+            id="teacherMakeupRescheduleMaxCount"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            ${[1, 2, 3]
+              .map(
+                value => `
+
+                  <option
+                    value="${value}"
+                    ${
+                      Number(
+                        rescheduleRules
+                          .makeup_reschedule_max_count
+                      ) === value
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${value}
+                    ${
+                      value === 1
+                        ? "vez"
+                        : "vezes"
+                    }
+                  </option>
+
+                `
+              )
+              .join("")}
+
+          </select>
+
+        </div>
+
+
+        <div>
+
+          <label
+            for="teacherLessonRescheduleNotice"
+            style="
+              display:block;
+              font-weight:bold;
+              margin-bottom:7px;
+            "
+          >
+            Aluno remarcar a aula
+          </label>
+
+
+          <select
+            id="teacherLessonRescheduleNotice"
+            style="
+              width:100%;
+              padding:10px;
+              border:1px solid #ccc;
+              border-radius:8px;
+            "
+          >
+
+            ${[2, 6, 24]
+              .map(
+                value => `
+
+                  <option
+                    value="${value}"
+                    ${
+                      Number(
+                        rescheduleRules
+                          .lesson_reschedule_notice_hours
+                      ) === value
+                        ? "selected"
+                        : ""
+                    }
+                  >
+                    ${value}h de anteced\u00EAncia
+                  </option>
+
+                `
+              )
+              .join("")}
+
+          </select>
+
+        </div>
 
       </div>
 
@@ -38191,6 +38708,30 @@ async function saveTeacherProfilePage() {
     );
 
 
+  const makeupNoticeInput =
+    document.getElementById(
+      "teacherMakeupRescheduleNotice"
+    );
+
+
+  const monthlyMakeupLimitInput =
+    document.getElementById(
+      "teacherMonthlyMakeupLimit"
+    );
+
+
+  const makeupMaxCountInput =
+    document.getElementById(
+      "teacherMakeupRescheduleMaxCount"
+    );
+
+
+  const lessonNoticeInput =
+    document.getElementById(
+      "teacherLessonRescheduleNotice"
+    );
+
+
   const message =
     document.getElementById(
       "teacherProfileMessage"
@@ -38206,7 +38747,11 @@ async function saveTeacherProfilePage() {
   if (
     !nameInput ||
     !startInput ||
-    !endInput
+    !endInput ||
+    !makeupNoticeInput ||
+    !monthlyMakeupLimitInput ||
+    !makeupMaxCountInput ||
+    !lessonNoticeInput
   ) {
     return;
   }
@@ -38222,6 +38767,30 @@ async function saveTeacherProfilePage() {
 
   const endTime =
     endInput.value;
+
+
+  const makeupNoticeHours =
+    Number(
+      makeupNoticeInput.value
+    );
+
+
+  const monthlyMakeupLimit =
+    Number(
+      monthlyMakeupLimitInput.value
+    );
+
+
+  const makeupMaxCount =
+    Number(
+      makeupMaxCountInput.value
+    );
+
+
+  const lessonNoticeHours =
+    Number(
+      lessonNoticeInput.value
+    );
 
 
   if (!name) {
@@ -38267,6 +38836,39 @@ async function saveTeacherProfilePage() {
   }
 
 
+  if (
+    ![2, 6, 24].includes(
+      makeupNoticeHours
+    )
+    ||
+    ![2, 4, 6, 8].includes(
+      monthlyMakeupLimit
+    )
+    ||
+    ![1, 2, 3].includes(
+      makeupMaxCount
+    )
+    ||
+    ![2, 6, 24].includes(
+      lessonNoticeHours
+    )
+  ) {
+
+    if (message) {
+
+      message.textContent =
+        "Selecione valores validos para todas as regras de remarcacao.";
+
+      message.style.color =
+        "red";
+
+    }
+
+
+    return;
+  }
+
+
   if (button) {
 
     button.disabled =
@@ -38282,7 +38884,7 @@ async function saveTeacherProfilePage() {
     error
   } =
     await supabaseClient.rpc(
-      "save_my_teacher_profile",
+      "save_my_teacher_profile_with_rules",
       {
 
         p_name:
@@ -38302,7 +38904,19 @@ async function saveTeacherProfilePage() {
           startTime,
 
         p_work_end_time:
-          endTime
+          endTime,
+
+        p_makeup_reschedule_notice_hours:
+          makeupNoticeHours,
+
+        p_monthly_makeup_limit:
+          monthlyMakeupLimit,
+
+        p_makeup_reschedule_max_count:
+          makeupMaxCount,
+
+        p_lesson_reschedule_notice_hours:
+          lessonNoticeHours
 
       }
     );
@@ -38363,7 +38977,7 @@ async function saveTeacherProfilePage() {
   if (message) {
 
     message.textContent =
-      "Perfil atualizado. A agenda passa a usar este horario.";
+      "Perfil e regras atualizados com sucesso.";
 
     message.style.color =
       "green";
