@@ -15112,6 +15112,50 @@ function closeMakeupSelection() {
 }
 
 
+function renderStudentProgressReportV5() {
+  const options = (currentTeacherStudents || []).map(student => {
+    const id = student.student_id || student.id;
+    const name = student.student_name || student.name || "Aluno";
+    return `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`;
+  }).join("");
+
+  return `
+    <div class="v3-tools-grid student-progress-report-v5">
+      <section class="card v3-tool-card v3-wide">
+        <h3>Relatorio de evolucao do aluno</h3>
+        <p>Registre o desenvolvimento e prepare um resumo para compartilhar com o aluno.</p>
+        <div class="v3-form-grid">
+          <label>Aluno<select id="progressStudentV3"><option value="">Selecione</option>${options}</select></label>
+          <label>Inicio<input type="date" id="progressStartV3"></label>
+          <label>Fim<input type="date" id="progressEndV3"></label>
+          <label>Modelo<select id="progressTemplateV3"><option value="complete">Completo</option><option value="concise">Resumo curto</option><option value="goals">Foco em metas</option></select></label>
+          <label>Participacao (1-5)<input type="number" min="1" max="5" value="3" id="progressParticipationV3"></label>
+          <label>Evolucao (1-5)<input type="number" min="1" max="5" value="3" id="progressEvolutionV3"></label>
+        </div>
+        <label>Pontos fortes<textarea id="progressStrengthsV3" maxlength="3000"></textarea></label>
+        <label>Pontos a desenvolver<textarea id="progressImprovementsV3" maxlength="3000"></textarea></label>
+        <label>Metas para o proximo periodo<textarea id="progressGoalsV3" maxlength="3000"></textarea></label>
+        <label>Observacoes adicionais<textarea id="progressNotesV3" maxlength="3000"></textarea></label>
+        <div class="v3-actions">
+          <button type="button" class="action-button" id="saveProgressReportV3">Salvar relatorio</button>
+          <button type="button" class="secondary-button" id="copyProgressReportV3">Copiar texto</button>
+          <button type="button" class="secondary-button" id="printProgressReportV3">Imprimir</button>
+        </div>
+        <div id="progressReportResultV3" class="v3-result"></div>
+      </section>
+    </div>
+  `;
+}
+
+
+function bindStudentProgressReportV5() {
+  document.getElementById("saveProgressReportV3")?.addEventListener("click", saveProgressReportV3);
+  document.getElementById("copyProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(false));
+  document.getElementById("printProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(true));
+  populateProgressStudentsV3();
+}
+
+
 // =====================================================
 // NAVEGA\xc7\xc3O DO PROFESSOR
 // =====================================================
@@ -15206,6 +15250,8 @@ function setTeacherPage(page) {
     renderTeacherToolsPageV3(
       document.getElementById("teacherProfileToolsV5")
     );
+
+    document.getElementById("teacherProfileProgressReportV3")?.remove();
 
     return;
   }
@@ -16352,6 +16398,8 @@ function setTeacherPage(page) {
 
       </div>
 
+      ${renderStudentProgressReportV5()}
+
     `;
 
 
@@ -16483,6 +16531,8 @@ function setTeacherPage(page) {
 
 
     loadTeacherStudentOverview();
+
+    bindStudentProgressReportV5();
 
     return;
   }
@@ -45329,7 +45379,7 @@ function renderTeacherToolsPageV3(content) {
         </div>
       </section>
 
-      <section class="card v3-tool-card v3-wide">
+      <section class="card v3-tool-card v3-wide" id="teacherProfileProgressReportV3">
         <h3>Relatorio de evolucao do aluno</h3>
         <div class="v3-form-grid">
           <label>Aluno<select id="progressStudentV3"><option value="">Selecione</option>${options}</select></label>
