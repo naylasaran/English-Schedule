@@ -1664,6 +1664,8 @@ async function showTeacherArea() {
 
   ensureTeacherSupportNavButton();
 
+  ensureTeacherToolsNavButtonV3();
+
 
   await loadCurrentTeacherProfileSettings();
 
@@ -1685,6 +1687,8 @@ async function showTeacherArea() {
 
 
   setTeacherPage("agenda");
+
+  await maybeStartOnboardingV3();
 }
 
 
@@ -2923,6 +2927,18 @@ function renderAdminTeacherManagement() {
         <div id="adminSupportArea">Carregando chamados...</div>
       </div>
 
+      <div
+        style="
+          margin-top:22px;
+          padding-top:18px;
+          border-top:1px solid #ddd;
+        "
+      >
+        <h4 style="margin-top:0;">Privacidade e dados pessoais</h4>
+        <p>Pedidos de exportacao, correcao e exclusao enviados pelos usuarios.</p>
+        <div id="adminPrivacyRequestsV3">Carregando solicitacoes...</div>
+      </div>
+
     </div>
 
   `;
@@ -3050,6 +3066,7 @@ function renderAdminTeacherManagement() {
     });
 
   loadAdminSupportArea();
+  loadAdminPrivacyRequestsV3();
 
 }
 
@@ -8138,7 +8155,7 @@ async function loadStudentClassLink() {
 
 
       <a
-        href="${escapeHtml(
+        href="${safeHrefV3(
           item.class_link
         )}"
         target="_blank"
@@ -14965,6 +14982,11 @@ function setTeacherPage(page) {
       );
 
     });
+
+  if (page === "tools") {
+    renderTeacherToolsPageV3(content);
+    return;
+  }
 
 
   if (page === "support") {
@@ -22273,7 +22295,7 @@ async function openTeacherStudentDetail(
               ? `
 
                 <a
-                  href="${escapeHtml(
+                  href="${safeHrefV3(
                     classLink.class_link
                   )}"
                   target="_blank"
@@ -40614,7 +40636,7 @@ async function loadTeacherClassLinksForAgenda() {
             item => `
 
               <a
-                href="${escapeHtml(
+                href="${safeHrefV3(
                   item.class_link
                 )}"
                 target="_blank"
@@ -41256,9 +41278,7 @@ function renderTeacherMaterialsList() {
 
 
               <a
-                href="${escapeHtml(
-                  item.url
-                )}"
+                href="${safeHrefV3(item.url)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 style="
@@ -41721,9 +41741,7 @@ async function loadStudentMaterials() {
 
 
               <a
-                href="${escapeHtml(
-                  item.url
-                )}"
+                href="${safeHrefV3(item.url)}"
                 target="_blank"
                 rel="noopener noreferrer"
                 style="
@@ -44097,10 +44115,10 @@ function openPublicSupportV2() {
   card.innerHTML = `
     <h2>Falar com o suporte</h2>
     <form id="publicSupportForm" class="support-form">
-      <label>Nome</label><input id="publicSupportName" type="text" required>
-      <label>E-mail para contato</label><input id="publicSupportEmail" type="email" required>
-      <label>Assunto</label><input id="publicSupportSubject" type="text" required>
-      <label>Mensagem</label><textarea id="publicSupportMessageText" rows="5" required></textarea>
+      <label>Nome</label><input id="publicSupportName" type="text" minlength="2" maxlength="120" required>
+      <label>E-mail para contato</label><input id="publicSupportEmail" type="email" maxlength="254" required>
+      <label>Assunto</label><input id="publicSupportSubject" type="text" minlength="3" maxlength="160" required>
+      <label>Mensagem</label><textarea id="publicSupportMessageText" rows="5" minlength="2" maxlength="4000" required></textarea>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
         <button type="submit" class="primary-button">Enviar mensagem</button>
         <button type="button" class="secondary-button" id="closePublicSupportButton">Cancelar</button>
@@ -44122,18 +44140,18 @@ async function savePublicSupportV2(event) {
   const get = id => document.getElementById(id)?.value.trim() || "";
   const messageArea = document.getElementById("publicSupportMessage");
 
-  const { error } = await supabaseClient.rpc(
-    "create_public_support_ticket_v2",
-    {
-      p_name: get("publicSupportName"),
-      p_email: get("publicSupportEmail").toLowerCase(),
-      p_subject: get("publicSupportSubject"),
-      p_message: get("publicSupportMessageText")
-    }
+  const { data, error } = await supabaseClient.functions.invoke(
+    "public-support",
+    { body: {
+      name: get("publicSupportName"),
+      email: get("publicSupportEmail").toLowerCase(),
+      subject: get("publicSupportSubject"),
+      message: get("publicSupportMessageText")
+    } }
   );
 
   if (error) {
-    messageArea.textContent = error.message || "Nao foi possivel enviar a mensagem.";
+    messageArea.textContent = data?.error || error.message || "Nao foi possivel enviar a mensagem.";
     messageArea.style.color = "red";
     return;
   }
@@ -44264,12 +44282,16 @@ async function replyTeacherSupportTicketV2(ticketId) {
 }
 
 
-async function loadAdminSupportArea() {
+let adminSupportTicketsV3 = [];
+let adminSupportBeforeV3 = null;
+
+async function loadAdminSupportArea(append = false) {
   const area = document.getElementById("adminSupportArea");
   if (!area) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "get_admin_support_tickets_v2"
+    "get_admin_support_tickets_page_v3",
+    { p_limit: 50, p_before: append ? adminSupportBeforeV3 : null }
   );
 
   if (error) {
@@ -44277,9 +44299,16 @@ async function loadAdminSupportArea() {
     return;
   }
 
+  adminSupportTicketsV3 = append
+    ? [...adminSupportTicketsV3, ...(data || [])]
+    : (data || []);
+  adminSupportBeforeV3 = adminSupportTicketsV3.length
+    ? adminSupportTicketsV3[adminSupportTicketsV3.length - 1].updated_at
+    : null;
+
   area.innerHTML = `
     <div style="display:grid;gap:14px;">
-      ${(data || []).map(ticket => `
+      ${adminSupportTicketsV3.map(ticket => `
         <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
           <strong>${escapeHtml(ticket.subject)}</strong>
           <div>${escapeHtml(ticket.contact_name)} - ${escapeHtml(ticket.contact_email)}</div>
@@ -44292,6 +44321,7 @@ async function loadAdminSupportArea() {
           </div>
         </div>
       `).join("") || "<p>Nenhum chamado recebido.</p>"}
+      ${(data || []).length === 50 ? '<button type="button" class="secondary-button" id="loadOlderAdminSupportV3">Carregar chamados anteriores</button>' : ''}
     </div>
   `;
 
@@ -44306,6 +44336,9 @@ async function loadAdminSupportArea() {
       "click",
       () => closeAdminSupportTicketV2(button.dataset.ticketId)
     ));
+
+  document.getElementById("loadOlderAdminSupportV3")
+    ?.addEventListener("click", () => loadAdminSupportArea(true));
 }
 
 
@@ -44339,6 +44372,72 @@ async function closeAdminSupportTicketV2(ticketId) {
   }
 
   await loadAdminSupportArea();
+}
+
+
+async function loadAdminPrivacyRequestsV3() {
+  const area = document.getElementById("adminPrivacyRequestsV3");
+  if (!area) return;
+
+  const { data, error } = await supabaseClient.rpc(
+    "get_admin_privacy_requests_v3"
+  );
+
+  if (error) {
+    area.innerHTML = `<p>${escapeHtml(error.message || "Nao foi possivel carregar as solicitacoes.")}</p>`;
+    return;
+  }
+
+  const requestLabels = {
+    export: "Exportacao",
+    correction: "Correcao",
+    deletion: "Exclusao"
+  };
+
+  area.innerHTML = `
+    <div style="display:grid;gap:14px;">
+      ${(data || []).map(request => `
+        <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
+          <strong>${escapeHtml(requestLabels[request.request_type] || request.request_type)}</strong>
+          <div>${escapeHtml(request.profile_name)} - ${escapeHtml(request.profile_email)}</div>
+          <small>${escapeHtml(request.profile_role)} | ${new Date(request.created_at).toLocaleString("pt-BR")}</small>
+          <textarea id="adminPrivacyNotes-${request.request_id}" rows="2" maxlength="2000" placeholder="Notas internas" style="margin-top:10px;">${escapeHtml(request.notes || "")}</textarea>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+            <select id="adminPrivacyStatus-${request.request_id}">
+              <option value="open" ${request.status === "open" ? "selected" : ""}>Aberta</option>
+              <option value="processing" ${request.status === "processing" ? "selected" : ""}>Em andamento</option>
+              <option value="completed" ${request.status === "completed" ? "selected" : ""}>Concluida</option>
+              <option value="rejected" ${request.status === "rejected" ? "selected" : ""}>Recusada</option>
+            </select>
+            <button type="button" class="secondary-button admin-privacy-save-v3" data-request-id="${request.request_id}">Salvar andamento</button>
+          </div>
+        </div>
+      `).join("") || "<p>Nenhuma solicitacao recebida.</p>"}
+    </div>
+  `;
+
+  document.querySelectorAll(".admin-privacy-save-v3")
+    .forEach(button => button.addEventListener(
+      "click",
+      () => saveAdminPrivacyRequestV3(button.dataset.requestId)
+    ));
+}
+
+
+async function saveAdminPrivacyRequestV3(requestId) {
+  const status = document.getElementById(`adminPrivacyStatus-${requestId}`)?.value || "open";
+  const notes = document.getElementById(`adminPrivacyNotes-${requestId}`)?.value.trim() || null;
+  const { error } = await supabaseClient.rpc(
+    "admin_update_privacy_request_v3",
+    { p_request_id: requestId, p_status: status, p_notes: notes }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel atualizar a solicitacao.");
+    return;
+  }
+
+  await loadAdminPrivacyRequestsV3();
 }
 
 
@@ -44419,49 +44518,38 @@ async function saveNewStudentWithAccessV2() {
   button.disabled = true;
   button.textContent = "Criando acesso...";
 
-  const authClient = createStudentAccessAuthClient();
-  const { data: authData, error: authError } = await authClient.auth.signUp({
-    email,
-    password,
-    options: { data: { name, role: "student" } }
-  });
-
   const params = {
-    p_name: name,
-    p_email: email,
-    p_phone: phone,
-    p_cpf: cpf,
-    p_class_duration_minutes: duration,
-    p_schedule: scheduleResult.schedule,
-    p_billing_type: billingType,
-    p_monthly_fee: monthlyFee,
-    p_lesson_fee: lessonFee,
-    p_payment_due_day: dueDay,
-    p_invoice_required_default: invoiceRequired,
-    p_birth_date: birthDate,
-    p_contract_start_date: contractStartDate,
-    p_contract_end_date: contractEndDate,
-    p_contract_notes: contractNotes,
-    p_class_link: classLink
+    name,
+    email,
+    phone,
+    cpf,
+    password,
+    class_duration_minutes: duration,
+    schedule: scheduleResult.schedule,
+    billing_type: billingType,
+    monthly_fee: monthlyFee,
+    lesson_fee: lessonFee,
+    payment_due_day: dueDay,
+    invoice_required_default: invoiceRequired,
+    birth_date: birthDate,
+    contract_start_date: contractStartDate,
+    contract_end_date: contractEndDate,
+    contract_notes: contractNotes,
+    class_link: classLink
   };
 
-  let result;
-  const authUser = authData?.user;
-  const existingAccess = authError || (Array.isArray(authUser?.identities) && authUser.identities.length === 0);
-
-  if (existingAccess) {
-    result = await supabaseClient.rpc(
-      "recover_student_from_auth_email_v2",
-      params
-    );
-  } else if (authUser?.id) {
-    result = await supabaseClient.rpc(
-      "register_student_from_auth_v2",
-      { p_auth_user_id: authUser.id, ...params }
-    );
-  } else {
-    result = { error: authError || { message: "O Supabase nao retornou o usuario criado." } };
-  }
+  const provision = await supabaseClient.functions.invoke(
+    "provision-users",
+    { body: { kind: "student", student: params } }
+  );
+  const provisionItem = provision.data?.results?.[0];
+  const result = {
+    error:
+      provision.error ||
+      (!provisionItem?.ok
+        ? { message: provisionItem?.error || provision.data?.error || "Nao foi possivel concluir o cadastro." }
+        : null)
+  };
 
   if (result.error) {
     fail(result.error.message || "Nao foi possivel concluir o cadastro.");
@@ -44470,7 +44558,6 @@ async function saveNewStudentWithAccessV2() {
     return;
   }
 
-  await authClient.auth.signOut();
   closeRegisterStudentForm();
   currentTeacherStudents = [];
   await loadTeacherStudents();
@@ -44822,4 +44909,350 @@ if (openPublicSupportButtonV2) {
     "click",
     openPublicSupportV2
   );
+}
+
+
+// =====================================================
+// EXPANSAO V3: FERRAMENTAS, IMPORTACAO, RELATORIOS E LGPD
+// =====================================================
+
+const LEGAL_VERSION_V3 = "2026-08-26";
+
+function safeHrefV3(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "#";
+    return escapeHtml(url.href);
+  } catch {
+    return "#";
+  }
+}
+
+function ensureTeacherToolsNavButtonV3() {
+  if (document.querySelector('[data-teacher-page="tools"]')) return;
+  const navigation = document.getElementById("teacherNavigation");
+  const firstButton = document.querySelector("[data-teacher-page]");
+  if (!navigation || !firstButton) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = firstButton.className;
+  button.dataset.teacherPage = "tools";
+  button.textContent = "Ferramentas";
+  button.addEventListener("click", () => setTeacherPage("tools"));
+  navigation.appendChild(button);
+}
+
+function renderTeacherToolsPageV3(content) {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const options = (currentTeacherStudents || []).map(student => {
+    const id = student.student_id || student.id;
+    const name = student.student_name || student.name || "Aluno";
+    return `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`;
+  }).join("");
+
+  content.innerHTML = `
+    <div class="v3-tools-grid">
+      <section class="card v3-tool-card">
+        <h3>Configuracao inicial</h3>
+        <p>Conclua os passos essenciais para deixar o ERP pronto.</p>
+        <div id="onboardingStepsV3" class="v3-check-list">Carregando...</div>
+      </section>
+
+      <section class="card v3-tool-card">
+        <h3>Importar alunos por CSV</h3>
+        <p>Importe ate 200 alunos por lote. Contas existentes nunca sao vinculadas automaticamente.</p>
+        <div class="v3-actions">
+          <button type="button" class="secondary-button" id="downloadStudentCsvTemplateV3">Baixar modelo</button>
+          <label class="secondary-button v3-file-label">Escolher CSV<input type="file" id="studentCsvFileV3" accept=".csv,text/csv" hidden></label>
+          <button type="button" class="action-button" id="importStudentsCsvV3" disabled>Importar alunos</button>
+        </div>
+        <div id="studentCsvPreviewV3" class="v3-result"></div>
+      </section>
+
+      <section class="card v3-tool-card">
+        <h3>Relatorio mensal operacional</h3>
+        <p>Aulas, presencas, faltas, cancelamentos, reposicoes e resumo dos seus registros financeiros.</p>
+        <div class="v3-actions">
+          <input type="month" id="monthlyOperationsMonthV3" value="${month}">
+          <button type="button" class="action-button" id="loadMonthlyOperationsV3">Gerar resumo</button>
+        </div>
+        <div id="monthlyOperationsResultV3" class="v3-result"></div>
+      </section>
+
+      <section class="card v3-tool-card">
+        <h3>Exportacao para contador</h3>
+        <p>Baixa em CSV os lancamentos que o professor registrou no ERP. Nao cria cobrancas.</p>
+        <div class="v3-actions">
+          <input type="month" id="accountantExportMonthV3" value="${month}">
+          <button type="button" class="action-button" id="exportAccountantCsvV3">Baixar CSV</button>
+        </div>
+      </section>
+
+      <section class="card v3-tool-card v3-wide">
+        <h3>Relatorio de evolucao do aluno</h3>
+        <div class="v3-form-grid">
+          <label>Aluno<select id="progressStudentV3"><option value="">Selecione</option>${options}</select></label>
+          <label>Inicio<input type="date" id="progressStartV3"></label>
+          <label>Fim<input type="date" id="progressEndV3"></label>
+          <label>Modelo<select id="progressTemplateV3"><option value="complete">Completo</option><option value="concise">Resumo curto</option><option value="goals">Foco em metas</option></select></label>
+          <label>Participacao (1-5)<input type="number" min="1" max="5" value="3" id="progressParticipationV3"></label>
+          <label>Evolucao (1-5)<input type="number" min="1" max="5" value="3" id="progressEvolutionV3"></label>
+        </div>
+        <label>Pontos fortes<textarea id="progressStrengthsV3" maxlength="3000"></textarea></label>
+        <label>Pontos a desenvolver<textarea id="progressImprovementsV3" maxlength="3000"></textarea></label>
+        <label>Metas para o proximo periodo<textarea id="progressGoalsV3" maxlength="3000"></textarea></label>
+        <label>Observacoes adicionais<textarea id="progressNotesV3" maxlength="3000"></textarea></label>
+        <div class="v3-actions">
+          <button type="button" class="action-button" id="saveProgressReportV3">Salvar relatorio</button>
+          <button type="button" class="secondary-button" id="copyProgressReportV3">Copiar texto</button>
+          <button type="button" class="secondary-button" id="printProgressReportV3">Imprimir</button>
+        </div>
+        <div id="progressReportResultV3" class="v3-result"></div>
+      </section>
+
+      <section class="card v3-tool-card v3-wide">
+        <h3>Privacidade e seus dados</h3>
+        <p>Consulte os <a href="terms.html" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="privacy.html" target="_blank" rel="noopener">Politica de Privacidade</a>.</p>
+        <div class="v3-actions">
+          <button type="button" class="secondary-button" id="acceptLegalV3">Registrar aceite</button>
+          <button type="button" class="secondary-button" id="exportMyDataV3">Exportar meus dados</button>
+          <button type="button" class="secondary-button" id="requestCorrectionV3">Solicitar correcao</button>
+          <button type="button" class="danger-button" id="requestDeletionV3">Solicitar exclusao</button>
+        </div>
+        <div id="privacyResultV3" class="v3-result"></div>
+      </section>
+    </div>
+  `;
+
+  document.getElementById("downloadStudentCsvTemplateV3")?.addEventListener("click", downloadStudentCsvTemplateV3);
+  document.getElementById("studentCsvFileV3")?.addEventListener("change", previewStudentCsvV3);
+  document.getElementById("importStudentsCsvV3")?.addEventListener("click", importStudentsCsvV3);
+  document.getElementById("loadMonthlyOperationsV3")?.addEventListener("click", loadMonthlyOperationsV3);
+  document.getElementById("exportAccountantCsvV3")?.addEventListener("click", exportAccountantCsvV3);
+  document.getElementById("saveProgressReportV3")?.addEventListener("click", saveProgressReportV3);
+  document.getElementById("copyProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(false));
+  document.getElementById("printProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(true));
+  document.getElementById("acceptLegalV3")?.addEventListener("click", acceptLegalV3);
+  document.getElementById("exportMyDataV3")?.addEventListener("click", exportMyDataV3);
+  document.getElementById("requestCorrectionV3")?.addEventListener("click", () => requestPrivacyV3("correction"));
+  document.getElementById("requestDeletionV3")?.addEventListener("click", () => requestPrivacyV3("deletion"));
+  loadOnboardingV3();
+  populateProgressStudentsV3();
+}
+
+async function populateProgressStudentsV3() {
+  const select = document.getElementById("progressStudentV3");
+  if (!select || select.options.length > 1) return;
+  const { data, error } = await supabaseClient.rpc("get_teacher_students");
+  if (error) return;
+  select.innerHTML = `<option value="">Selecione</option>${(data || []).map(student => `<option value="${escapeHtml(student.student_id || student.id)}">${escapeHtml(student.student_name || student.name || "Aluno")}</option>`).join("")}`;
+}
+
+let parsedStudentCsvV3 = [];
+
+function parseCsvV3(text) {
+  const firstLine = String(text).split(/\r?\n/, 1)[0] || "";
+  const delimiter = (firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ";" : ",";
+  const rows = [];
+  let row = [], field = "", quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === '"' && quoted && text[i + 1] === '"') { field += '"'; i += 1; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === delimiter && !quoted) { row.push(field); field = ""; }
+    else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && text[i + 1] === "\n") i += 1;
+      row.push(field); if (row.some(value => String(value).trim())) rows.push(row); row = []; field = "";
+    } else field += char;
+  }
+  row.push(field); if (row.some(value => String(value).trim())) rows.push(row);
+  if (rows.length < 2) return [];
+  const headers = rows.shift().map(value => String(value).trim().toLowerCase());
+  return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, String(values[index] || "").trim()])));
+}
+
+function csvStudentToPayloadV3(row) {
+  const billing = (row.tipo_cobranca || "monthly").toLowerCase();
+  const amount = Number(String(row.valor || "0").replace(",", "."));
+  const schedule = String(row.dias_horarios || "").split("|").filter(Boolean).map(value => {
+    const [day, time] = value.split("@");
+    return { day_of_week: Number(day), start_time: time };
+  });
+  return {
+    name: row.nome, email: String(row.email || "").toLowerCase(), phone: row.telefone,
+    cpf: normalizeDigitsV2(row.cpf), password: row.senha,
+    class_duration_minutes: Number(row.duracao), schedule,
+    billing_type: billing, monthly_fee: billing === "monthly" ? amount : null,
+    lesson_fee: billing === "per_lesson" ? amount : null,
+    payment_due_day: Number(row.vencimento), invoice_required_default: /^(sim|true|1)$/i.test(row.nota_fiscal || ""),
+    birth_date: row.nascimento, contract_start_date: row.inicio_contrato,
+    contract_end_date: row.fim_contrato, contract_notes: row.observacoes || null,
+    class_link: row.link_aula
+  };
+}
+
+function downloadBlobV3(name, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a"); link.href = url; link.download = name; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadStudentCsvTemplateV3() {
+  const csv = "nome;email;telefone;cpf;senha;duracao;nascimento;inicio_contrato;fim_contrato;link_aula;tipo_cobranca;valor;vencimento;dias_horarios;nota_fiscal;observacoes\nMaria Silva;maria@exemplo.com;(11) 99999-9999;12345678909;Senha123;60;2000-01-15;2026-01-01;2026-12-31;https://meet.google.com/sala;monthly;350,00;10;2@09:00|4@09:00;nao;Nivel inicial";
+  downloadBlobV3("modelo-importacao-alunos.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
+}
+
+async function previewStudentCsvV3(event) {
+  const area = document.getElementById("studentCsvPreviewV3");
+  const button = document.getElementById("importStudentsCsvV3");
+  try {
+    const file = event.target.files?.[0];
+    parsedStudentCsvV3 = file ? parseCsvV3(await file.text()).map(csvStudentToPayloadV3) : [];
+    if (!parsedStudentCsvV3.length || parsedStudentCsvV3.length > 200) throw new Error("O arquivo deve conter de 1 a 200 alunos.");
+    area.textContent = `${parsedStudentCsvV3.length} aluno(s) pronto(s) para validacao e importacao.`;
+    button.disabled = false;
+  } catch (error) {
+    parsedStudentCsvV3 = []; button.disabled = true; area.textContent = error.message || "CSV invalido.";
+  }
+}
+
+async function importStudentsCsvV3() {
+  const area = document.getElementById("studentCsvPreviewV3");
+  const button = document.getElementById("importStudentsCsvV3");
+  if (!parsedStudentCsvV3.length) return;
+  button.disabled = true; area.textContent = "Importando com seguranca...";
+  const { data, error } = await supabaseClient.functions.invoke("provision-users", { body: { kind: "student", students: parsedStudentCsvV3 } });
+  const results = data?.results || [];
+  const successes = results.filter(item => item.ok).length;
+  const failures = results.filter(item => !item.ok);
+  area.innerHTML = `<strong>${successes} importado(s); ${failures.length} nao importado(s).</strong>${failures.length ? `<ul>${failures.map(item => `<li>${escapeHtml(item.email || `linha ${item.index + 2}`)}: ${escapeHtml(item.error)}</li>`).join("")}</ul>` : ""}`;
+  if (error) area.textContent = data?.error || error.message || "Falha na importacao.";
+  button.disabled = false;
+  currentTeacherStudents = [];
+  await loadTeacherStudents();
+}
+
+async function loadOnboardingV3() {
+  const area = document.getElementById("onboardingStepsV3"); if (!area) return;
+  const { data, error } = await supabaseClient.rpc("get_my_onboarding_v3");
+  if (error) { area.textContent = "A configuracao guiada sera liberada apos a atualizacao do banco."; return; }
+  const state = data || {}; const steps = state.steps || {};
+  const items = [
+    ["profile", "Revisar perfil, dias e horarios"],
+    ["rules", "Cadastrar regras de remarcacao"],
+    ["students", "Cadastrar ou importar o primeiro aluno"],
+    ["materials", "Adicionar um material de exemplo"],
+    ["legal", "Ler e aceitar termos e privacidade"]
+  ];
+  area.innerHTML = items.map(([key,label]) => `<label><input type="checkbox" data-onboarding-v3="${key}" ${steps[key] ? "checked" : ""}> ${label}</label>`).join("") + `<button type="button" class="action-button" id="saveOnboardingV3">Salvar progresso</button>`;
+  document.getElementById("saveOnboardingV3")?.addEventListener("click", saveOnboardingV3);
+}
+
+async function maybeStartOnboardingV3() {
+  const { data, error } = await supabaseClient.rpc("get_my_onboarding_v3");
+  if (!error && !data?.completed_at) setTeacherPage("tools");
+}
+
+async function saveOnboardingV3() {
+  const checks = [...document.querySelectorAll("[data-onboarding-v3]")];
+  const steps = Object.fromEntries(checks.map(item => [item.dataset.onboardingV3, item.checked]));
+  const completed = checks.every(item => item.checked);
+  const { error } = await supabaseClient.rpc("save_my_onboarding_v3", { p_steps: steps, p_completed: completed });
+  alert(error ? (error.message || "Nao foi possivel salvar.") : (completed ? "Configuracao inicial concluida." : "Progresso salvo."));
+}
+
+async function loadMonthlyOperationsV3() {
+  const month = document.getElementById("monthlyOperationsMonthV3")?.value;
+  const area = document.getElementById("monthlyOperationsResultV3");
+  const { data, error } = await supabaseClient.rpc("get_my_monthly_operations_v3", { p_month: `${month}-01` });
+  if (error) { area.textContent = error.message || "Nao foi possivel gerar o resumo."; return; }
+  const a = data?.attendance || {};
+  area.innerHTML = `<div class="v3-stat-grid">
+    <span><strong>${data.registered_students || 0}</strong> cadastrados</span><span><strong>${data.active_students || 0}</strong> ativos</span><span><strong>${data.paused_students || 0}</strong> pausados</span>
+    <span><strong>${data.lessons_total || 0}</strong> aulas</span><span><strong>${data.lessons_cancelled || 0}</strong> canceladas</span><span><strong>${data.makeups_created || 0}</strong> reposicoes criadas</span>
+    <span><strong>${a.present || a.presente || 0}</strong> presencas</span><span><strong>${a.absent || a.falta || 0}</strong> faltas</span>
+    <span><strong>${formatCurrency(Number(data.financial_expected || 0))}</strong> registrado</span><span><strong>${formatCurrency(Number(data.financial_paid || 0))}</strong> pago</span><span><strong>${formatCurrency(Number(data.financial_pending || 0))}</strong> pendente</span>
+  </div>`;
+}
+
+function csvCellV3(value) { return `"${String(value ?? "").replace(/"/g, '""')}"`; }
+
+async function exportAccountantCsvV3() {
+  const value = document.getElementById("accountantExportMonthV3")?.value || "";
+  const [year, month] = value.split("-").map(Number);
+  const { data, error } = await supabaseClient.rpc("get_teacher_financial_records", { p_year: year, p_month: month, p_student_id: null });
+  if (error) { alert(error.message || "Nao foi possivel exportar."); return; }
+  const headers = ["aluno","competencia","vencimento","valor","desconto","status","pago_em","nota_fiscal","observacoes"];
+  const lines = (data || []).map(item => [item.student_name, `${year}-${String(month).padStart(2,"0")}`, item.due_date, item.amount, item.discount, item.payment_status, item.paid_at, item.invoice_issued ? "sim" : "nao", item.notes].map(csvCellV3).join(";"));
+  downloadBlobV3(`financeiro-contador-${value}.csv`, "\uFEFF" + [headers.join(";"), ...lines].join("\n"), "text/csv;charset=utf-8");
+}
+
+function progressReportTextV3() {
+  const select = document.getElementById("progressStudentV3");
+  const student = select?.options[select.selectedIndex]?.text || "Aluno";
+  return `RELATORIO DE EVOLUCAO\nAluno: ${student}\nPeriodo: ${document.getElementById("progressStartV3")?.value || ""} a ${document.getElementById("progressEndV3")?.value || ""}\n\nParticipacao: ${document.getElementById("progressParticipationV3")?.value || "-"}/5\nEvolucao: ${document.getElementById("progressEvolutionV3")?.value || "-"}/5\n\nPontos fortes\n${document.getElementById("progressStrengthsV3")?.value || ""}\n\nPontos a desenvolver\n${document.getElementById("progressImprovementsV3")?.value || ""}\n\nMetas\n${document.getElementById("progressGoalsV3")?.value || ""}\n\nObservacoes\n${document.getElementById("progressNotesV3")?.value || ""}`;
+}
+
+async function saveProgressReportV3() {
+  const params = {
+    p_id: null, p_student_id: document.getElementById("progressStudentV3")?.value || null,
+    p_period_start: document.getElementById("progressStartV3")?.value || null,
+    p_period_end: document.getElementById("progressEndV3")?.value || null,
+    p_template_type: document.getElementById("progressTemplateV3")?.value || "complete",
+    p_ratings: { participation: Number(document.getElementById("progressParticipationV3")?.value), evolution: Number(document.getElementById("progressEvolutionV3")?.value) },
+    p_strengths: document.getElementById("progressStrengthsV3")?.value || "",
+    p_improvements: document.getElementById("progressImprovementsV3")?.value || "",
+    p_goals: document.getElementById("progressGoalsV3")?.value || "",
+    p_notes: document.getElementById("progressNotesV3")?.value || null
+  };
+  const { error } = await supabaseClient.rpc("save_student_progress_report_v3", params);
+  const area = document.getElementById("progressReportResultV3"); area.textContent = error ? (error.message || "Nao foi possivel salvar.") : "Relatorio salvo.";
+}
+
+async function copyProgressReportV3(print) {
+  const text = progressReportTextV3();
+  if (!print) { await navigator.clipboard.writeText(text); alert("Relatorio copiado."); return; }
+  const popup = window.open("", "_blank");
+  popup.document.write(`<pre style="white-space:pre-wrap;font:16px Arial;padding:32px;">${escapeHtml(text)}</pre>`); popup.document.close(); popup.print();
+}
+
+async function acceptLegalV3() {
+  const results = await Promise.all([
+    supabaseClient.rpc("accept_legal_v3", { p_document_type: "terms", p_version: LEGAL_VERSION_V3 }),
+    supabaseClient.rpc("accept_legal_v3", { p_document_type: "privacy", p_version: LEGAL_VERSION_V3 })
+  ]);
+  const error = results.find(item => item.error)?.error;
+  document.getElementById("privacyResultV3").textContent = error ? error.message : "Aceite registrado.";
+}
+
+async function exportMyDataV3() {
+  const { data, error } = await supabaseClient.rpc("export_my_data_v3");
+  if (error) { document.getElementById("privacyResultV3").textContent = error.message; return; }
+  downloadBlobV3(`meus-dados-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
+}
+
+async function requestPrivacyV3(type) {
+  if (type === "deletion" && !window.confirm("Registrar solicitacao de exclusao? O pedido sera analisado antes de qualquer remocao.")) return;
+  const { error } = await supabaseClient.rpc("create_my_privacy_request_v3", { p_request_type: type, p_notes: null });
+  document.getElementById("privacyResultV3").textContent = error ? error.message : "Solicitacao registrada para analise.";
+}
+
+// Substitui o fluxo antigo de responsavel: uma conta existente so e vinculada
+// quando a senha correta comprova a posse do acesso.
+async function saveTeacherStudentGuardian(studentId) {
+  const name = document.getElementById("newGuardianName")?.value.trim() || "";
+  const email = document.getElementById("newGuardianEmail")?.value.trim().toLowerCase() || "";
+  const password = document.getElementById("newGuardianPassword")?.value || "";
+  const confirmPassword = document.getElementById("newGuardianPasswordConfirm")?.value || "";
+  const button = document.getElementById("saveTeacherStudentGuardianButton");
+  const message = document.getElementById("teacherStudentGuardianMessage");
+  if (name.length < 3 || !isValidEmailV2(email) || password.length < 6 || password !== confirmPassword) {
+    message.textContent = "Preencha nome, e-mail e senhas iguais com ao menos 6 caracteres."; message.style.color = "red"; return;
+  }
+  button.disabled = true; button.textContent = "Criando / vinculando...";
+  const { data, error } = await supabaseClient.functions.invoke("provision-users", { body: { kind: "guardian", student_id: studentId, name, email, password } });
+  button.disabled = false; button.textContent = "Criar / vincular acesso";
+  if (error || data?.error) { message.textContent = data?.error || error.message || "Nao foi possivel vincular."; message.style.color = "red"; return; }
+  await openTeacherStudentDetail(studentId); alert("Responsavel cadastrado ou vinculado com seguranca.");
 }

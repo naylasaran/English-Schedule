@@ -766,3 +766,83 @@ body {
   }
 
 }
+
+/* =====================================================
+   EXPANSAO V3
+   ===================================================== */
+
+.v3-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.v3-tool-card { margin: 0; }
+.v3-wide { grid-column: 1 / -1; }
+
+.v3-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.v3-actions input,
+.v3-form-grid input,
+.v3-form-grid select,
+.v3-tool-card textarea,
+.v3-tool-card > label select {
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #cfd5dc;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.v3-tool-card textarea {
+  display: block;
+  width: 100%;
+  min-height: 90px;
+  margin: 6px 0 12px;
+}
+
+.v3-file-label { cursor: pointer; }
+
+.v3-result {
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+}
+
+.v3-form-grid,
+.v3-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.v3-form-grid label { display: grid; gap: 6px; }
+
+.v3-stat-grid span {
+  padding: 12px;
+  border-radius: 9px;
+  background: #f5f7fa;
+}
+
+.v3-stat-grid strong {
+  display: block;
+  font-size: 18px;
+}
+
+.v3-check-list { display: grid; gap: 10px; margin-top: 14px; }
+.v3-check-list .action-button { margin-top: 8px; }
+
+.legal-page { max-width: 900px; margin: 0 auto; padding: 32px 18px 60px; }
+.legal-page article { line-height: 1.65; }
+.legal-page h1, .legal-page h2 { color: #24324a; }
+
+@media (max-width: 800px) {
+  .v3-tools-grid { grid-template-columns: 1fr; }
+  .v3-wide { grid-column: auto; }
+}
