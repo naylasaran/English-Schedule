@@ -122,6 +122,130 @@ body {
     0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+.public-entry-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.public-entry-actions .primary-button,
+.public-entry-actions .secondary-button {
+  width: 100%;
+}
+
+.public-entry-actions small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+#loginScreen {
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.public-form-card {
+  width: min(760px, calc(100vw - 32px));
+  max-width: 760px;
+}
+
+.erp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.erp-form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.erp-form-grid input,
+.erp-form-grid select,
+.erp-form-grid textarea,
+.support-form input,
+.support-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.weekday-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.weekday-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.weekday-options input {
+  width: auto;
+}
+
+.access-countdown {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #f0cf82;
+  border-radius: 10px;
+  background: #fff8df;
+}
+
+.access-countdown strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.admin-filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.admin-filter-tabs button.active {
+  color: #fff;
+  background: #245a9a;
+}
+
+.support-thread {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.support-message {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f4f5f7;
+  white-space: pre-wrap;
+}
+
+.support-message.admin {
+  background: #e7f1ff;
+  border-left: 4px solid #245a9a;
+}
+
+.restricted-access-note {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid #f0cf82;
+  border-radius: 10px;
+  background: #fff8df;
+}
+
 .primary-button {
   width: 100%;
 

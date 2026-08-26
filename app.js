@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: limite-alunos-adm-meia-noite-v2-20260825"
+  "ERP build: trial-suporte-cadastros-v1-20260826"
 );
 
 // =====================================================
@@ -22,6 +22,9 @@ let currentTeacherFinancialRecords = [];
 let currentTeacherFinancialStudents = [];
 let currentTeacherProfileSettings = null;
 let currentStudentTeacherSettings = null;
+let currentStudentAccessMode = "full";
+let currentTeacherAccess = null;
+let currentAdminTeacherFilter = "all";
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -90,7 +93,7 @@ async function loadProfile(userId) {
     error
   } =
     await supabaseClient.rpc(
-      "get_current_profile"
+      "get_current_profile_v2"
     );
 
 
@@ -143,10 +146,36 @@ async function showLoggedUser(user) {
     currentProfile.role === "student"
   ) {
 
-    await loadCurrentStudentId();
+    const {
+      data: studentAccessData,
+      error: studentAccessError
+    } = await supabaseClient.rpc(
+      "get_my_student_access_v2"
+    );
+
+    const studentAccess =
+      (
+        Array.isArray(studentAccessData)
+          ? studentAccessData[0]
+          : studentAccessData
+      ) || null;
+
+    currentStudentId =
+      studentAccess
+        ? studentAccess.student_id
+        : null;
+
+    currentStudentAccessMode =
+      studentAccess
+        ? String(studentAccess.access_mode || "blocked")
+        : "blocked";
 
 
-    if (!currentStudentId) {
+    if (
+      studentAccessError ||
+      !currentStudentId ||
+      currentStudentAccessMode === "blocked"
+    ) {
 
       await supabaseClient.auth.signOut();
 
@@ -163,7 +192,7 @@ async function showLoggedUser(user) {
       );
 
       loginMessage.textContent =
-        "Este acesso de aluno foi desativado.";
+        "Este acesso esta pausado ou desativado e nao possui reposicoes disponiveis.";
 
       return;
     }
@@ -183,7 +212,7 @@ async function showLoggedUser(user) {
       error: teacherAccountError
     } =
       await supabaseClient.rpc(
-        "get_my_teacher_account"
+        "get_my_teacher_access_v2"
       );
 
 
@@ -201,8 +230,8 @@ async function showLoggedUser(user) {
     if (
       teacherAccountError ||
       !teacherAccount ||
-      teacherAccount.account_status !==
-        "active"
+      teacherAccount.access_mode ===
+        "blocked"
     ) {
 
       await supabaseClient.auth.signOut();
@@ -224,18 +253,22 @@ async function showLoggedUser(user) {
 
 
       loginMessage.textContent =
-        teacherAccount &&
-        teacherAccount.account_status ===
-          "paused"
-
-          ? "Este acesso de professor esta pausado pelo administrador."
-
-          : "Este acesso de professor foi desativado.";
+        "Este acesso de professor foi pausado ou desativado pelo administrador.";
 
 
       return;
     }
 
+
+    currentTeacherAccess = teacherAccount;
+
+    if (
+      teacherAccount.access_mode ===
+        "support_only"
+    ) {
+      await showTeacherSupportOnlyArea();
+      return;
+    }
 
     await showTeacherArea();
 
@@ -380,13 +413,45 @@ async function showStudentArea() {
     )
     .forEach(button => {
 
+      const page =
+        button.dataset.studentPage;
+
+      const allowedInMakeupMode =
+        page === "agenda" ||
+        page === "makeups";
+
       button.style.display =
-        "";
+        currentStudentAccessMode === "makeups_only" &&
+        !allowedInMakeupMode
+          ? "none"
+          : "";
+
+      if (
+        currentStudentAccessMode === "makeups_only" &&
+        page === "agenda"
+      ) {
+        button.textContent =
+          "Marcar reposicao";
+      }
 
     });
 
 
   ensureStudentMaterialsNavButton();
+
+  if (
+    currentStudentAccessMode === "makeups_only"
+  ) {
+    const materialsButton =
+      document.querySelector(
+        '[data-student-page="materials"]'
+      );
+
+    if (materialsButton) {
+      materialsButton.style.display =
+        "none";
+    }
+  }
 
 
   studentScreen.classList.remove(
@@ -408,7 +473,11 @@ async function showStudentArea() {
 
     header.innerHTML = `
       <h2>Ol\xe1, ${escapeHtml(currentProfile.name)}</h2>
-      <p>\xc1rea do aluno.</p>
+      <p>${
+        currentStudentAccessMode === "makeups_only"
+          ? "Acesso temporario somente para reposicoes."
+          : "Area do aluno."
+      }</p>
     `;
 
   }
@@ -417,7 +486,11 @@ async function showStudentArea() {
   await loadStudentTeacherRescheduleRules();
 
 
-  setStudentPage("agenda");
+  setStudentPage(
+    currentStudentAccessMode === "makeups_only"
+      ? "makeups"
+      : "agenda"
+  );
 }
 
 
@@ -1589,6 +1662,8 @@ async function showTeacherArea() {
 
   ensureTeacherMaterialsNavButton();
 
+  ensureTeacherSupportNavButton();
+
 
   await loadCurrentTeacherProfileSettings();
 
@@ -1750,6 +1825,52 @@ function ensureTeacherMaterialsNavButton() {
     button
   );
 
+}
+
+
+// =====================================================
+// BOTAO SUPORTE DO PROFESSOR
+// =====================================================
+
+function ensureTeacherSupportNavButton() {
+
+  if (
+    document.querySelector(
+      '[data-teacher-page="support"]'
+    )
+  ) {
+    return;
+  }
+
+  const navigation =
+    document.getElementById(
+      "teacherNavigation"
+    );
+
+  const firstButton =
+    document.querySelector(
+      "[data-teacher-page]"
+    );
+
+  if (!navigation || !firstButton) {
+    return;
+  }
+
+  const button =
+    document.createElement(
+      "button"
+    );
+
+  button.type = "button";
+  button.className = firstButton.className;
+  button.dataset.teacherPage = "support";
+  button.textContent = "Suporte";
+  button.addEventListener(
+    "click",
+    () => setTeacherPage("support")
+  );
+
+  navigation.appendChild(button);
 }
 
 
@@ -2571,6 +2692,17 @@ function renderAdminTeacherManagement() {
 
 
       <div
+        id="adminTeacherFilterTabs"
+        class="admin-filter-tabs"
+      >
+        <button type="button" class="secondary-button active" data-admin-teacher-filter="all">Todos</button>
+        <button type="button" class="secondary-button" data-admin-teacher-filter="paid">Assinantes / pagos</button>
+        <button type="button" class="secondary-button" data-admin-teacher-filter="trial">Interessados / teste gratis</button>
+        <button type="button" class="secondary-button" data-admin-teacher-filter="free">Gratis ilimitado</button>
+      </div>
+
+
+      <div
         id="adminTeacherList"
         style="
           margin-top:20px;
@@ -2778,6 +2910,19 @@ function renderAdminTeacherManagement() {
 
       </div>
 
+
+      <div
+        style="
+          margin-top:22px;
+          padding-top:18px;
+          border-top:1px solid #ddd;
+        "
+      >
+        <h4 style="margin-top:0;">Suporte</h4>
+        <p>Mensagens enviadas por professores e interessados.</p>
+        <div id="adminSupportArea">Carregando chamados...</div>
+      </div>
+
     </div>
 
   `;
@@ -2880,6 +3025,31 @@ function renderAdminTeacherManagement() {
 
 
   loadAdminSystemPix();
+
+  document
+    .querySelectorAll(
+      "[data-admin-teacher-filter]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          currentAdminTeacherFilter =
+            button.dataset.adminTeacherFilter || "all";
+
+          document
+            .querySelectorAll("[data-admin-teacher-filter]")
+            .forEach(item => item.classList.toggle(
+              "active",
+              item === button
+            ));
+
+          renderAdminTeacherListV2();
+        }
+      );
+    });
+
+  loadAdminSupportArea();
 
 }
 
@@ -4832,6 +5002,22 @@ function openAdminTeacherRegistrationForm() {
 
 
       <div>
+        <label for="adminNewTeacherPhone" style="display:block;font-weight:bold;margin-bottom:7px;">
+          Telefone
+        </label>
+        <input type="tel" id="adminNewTeacherPhone" autocomplete="tel" placeholder="(11) 99999-9999" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+      </div>
+
+
+      <div>
+        <label for="adminNewTeacherCpf" style="display:block;font-weight:bold;margin-bottom:7px;">
+          CPF
+        </label>
+        <input type="text" id="adminNewTeacherCpf" inputmode="numeric" placeholder="000.000.000-00" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+      </div>
+
+
+      <div>
 
         <label
           for="adminNewTeacherPasswordConfirm"
@@ -4976,6 +5162,26 @@ function openAdminTeacherRegistrationForm() {
 
       </div>
 
+
+      <div class="full-width" style="grid-column:1 / -1;">
+        <label style="display:block;font-weight:bold;margin-bottom:7px;">
+          Dias em que da aula
+        </label>
+        ${renderWeekdayCheckboxesV2("adminNewTeacherWorkDay", [1,2,3,4,5])}
+      </div>
+
+
+      <div>
+        <label for="adminNewTeacherAccessType" style="display:block;font-weight:bold;margin-bottom:7px;">
+          Tipo de acesso
+        </label>
+        <select id="adminNewTeacherAccessType" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+          <option value="paid">Assinante / pago</option>
+          <option value="trial">Teste gratis por 15 dias</option>
+          <option value="free">Gratis por tempo ilimitado</option>
+        </select>
+      </div>
+
     </div>
 
 
@@ -5028,7 +5234,7 @@ function openAdminTeacherRegistrationForm() {
 
     saveButton.addEventListener(
       "click",
-      saveAdminTeacher
+      saveAdminTeacherV2
     );
 
   }
@@ -5784,7 +5990,8 @@ async function loadAdminTeachers() {
   const [
     teachersResult,
     systemFinancialResult,
-    capacityResult
+    capacityResult,
+    accessResult
   ] =
     await Promise.all([
 
@@ -5804,7 +6011,11 @@ async function loadAdminTeachers() {
       ),
 
       supabaseClient.rpc(
-        "get_admin_teacher_student_capacity"
+        "get_admin_teacher_student_capacity_v2"
+      ),
+
+      supabaseClient.rpc(
+        "get_admin_teacher_access_v2"
       )
 
     ]);
@@ -5813,14 +6024,16 @@ async function loadAdminTeachers() {
   if (
     teachersResult.error ||
     systemFinancialResult.error ||
-    capacityResult.error
+    capacityResult.error ||
+    accessResult.error
   ) {
 
     console.error(
       "Erro ao carregar professores:",
       teachersResult.error ||
       systemFinancialResult.error ||
-      capacityResult.error
+      capacityResult.error ||
+      accessResult.error
     );
 
 
@@ -5831,7 +6044,8 @@ async function loadAdminTeachers() {
           (
             teachersResult.error ||
             systemFinancialResult.error ||
-            capacityResult.error
+            capacityResult.error ||
+            accessResult.error
           ).message ||
           "Nao foi possivel carregar os professores."
         )}
@@ -5850,6 +6064,9 @@ async function loadAdminTeachers() {
 
   const teacherStudentCapacity =
     capacityResult.data || [];
+
+  const teacherAccessData =
+    accessResult.data || [];
 
 
   currentAdminTeachers =
@@ -5882,11 +6099,19 @@ async function loadAdminTeachers() {
             )
             || {};
 
+          const access =
+            teacherAccessData.find(
+              item =>
+                String(item.teacher_id) ===
+                String(teacher.teacher_id)
+            ) || {};
+
 
           return {
             ...teacher,
             ...billing,
             ...capacity,
+            ...access,
             system_billing_year:
               year,
             system_billing_month:
@@ -5927,87 +6152,131 @@ async function loadAdminTeachers() {
   }
 
 
-  container.innerHTML = `
+  renderAdminTeacherListV2();
 
-    <div
-      style="
-        display:grid;
-        gap:12px;
-      "
-    >
+}
 
-      ${currentAdminTeachers
-        .map(
-          renderAdminTeacherCard
-        )
-        .join("")}
 
-    </div>
+function renderAdminTeacherListV2() {
 
-  `;
+  const container =
+    document.getElementById(
+      "adminTeacherList"
+    );
 
+  if (!container) {
+    return;
+  }
+
+  const filtered =
+    currentAdminTeachers.filter(
+      teacher =>
+        currentAdminTeacherFilter === "all" ||
+        String(
+          teacher.access_category ||
+          teacher.access_type ||
+          "paid"
+        ) === currentAdminTeacherFilter
+    );
+
+  container.innerHTML =
+    filtered.length === 0
+      ? `
+        <div style="padding:15px;border-radius:9px;background:#f7faff;">
+          Nenhum professor nesta categoria.
+        </div>
+      `
+      : `
+        <div style="display:grid;gap:12px;">
+          ${filtered.map(renderAdminTeacherCard).join("")}
+        </div>
+      `;
+
+  bindAdminTeacherCardEventsV2();
+}
+
+
+function bindAdminTeacherCardEventsV2() {
 
   document
     .querySelectorAll(
       ".admin-teacher-status-button"
     )
     .forEach(button => {
-
       button.addEventListener(
         "click",
-        () => {
-
-          changeAdminTeacherStatus(
-            button.dataset.teacherId,
-            button.dataset.status,
-            button.dataset.teacherName
-          );
-
-        }
+        () => changeAdminTeacherStatus(
+          button.dataset.teacherId,
+          button.dataset.status,
+          button.dataset.teacherName
+        )
       );
-
     });
-
 
   document
     .querySelectorAll(
       ".save-admin-teacher-system-billing-button"
     )
     .forEach(button => {
-
       button.addEventListener(
         "click",
-        () => {
-
-          saveAdminTeacherSystemBilling(
-            button.dataset.teacherId
-          );
-
-        }
+        () => saveAdminTeacherSystemBilling(
+          button.dataset.teacherId
+        )
       );
-
     });
-
 
   document
     .querySelectorAll(
       ".save-admin-teacher-student-limit-button"
     )
     .forEach(button => {
-
       button.addEventListener(
         "click",
-        () => {
-
-          saveAdminTeacherStudentLimit(
-            button.dataset.teacherId
-          );
-
-        }
+        () => saveAdminTeacherStudentLimit(
+          button.dataset.teacherId
+        )
       );
-
     });
 
+  document
+    .querySelectorAll(
+      ".save-admin-teacher-access-button"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => saveAdminTeacherAccessV2(
+          button.dataset.teacherId
+        )
+      );
+    });
+
+  document
+    .querySelectorAll(
+      ".edit-admin-teacher-button"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => openAdminTeacherEditV2(
+          button.dataset.teacherId
+        )
+      );
+    });
+
+  document
+    .querySelectorAll(
+      ".reset-admin-teacher-password-button"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => sendAdminTeacherPasswordResetV2(
+          button.dataset.teacherEmail
+        )
+      );
+    });
 }
 
 
@@ -6090,12 +6359,12 @@ async function saveAdminTeacherStudentLimit(
     error
   } =
     await supabaseClient.rpc(
-      "save_admin_teacher_student_limit",
+      "save_admin_teacher_student_limit_v2",
       {
         p_teacher_id:
           teacherId,
 
-        p_max_active_students:
+        p_max_registered_students:
           limit
       }
     );
@@ -6324,10 +6593,11 @@ function renderAdminTeacherCard(
       >
 
         <div>
-          <strong>Alunos ativos:</strong>
+          <strong>Alunos cadastrados:</strong>
 
           ${Number(
-            teacher.active_student_count ??
+            teacher.registered_student_count ??
+            teacher.total_student_count ??
             teacher.student_count ??
             0
           )}
@@ -6335,12 +6605,12 @@ function renderAdminTeacherCard(
           /
 
           ${
-            teacher.max_active_students == null
+            teacher.max_registered_students == null
 
               ? "sem limite"
 
               : Number(
-                  teacher.max_active_students
+                  teacher.max_registered_students
                 )
           }
         </div>
@@ -6412,6 +6682,51 @@ function renderAdminTeacherCard(
           margin-top:16px;
           padding:14px;
           border-radius:9px;
+          background:#fff8df;
+          border:1px solid #f0cf82;
+        "
+      >
+        <strong>Tipo de acesso</strong>
+
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:10px;">
+          <select
+            class="admin-teacher-access-type"
+            data-teacher-id="${teacher.teacher_id}"
+            style="padding:9px;border:1px solid #ccc;border-radius:8px;"
+          >
+            <option value="paid" ${teacher.access_type === "paid" ? "selected" : ""}>Assinante / pago</option>
+            <option value="trial" ${teacher.access_type === "trial" ? "selected" : ""}>Teste gratis por 15 dias</option>
+            <option value="free" ${teacher.access_type === "free" ? "selected" : ""}>Gratis por tempo ilimitado</option>
+          </select>
+
+          <button type="button" class="secondary-button save-admin-teacher-access-button" data-teacher-id="${teacher.teacher_id}">
+            Salvar acesso
+          </button>
+
+          <button type="button" class="secondary-button edit-admin-teacher-button" data-teacher-id="${teacher.teacher_id}">
+            Editar cadastro
+          </button>
+
+          <button type="button" class="secondary-button reset-admin-teacher-password-button" data-teacher-email="${escapeHtml(teacher.teacher_email)}">
+            Enviar redefinicao de senha
+          </button>
+        </div>
+
+        ${
+          teacher.access_type === "trial"
+            ? `<div style="margin-top:8px;font-size:13px;">Tempo restante: ${formatRemainingTimeV2(teacher.remaining_seconds)}</div>`
+            : ""
+        }
+
+        <div id="adminTeacherEditArea-${teacher.teacher_id}" style="display:none;margin-top:14px;"></div>
+      </div>
+
+
+      <div
+        style="
+          margin-top:16px;
+          padding:14px;
+          border-radius:9px;
           background:#eef5ff;
           border:1px solid #d9e3f2;
         "
@@ -6441,8 +6756,8 @@ function renderAdminTeacherCard(
                 font-size:12px;
               "
             >
-              O limite considera alunos ativos.
-              Excluidos ficam apenas no total historico.
+              O limite considera todos os alunos cadastrados,
+              inclusive pausados, desativados e excluidos logicamente.
             </div>
 
           </div>
@@ -6450,11 +6765,12 @@ function renderAdminTeacherCard(
 
           <strong>
             ${Number(
-              teacher.active_student_count ??
+              teacher.registered_student_count ??
+              teacher.total_student_count ??
               teacher.student_count ??
               0
             )}
-            ativo(s)
+            cadastrado(s)
           </strong>
 
         </div>
@@ -6485,7 +6801,7 @@ function renderAdminTeacherCard(
                 margin-bottom:5px;
               "
             >
-              Maximo de alunos ativos
+              Maximo de alunos cadastrados
             </label>
 
 
@@ -6497,10 +6813,10 @@ function renderAdminTeacherCard(
               class="admin-teacher-student-limit"
               data-teacher-id="${teacher.teacher_id}"
               value="${
-                teacher.max_active_students == null
+                teacher.max_registered_students == null
                   ? ""
                   : Number(
-                      teacher.max_active_students
+                      teacher.max_registered_students
                     )
               }"
               placeholder="Sem limite"
@@ -6535,7 +6851,7 @@ function renderAdminTeacherCard(
           "
         >
           Deixe vazio para sem limite.
-          Nao pode ser menor que os alunos ativos atuais.
+          O total inclui cadastros pausados, desativados e excluidos logicamente.
         </div>
 
       </div>
@@ -7242,6 +7558,14 @@ async function changeAdminTeacherStatus(
 
 function setStudentPage(page) {
 
+  if (
+    currentStudentAccessMode === "makeups_only" &&
+    page !== "agenda" &&
+    page !== "makeups"
+  ) {
+    page = "makeups";
+  }
+
   const content =
     document.getElementById(
       "studentContent"
@@ -7272,6 +7596,17 @@ function setStudentPage(page) {
   if (page === "agenda") {
 
     content.innerHTML = `
+
+      ${
+        currentStudentAccessMode === "makeups_only"
+          ? `
+            <div class="restricted-access-note">
+              Seu cadastro esta pausado ou desativado. Esta tela serve
+              somente para escolher horarios de reposicao disponiveis.
+            </div>
+          `
+          : ""
+      }
 
       <div
         id="studentClassLinkArea"
@@ -7456,26 +7791,32 @@ function setStudentPage(page) {
     }
 
 
-    loadStudentClassLink()
-      .catch(error => {
+    if (
+      currentStudentAccessMode !== "makeups_only"
+    ) {
 
-        console.error(
-          "Erro ao carregar link da aula:",
-          error
-        );
+      loadStudentClassLink()
+        .catch(error => {
 
-      });
+          console.error(
+            "Erro ao carregar link da aula:",
+            error
+          );
+
+        });
 
 
-    loadStudentNotices()
-      .catch(error => {
+      loadStudentNotices()
+        .catch(error => {
 
-        console.error(
-          "Erro ao carregar avisos:",
-          error
-        );
+          console.error(
+            "Erro ao carregar avisos:",
+            error
+          );
 
-      });
+        });
+
+    }
 
 
     loadStudentWeeklySchedule()
@@ -14626,6 +14967,21 @@ function setTeacherPage(page) {
     });
 
 
+  if (page === "support") {
+
+    content.innerHTML = `
+      <div class="card">
+        <h3>Suporte</h3>
+        <p>Envie uma duvida aos administradores e acompanhe as respostas.</p>
+        <div id="teacherSupportArea">Carregando suporte...</div>
+      </div>
+    `;
+
+    loadTeacherSupportArea();
+    return;
+  }
+
+
   // ===================================================
   // PERFIL DO PROFESSOR
   // ===================================================
@@ -15156,6 +15512,22 @@ function setTeacherPage(page) {
                 "
               >
 
+            </div>
+
+
+            <div>
+              <label for="newStudentPhone" style="display:block;font-weight:bold;margin-bottom:8px;">
+                Telefone
+              </label>
+              <input id="newStudentPhone" type="tel" autocomplete="tel" placeholder="(11) 99999-9999" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+            </div>
+
+
+            <div>
+              <label for="newStudentCpf" style="display:block;font-weight:bold;margin-bottom:8px;">
+                CPF
+              </label>
+              <input id="newStudentCpf" type="text" inputmode="numeric" placeholder="000.000.000-00" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
             </div>
 
 
@@ -15838,7 +16210,7 @@ function setTeacherPage(page) {
 
       saveNewStudentButton.addEventListener(
         "click",
-        saveNewStudentWithAccess
+        saveNewStudentWithAccessV2
       );
 
     }
@@ -18693,7 +19065,7 @@ async function saveNewStudentWithAccess() {
     error: capacityError
   } =
     await supabaseClient.rpc(
-      "get_my_teacher_student_capacity"
+      "get_my_teacher_student_capacity_v2"
     );
 
 
@@ -18728,10 +19100,10 @@ async function saveNewStudentWithAccess() {
       "O limite de "
       +
       Number(
-        capacity.max_active_students || 0
+        capacity.max_registered_students || 0
       )
       +
-      " alunos ativos definido pelo ADM foi atingido."
+      " alunos cadastrados definido pelo ADM foi atingido."
     );
 
     return;
@@ -21260,7 +21632,8 @@ async function openTeacherStudentDetail(
     makeupResult,
     commentsResult,
     guardiansResult,
-    classLinkResult
+    classLinkResult,
+    personalResult
   ] =
     await Promise.all([
 
@@ -21334,6 +21707,14 @@ async function openTeacherStudentDetail(
           p_student_id:
             studentId
         }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_student_personal_data_v2",
+        {
+          p_student_id:
+            studentId
+        }
       )
 
     ]);
@@ -21348,7 +21729,8 @@ async function openTeacherStudentDetail(
     makeupResult.error ||
     commentsResult.error ||
     guardiansResult.error ||
-    classLinkResult.error
+    classLinkResult.error ||
+    personalResult.error
   ) {
 
     console.error(
@@ -21361,7 +21743,8 @@ async function openTeacherStudentDetail(
       makeupResult.error ||
       commentsResult.error ||
       guardiansResult.error ||
-      classLinkResult.error
+      classLinkResult.error ||
+      personalResult.error
     );
 
 
@@ -21438,6 +21821,13 @@ async function openTeacherStudentDetail(
     )
     || {};
 
+  const personalData =
+    (
+      Array.isArray(personalResult.data)
+        ? personalResult.data[0]
+        : personalResult.data
+    ) || {};
+
 
   area.innerHTML = `
 
@@ -21500,6 +21890,19 @@ async function openTeacherStudentDetail(
           Fechar
         </button>
 
+      </div>
+
+
+      <div style="margin-top:24px;padding:16px;border:1px solid #d9e3f2;border-radius:10px;background:#ffffff;">
+        <h4 style="margin-top:0;">Dados pessoais</h4>
+        <div class="erp-form-grid">
+          <div><label>Nome</label><input id="teacherStudentPersonalName" value="${escapeHtml(personalData.student_name || "")}"></div>
+          <div><label>E-mail</label><input id="teacherStudentPersonalEmail" type="email" value="${escapeHtml(personalData.student_email || "")}" data-original-email="${escapeHtml(personalData.student_email || "")}" data-profile-id="${personalData.profile_id || ""}"></div>
+          <div><label>Telefone</label><input id="teacherStudentPersonalPhone" value="${escapeHtml(personalData.phone || "")}"></div>
+          <div><label>CPF</label><input id="teacherStudentPersonalCpf" value="${escapeHtml(personalData.cpf || "")}"></div>
+        </div>
+        <button type="button" class="secondary-button" id="saveTeacherStudentPersonalButton" style="margin-top:12px;">Salvar dados pessoais</button>
+        <p id="teacherStudentPersonalMessage"></p>
       </div>
 
 
@@ -22868,6 +23271,21 @@ async function openTeacherStudentDetail(
       }
     );
 
+  }
+
+
+  const savePersonalButton =
+    document.getElementById(
+      "saveTeacherStudentPersonalButton"
+    );
+
+  if (savePersonalButton) {
+    savePersonalButton.addEventListener(
+      "click",
+      () => saveTeacherStudentPersonalDataV2(
+        studentId
+      )
+    );
   }
 
 
@@ -38767,6 +39185,22 @@ async function loadTeacherProfilePage() {
 
 
       <div>
+        <label for="teacherProfilePhone" style="display:block;font-weight:bold;margin-bottom:7px;">
+          Telefone
+        </label>
+        <input type="tel" id="teacherProfilePhone" value="${escapeHtml(currentProfile.phone || "")}" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+      </div>
+
+
+      <div>
+        <label for="teacherProfileCpf" style="display:block;font-weight:bold;margin-bottom:7px;">
+          CPF
+        </label>
+        <input type="text" id="teacherProfileCpf" value="${escapeHtml(currentProfile.cpf || "")}" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+      </div>
+
+
+      <div>
 
         <label
           for="teacherProfileCnpj"
@@ -39672,6 +40106,16 @@ async function saveTeacherProfilePage() {
       "teacherProfilePix"
     );
 
+  const phoneInput =
+    document.getElementById(
+      "teacherProfilePhone"
+    );
+
+  const cpfInput =
+    document.getElementById(
+      "teacherProfileCpf"
+    );
+
 
   const cnpjInput =
     document.getElementById(
@@ -39737,6 +40181,8 @@ async function saveTeacherProfilePage() {
 
   if (
     !nameInput ||
+    !phoneInput ||
+    !cpfInput ||
     !startInput ||
     !endInput ||
     !makeupNoticeInput ||
@@ -39750,6 +40196,14 @@ async function saveTeacherProfilePage() {
 
   const name =
     nameInput.value.trim();
+
+  const phone =
+    phoneInput.value.trim();
+
+  const cpf =
+    normalizeDigitsV2(
+      cpfInput.value
+    );
 
 
   const startTime =
@@ -39827,6 +40281,22 @@ async function saveTeacherProfilePage() {
     }
 
 
+    return;
+  }
+
+  if (
+    normalizeDigitsV2(phone).length < 10 ||
+    !isValidCpfV2(cpf) ||
+    !pixInput ||
+    !pixInput.value.trim() ||
+    !cnpjInput ||
+    normalizeDigitsV2(cnpjInput.value).length !== 14
+  ) {
+    if (message) {
+      message.textContent =
+        "Informe telefone, CPF, PIX e CNPJ validos.";
+      message.style.color = "red";
+    }
     return;
   }
 
@@ -39994,8 +40464,35 @@ async function saveTeacherProfilePage() {
   }
 
 
+  const {
+    error: personalDataError
+  } = await supabaseClient.rpc(
+    "save_my_teacher_personal_data_v2",
+    {
+      p_phone: phone,
+      p_cpf: cpf
+    }
+  );
+
+
+  if (personalDataError) {
+
+    if (message) {
+      message.textContent =
+        personalDataError.message ||
+        "Os demais dados foram salvos, mas telefone e CPF falharam.";
+      message.style.color = "red";
+    }
+
+    return;
+  }
+
+
   currentProfile.name =
     name;
+
+  currentProfile.phone = phone;
+  currentProfile.cpf = cpf;
 
 
   await loadCurrentTeacherProfileSettings();
@@ -41284,7 +41781,8 @@ async function loadTeacherDashboard() {
     alertsResult,
     contractSummaryResult,
     contractAlertsResult,
-    financialGenerationResult
+    financialGenerationResult,
+    todayScheduleResult
   ] =
     await Promise.all([
 
@@ -41312,6 +41810,16 @@ async function loadTeacherDashboard() {
 
           p_month:
             dashboardMonth
+        }
+      ),
+
+      supabaseClient.rpc(
+        "get_teacher_schedule",
+        {
+          p_date:
+            formatDateForDatabase(
+              dashboardNow
+            )
         }
       )
 
@@ -41349,6 +41857,12 @@ async function loadTeacherDashboard() {
           "geracao financeira",
         error:
           financialGenerationResult.error
+      },
+      {
+        name:
+          "aulas de hoje",
+        error:
+          todayScheduleResult.error
       }
     ]
       .filter(
@@ -41422,6 +41936,40 @@ async function loadTeacherDashboard() {
           )
     )
     || {};
+
+
+  const todayOccurrences =
+    (todayScheduleResult.error
+      ? []
+      : (todayScheduleResult.data || [])
+    )
+      .filter(item => {
+        const type =
+          normalizeTeacherScheduleStatus(
+            item.status
+          ).type;
+
+        return type === "lesson" ||
+          type === "makeup";
+      })
+      .sort(
+        (a, b) =>
+          timeToMinutes(a.start_time) -
+          timeToMinutes(b.start_time)
+      );
+
+
+  const nowMinutes =
+    dashboardNow.getHours() * 60 +
+    dashboardNow.getMinutes();
+
+
+  const nextTodayLesson =
+    todayOccurrences.find(
+      item =>
+        timeToMinutes(item.start_time) >=
+        nowMinutes
+    ) || null;
 
 
   const generatedFinancialAlerts =
@@ -41556,6 +42104,35 @@ async function loadTeacherDashboard() {
           Atualizar resumo
         </button>
 
+      </div>
+
+
+      ${
+        currentTeacherAccess &&
+        currentTeacherAccess.access_type === "trial"
+          ? `
+            <div class="access-countdown">
+              Teste gratis
+              <strong>${formatRemainingTimeV2(currentTeacherAccess.remaining_seconds)}</strong>
+            </div>
+          `
+          : ""
+      }
+
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:18px;">
+        ${renderTeacherDashboardStat("Aulas hoje", todayOccurrences.length)}
+
+        <div style="padding:13px;border:1px solid #ddd;border-radius:9px;background:#ffffff;">
+          <div style="font-size:12px;color:#666;">Proxima aula</div>
+          <div style="margin-top:5px;font-size:18px;font-weight:bold;">
+            ${
+              nextTodayLesson
+                ? `${normalizeTime(nextTodayLesson.start_time)} - ${escapeHtml(formatAgendaStudentName(nextTodayLesson.student_name || "Aluno"))}`
+                : "Nenhuma aula restante hoje"
+            }
+          </div>
+        </div>
       </div>
 
 
@@ -43108,6 +43685,9 @@ if (logoutButton) {
 
       currentStudentId = null;
 
+      currentStudentAccessMode = "full";
+      currentTeacherAccess = null;
+
 
       teacherScreen.classList.add(
         "hidden"
@@ -43250,3 +43830,996 @@ supabaseClient.auth.onAuthStateChange(
 // =====================================================
 
 initializeApp();
+
+
+// =====================================================
+// ERP V2 - TESTE GRATIS, CADASTROS, SUPORTE E ACESSOS
+// =====================================================
+
+function normalizeDigitsV2(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+
+function isValidCpfV2(value) {
+  const cpf = normalizeDigitsV2(value);
+
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  let sum = 0;
+  for (let index = 0; index < 9; index++) {
+    sum += Number(cpf[index]) * (10 - index);
+  }
+
+  let digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+  if (digit !== Number(cpf[9])) return false;
+
+  sum = 0;
+  for (let index = 0; index < 10; index++) {
+    sum += Number(cpf[index]) * (11 - index);
+  }
+
+  digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+
+  return digit === Number(cpf[10]);
+}
+
+
+function isValidEmailV2(value) {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(
+    String(value || "").trim()
+  );
+}
+
+
+function formatRemainingTimeV2(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+
+  if (days > 0) {
+    return `${days} dia(s) e ${hours}h restantes`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h e ${minutes}min restantes`;
+  }
+
+  return `${minutes}min restantes`;
+}
+
+
+function renderWeekdayCheckboxesV2(name, selectedDays = []) {
+  const days = [
+    [1, "Seg"], [2, "Ter"], [3, "Qua"], [4, "Qui"],
+    [5, "Sex"], [6, "Sab"], [7, "Dom"]
+  ];
+
+  return `
+    <div class="weekday-options">
+      ${days.map(([value, label]) => `
+        <label>
+          <input
+            type="checkbox"
+            name="${name}"
+            value="${value}"
+            ${selectedDays.map(Number).includes(value) ? "checked" : ""}
+          >
+          ${label}
+        </label>
+      `).join("")}
+    </div>
+  `;
+}
+
+
+function collectCheckedDaysV2(name) {
+  return Array.from(
+    document.querySelectorAll(`input[name="${name}"]:checked`)
+  ).map(input => Number(input.value));
+}
+
+
+function setPublicCardV2(cardId) {
+  [
+    "publicTeacherRegistrationCard",
+    "publicSupportCard"
+  ].forEach(id => {
+    const card = document.getElementById(id);
+    if (card) {
+      card.classList.toggle("hidden", id !== cardId);
+    }
+  });
+}
+
+
+function openPublicTeacherRegistrationV2() {
+  const card = document.getElementById(
+    "publicTeacherRegistrationCard"
+  );
+
+  if (!card) return;
+
+  card.innerHTML = `
+    <h2>Novo professor</h2>
+    <p>Crie seu acesso e use o ERP gratuitamente por 15 dias.</p>
+
+    <form id="publicTeacherRegistrationForm">
+      <div class="erp-form-grid">
+        <div><label>Nome completo</label><input id="publicTeacherName" type="text" autocomplete="name" required></div>
+        <div><label>E-mail</label><input id="publicTeacherEmail" type="email" autocomplete="email" required></div>
+        <div><label>CPF</label><input id="publicTeacherCpf" type="text" inputmode="numeric" required></div>
+        <div><label>Telefone</label><input id="publicTeacherPhone" type="tel" autocomplete="tel" required></div>
+        <div><label>Senha</label><input id="publicTeacherPassword" type="password" minlength="6" autocomplete="new-password" required></div>
+        <div><label>Confirmar senha</label><input id="publicTeacherPasswordConfirm" type="password" minlength="6" autocomplete="new-password" required></div>
+        <div><label>PIX</label><input id="publicTeacherPix" type="text" required></div>
+        <div><label>CNPJ</label><input id="publicTeacherCnpj" type="text" inputmode="numeric" required></div>
+        <div><label>Inicio das aulas</label><input id="publicTeacherStart" type="time" step="1800" value="08:00" required></div>
+        <div><label>Fim das aulas</label><input id="publicTeacherEnd" type="time" step="1800" value="20:00" required></div>
+        <div class="full-width">
+          <label>Dias em que da aula</label>
+          ${renderWeekdayCheckboxesV2("publicTeacherWorkDay", [1,2,3,4,5])}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+        <button type="submit" class="primary-button" id="savePublicTeacherButton">Criar acesso gratuito</button>
+        <button type="button" class="secondary-button" id="closePublicTeacherButton">Cancelar</button>
+      </div>
+      <p id="publicTeacherMessage" class="message"></p>
+    </form>
+  `;
+
+  setPublicCardV2("publicTeacherRegistrationCard");
+
+  document.getElementById("closePublicTeacherButton")
+    .addEventListener("click", () => setPublicCardV2(""));
+
+  document.getElementById("publicTeacherRegistrationForm")
+    .addEventListener("submit", savePublicTeacherV2);
+}
+
+
+async function savePublicTeacherV2(event) {
+  event.preventDefault();
+
+  const value = id => document.getElementById(id)?.value || "";
+  const name = value("publicTeacherName").trim();
+  const email = value("publicTeacherEmail").trim().toLowerCase();
+  const cpf = normalizeDigitsV2(value("publicTeacherCpf"));
+  const phone = value("publicTeacherPhone").trim();
+  const password = value("publicTeacherPassword");
+  const confirmPassword = value("publicTeacherPasswordConfirm");
+  const pix = value("publicTeacherPix").trim();
+  const cnpj = normalizeDigitsV2(value("publicTeacherCnpj"));
+  const startTime = value("publicTeacherStart");
+  const endTime = value("publicTeacherEnd");
+  const workDays = collectCheckedDaysV2("publicTeacherWorkDay");
+  const message = document.getElementById("publicTeacherMessage");
+  const button = document.getElementById("savePublicTeacherButton");
+
+  const fail = text => {
+    message.textContent = text;
+    message.style.color = "red";
+  };
+
+  if (name.length < 3 || !isValidEmailV2(email)) {
+    fail("Informe nome completo e e-mail valido.");
+    return;
+  }
+
+  if (!isValidCpfV2(cpf)) {
+    fail("Informe um CPF valido.");
+    return;
+  }
+
+  if (normalizeDigitsV2(phone).length < 10) {
+    fail("Informe um telefone valido com DDD.");
+    return;
+  }
+
+  if (password.length < 6 || password !== confirmPassword) {
+    fail("A senha deve ter ao menos 6 caracteres e as duas senhas devem coincidir.");
+    return;
+  }
+
+  if (!pix || cnpj.length !== 14 || workDays.length === 0) {
+    fail("Preencha PIX, CNPJ e ao menos um dia de atendimento.");
+    return;
+  }
+
+  if (!startTime || !endTime || timeToMinutes(startTime) >= timeToEndBoundaryMinutes(endTime)) {
+    fail("Informe um horario valido. O fim pode ser 00:00 para representar meia-noite.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Criando...";
+  message.textContent = "Criando seu acesso seguro...";
+  message.style.color = "#555";
+
+  const authClient = createStudentAccessAuthClient();
+  const { data: authData, error: authError } =
+    await authClient.auth.signUp({
+      email,
+      password,
+      options: { data: { name, role: "teacher", signup_source: "public" } }
+    });
+
+  if (authError || !authData?.user?.id) {
+    fail(authError?.message || "Nao foi possivel criar o acesso.");
+    button.disabled = false;
+    button.textContent = "Criar acesso gratuito";
+    return;
+  }
+
+  const { error: profileError } =
+    await authClient.rpc(
+      "register_public_teacher_from_auth_v2",
+      {
+        p_name: name,
+        p_email: email,
+        p_phone: phone,
+        p_cpf: cpf,
+        p_pix: pix,
+        p_cnpj: cnpj,
+        p_work_start_time: startTime,
+        p_work_end_time: endTime,
+        p_work_days: workDays
+      }
+    );
+
+  if (profileError) {
+    fail(profileError.message || "O acesso foi criado, mas o perfil nao pode ser finalizado.");
+    button.disabled = false;
+    button.textContent = "Criar acesso gratuito";
+    return;
+  }
+
+  await authClient.auth.signOut();
+  event.target.reset();
+  message.textContent = "Cadastro concluido. Entre com seu e-mail e senha para iniciar os 15 dias gratuitos.";
+  message.style.color = "green";
+  button.disabled = false;
+  button.textContent = "Criar acesso gratuito";
+}
+
+
+function openPublicSupportV2() {
+  const card = document.getElementById("publicSupportCard");
+  if (!card) return;
+
+  card.innerHTML = `
+    <h2>Falar com o suporte</h2>
+    <form id="publicSupportForm" class="support-form">
+      <label>Nome</label><input id="publicSupportName" type="text" required>
+      <label>E-mail para contato</label><input id="publicSupportEmail" type="email" required>
+      <label>Assunto</label><input id="publicSupportSubject" type="text" required>
+      <label>Mensagem</label><textarea id="publicSupportMessageText" rows="5" required></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+        <button type="submit" class="primary-button">Enviar mensagem</button>
+        <button type="button" class="secondary-button" id="closePublicSupportButton">Cancelar</button>
+      </div>
+      <p id="publicSupportMessage" class="message"></p>
+    </form>
+  `;
+
+  setPublicCardV2("publicSupportCard");
+  document.getElementById("closePublicSupportButton")
+    .addEventListener("click", () => setPublicCardV2(""));
+  document.getElementById("publicSupportForm")
+    .addEventListener("submit", savePublicSupportV2);
+}
+
+
+async function savePublicSupportV2(event) {
+  event.preventDefault();
+  const get = id => document.getElementById(id)?.value.trim() || "";
+  const messageArea = document.getElementById("publicSupportMessage");
+
+  const { error } = await supabaseClient.rpc(
+    "create_public_support_ticket_v2",
+    {
+      p_name: get("publicSupportName"),
+      p_email: get("publicSupportEmail").toLowerCase(),
+      p_subject: get("publicSupportSubject"),
+      p_message: get("publicSupportMessageText")
+    }
+  );
+
+  if (error) {
+    messageArea.textContent = error.message || "Nao foi possivel enviar a mensagem.";
+    messageArea.style.color = "red";
+    return;
+  }
+
+  event.target.reset();
+  messageArea.textContent = "Mensagem enviada. O suporte respondera pelo e-mail informado.";
+  messageArea.style.color = "green";
+}
+
+
+async function showTeacherSupportOnlyArea() {
+  loginScreen.classList.add("hidden");
+  teacherScreen.classList.remove("hidden");
+  studentScreen.classList.add("hidden");
+
+  ensureTeacherSupportNavButton();
+
+  document.querySelectorAll("[data-teacher-page]")
+    .forEach(button => {
+      button.style.display =
+        button.dataset.teacherPage === "support" ? "" : "none";
+    });
+
+  const header = document.getElementById("teacherHeader");
+  if (header) {
+    header.innerHTML = `
+      <h2>Ola, ${escapeHtml(currentProfile.name)}</h2>
+      <p>Seu periodo gratuito terminou. O acesso normal volta quando o pagamento for confirmado.</p>
+    `;
+  }
+
+  setTeacherPage("support");
+}
+
+
+function renderSupportMessagesV2(messages) {
+  return (messages || []).map(item => `
+    <div class="support-message ${item.author_role === "admin" ? "admin" : ""}">
+      <strong>${item.author_role === "admin" ? "Suporte" : "Professor"}</strong>
+      <div>${escapeHtml(item.body)}</div>
+      <small>${formatDateTime(item.created_at)}</small>
+    </div>
+  `).join("");
+}
+
+
+async function loadTeacherSupportArea() {
+  const area = document.getElementById("teacherSupportArea");
+  if (!area) return;
+
+  const { data, error } = await supabaseClient.rpc(
+    "get_my_support_tickets_v2"
+  );
+
+  if (error) {
+    area.innerHTML = `<p>${escapeHtml(error.message || "Nao foi possivel carregar o suporte.")}</p>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="support-form">
+      <label>Assunto</label><input id="teacherSupportSubject" type="text">
+      <label>Mensagem</label><textarea id="teacherSupportNewMessage" rows="4"></textarea>
+      <button type="button" class="action-button" id="createTeacherSupportTicketButton" style="margin-top:10px;">Enviar novo chamado</button>
+      <p id="teacherSupportFormMessage"></p>
+    </div>
+
+    <div style="display:grid;gap:14px;margin-top:20px;">
+      ${(data || []).map(ticket => `
+        <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
+          <strong>${escapeHtml(ticket.subject)}</strong>
+          <span style="margin-left:8px;">${escapeHtml(ticket.status)}</span>
+          <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
+          <textarea id="teacherSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
+          <button type="button" class="secondary-button teacher-support-reply-button" data-ticket-id="${ticket.ticket_id}" style="margin-top:8px;">Responder</button>
+        </div>
+      `).join("") || "<p>Nenhum chamado enviado.</p>"}
+    </div>
+  `;
+
+  document.getElementById("createTeacherSupportTicketButton")
+    .addEventListener("click", createTeacherSupportTicketV2);
+
+  document.querySelectorAll(".teacher-support-reply-button")
+    .forEach(button => button.addEventListener(
+      "click",
+      () => replyTeacherSupportTicketV2(button.dataset.ticketId)
+    ));
+}
+
+
+async function createTeacherSupportTicketV2() {
+  const subject = document.getElementById("teacherSupportSubject")?.value.trim() || "";
+  const message = document.getElementById("teacherSupportNewMessage")?.value.trim() || "";
+  const area = document.getElementById("teacherSupportFormMessage");
+
+  const { error } = await supabaseClient.rpc(
+    "create_support_ticket_v2",
+    { p_subject: subject, p_message: message }
+  );
+
+  if (error) {
+    area.textContent = error.message || "Nao foi possivel enviar o chamado.";
+    area.style.color = "red";
+    return;
+  }
+
+  await loadTeacherSupportArea();
+}
+
+
+async function replyTeacherSupportTicketV2(ticketId) {
+  const input = document.getElementById(`teacherSupportReply-${ticketId}`);
+  const message = input?.value.trim() || "";
+  if (!message) return;
+
+  const { error } = await supabaseClient.rpc(
+    "reply_support_ticket_v2",
+    { p_ticket_id: ticketId, p_message: message }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel responder.");
+    return;
+  }
+
+  await loadTeacherSupportArea();
+}
+
+
+async function loadAdminSupportArea() {
+  const area = document.getElementById("adminSupportArea");
+  if (!area) return;
+
+  const { data, error } = await supabaseClient.rpc(
+    "get_admin_support_tickets_v2"
+  );
+
+  if (error) {
+    area.innerHTML = `<p>${escapeHtml(error.message || "Nao foi possivel carregar os chamados.")}</p>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div style="display:grid;gap:14px;">
+      ${(data || []).map(ticket => `
+        <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
+          <strong>${escapeHtml(ticket.subject)}</strong>
+          <div>${escapeHtml(ticket.contact_name)} - ${escapeHtml(ticket.contact_email)}</div>
+          <small>${escapeHtml(ticket.source)} | ${escapeHtml(ticket.status)}</small>
+          <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
+          <textarea id="adminSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button type="button" class="secondary-button admin-support-reply-button" data-ticket-id="${ticket.ticket_id}">Responder</button>
+            <button type="button" class="secondary-button admin-support-close-button" data-ticket-id="${ticket.ticket_id}">Encerrar</button>
+          </div>
+        </div>
+      `).join("") || "<p>Nenhum chamado recebido.</p>"}
+    </div>
+  `;
+
+  document.querySelectorAll(".admin-support-reply-button")
+    .forEach(button => button.addEventListener(
+      "click",
+      () => replyAdminSupportTicketV2(button.dataset.ticketId)
+    ));
+
+  document.querySelectorAll(".admin-support-close-button")
+    .forEach(button => button.addEventListener(
+      "click",
+      () => closeAdminSupportTicketV2(button.dataset.ticketId)
+    ));
+}
+
+
+async function replyAdminSupportTicketV2(ticketId) {
+  const message = document.getElementById(`adminSupportReply-${ticketId}`)?.value.trim() || "";
+  if (!message) return;
+
+  const { error } = await supabaseClient.rpc(
+    "reply_support_ticket_v2",
+    { p_ticket_id: ticketId, p_message: message }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel responder.");
+    return;
+  }
+
+  await loadAdminSupportArea();
+}
+
+
+async function closeAdminSupportTicketV2(ticketId) {
+  const { error } = await supabaseClient.rpc(
+    "set_support_ticket_status_v2",
+    { p_ticket_id: ticketId, p_status: "closed" }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel encerrar o chamado.");
+    return;
+  }
+
+  await loadAdminSupportArea();
+}
+
+
+async function saveNewStudentWithAccessV2() {
+  const value = id => document.getElementById(id)?.value || "";
+  const name = value("newStudentName").trim();
+  const email = value("newStudentEmail").trim().toLowerCase();
+  const phone = value("newStudentPhone").trim();
+  const cpf = normalizeDigitsV2(value("newStudentCpf"));
+  const classLink = value("newStudentClassLink").trim();
+  const password = value("newStudentPassword");
+  const confirmPassword = value("newStudentPasswordConfirm");
+  const duration = Number(value("newStudentDuration"));
+  const birthDate = value("newStudentBirthDate");
+  const contractStartDate = value("newStudentContractStartDate");
+  const contractEndDate = value("newStudentContractEndDate");
+  const contractNotes = value("newStudentContractNotes").trim() || null;
+  const billingType = value("newStudentBillingType");
+  const monthlyFee = value("newStudentMonthlyFee") === "" ? null : Number(value("newStudentMonthlyFee"));
+  const lessonFee = value("newStudentLessonFee") === "" ? null : Number(value("newStudentLessonFee"));
+  const dueDay = Number(value("newStudentDueDay"));
+  const invoiceRequired = Boolean(document.getElementById("newStudentInvoiceDefault")?.checked);
+  const scheduleResult = collectStudentFixedSchedule("newStudentFixedScheduleRows");
+  const message = document.getElementById("newStudentMessage");
+  const button = document.getElementById("saveNewStudentButton");
+
+  const fail = text => {
+    message.textContent = text;
+    message.style.color = "red";
+  };
+
+  if (name.length < 3 || !isValidEmailV2(email) || !isValidCpfV2(cpf)) {
+    fail("Informe nome, e-mail e CPF validos.");
+    return;
+  }
+
+  if (normalizeDigitsV2(phone).length < 10 || !/^https?:\/\//i.test(classLink)) {
+    fail("Informe telefone com DDD e um link de aula valido.");
+    return;
+  }
+
+  if (password.length < 6 || password !== confirmPassword) {
+    fail("A senha deve ter ao menos 6 caracteres e as senhas devem coincidir.");
+    return;
+  }
+
+  if (![30, 60].includes(duration) || !birthDate || !contractStartDate || !contractEndDate) {
+    fail("Preencha duracao, nascimento e o periodo completo do contrato.");
+    return;
+  }
+
+  if (contractEndDate < contractStartDate || scheduleResult.error) {
+    fail(scheduleResult.error || "O termino do contrato deve ser posterior ao inicio.");
+    return;
+  }
+
+  if (!['monthly', 'per_lesson'].includes(billingType) || dueDay < 1 || dueDay > 31) {
+    fail("Preencha corretamente a cobranca e o vencimento.");
+    return;
+  }
+
+  if ((billingType === "monthly" && !(monthlyFee >= 0)) ||
+      (billingType === "per_lesson" && !(lessonFee >= 0))) {
+    fail("Informe o valor financeiro do aluno.");
+    return;
+  }
+
+  const { data: capacityData, error: capacityError } = await supabaseClient.rpc(
+    "get_my_teacher_student_capacity_v2"
+  );
+  const capacity = Array.isArray(capacityData) ? capacityData[0] : capacityData;
+
+  if (capacityError || capacity?.can_add_student === false) {
+    fail(capacityError?.message || `O limite de ${capacity?.max_registered_students || 0} alunos cadastrados foi atingido.`);
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Criando acesso...";
+
+  const authClient = createStudentAccessAuthClient();
+  const { data: authData, error: authError } = await authClient.auth.signUp({
+    email,
+    password,
+    options: { data: { name, role: "student" } }
+  });
+
+  const params = {
+    p_name: name,
+    p_email: email,
+    p_phone: phone,
+    p_cpf: cpf,
+    p_class_duration_minutes: duration,
+    p_schedule: scheduleResult.schedule,
+    p_billing_type: billingType,
+    p_monthly_fee: monthlyFee,
+    p_lesson_fee: lessonFee,
+    p_payment_due_day: dueDay,
+    p_invoice_required_default: invoiceRequired,
+    p_birth_date: birthDate,
+    p_contract_start_date: contractStartDate,
+    p_contract_end_date: contractEndDate,
+    p_contract_notes: contractNotes,
+    p_class_link: classLink
+  };
+
+  let result;
+  const authUser = authData?.user;
+  const existingAccess = authError || (Array.isArray(authUser?.identities) && authUser.identities.length === 0);
+
+  if (existingAccess) {
+    result = await supabaseClient.rpc(
+      "recover_student_from_auth_email_v2",
+      params
+    );
+  } else if (authUser?.id) {
+    result = await supabaseClient.rpc(
+      "register_student_from_auth_v2",
+      { p_auth_user_id: authUser.id, ...params }
+    );
+  } else {
+    result = { error: authError || { message: "O Supabase nao retornou o usuario criado." } };
+  }
+
+  if (result.error) {
+    fail(result.error.message || "Nao foi possivel concluir o cadastro.");
+    button.disabled = false;
+    button.textContent = "Criar aluno e acesso";
+    return;
+  }
+
+  await authClient.auth.signOut();
+  closeRegisterStudentForm();
+  currentTeacherStudents = [];
+  await loadTeacherStudents();
+  await loadTeacherStudentOverview();
+  alert("Aluno e acesso cadastrados com sucesso.");
+}
+
+
+async function saveAdminTeacherV2() {
+  const value = id => document.getElementById(id)?.value || "";
+  const name = value("adminNewTeacherName").trim();
+  const email = value("adminNewTeacherEmail").trim().toLowerCase();
+  const password = value("adminNewTeacherPassword");
+  const confirmPassword = value("adminNewTeacherPasswordConfirm");
+  const phone = value("adminNewTeacherPhone").trim();
+  const cpf = normalizeDigitsV2(value("adminNewTeacherCpf"));
+  const pix = value("adminNewTeacherPix").trim();
+  const cnpj = normalizeDigitsV2(value("adminNewTeacherCnpj"));
+  const startTime = value("adminNewTeacherStart");
+  const endTime = value("adminNewTeacherEnd");
+  const workDays = collectCheckedDaysV2("adminNewTeacherWorkDay");
+  const accessType = value("adminNewTeacherAccessType");
+  const message = document.getElementById("adminTeacherRegistrationMessage");
+  const button = document.getElementById("saveAdminTeacherButton");
+
+  const fail = text => {
+    message.textContent = text;
+    message.style.color = "red";
+  };
+
+  if (name.length < 3 || !isValidEmailV2(email) || !isValidCpfV2(cpf) || normalizeDigitsV2(phone).length < 10) {
+    fail("Informe nome, e-mail, telefone e CPF validos.");
+    return;
+  }
+
+  if (password.length < 6 || password !== confirmPassword || !pix || cnpj.length !== 14) {
+    fail("Preencha senhas iguais, PIX e CNPJ.");
+    return;
+  }
+
+  if (!startTime || !endTime || timeToMinutes(startTime) >= timeToEndBoundaryMinutes(endTime) || workDays.length === 0) {
+    fail("Informe horarios e dias de atendimento validos.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Criando...";
+
+  const authClient = createStudentAccessAuthClient();
+  const { data: authData, error: authError } = await authClient.auth.signUp({
+    email,
+    password,
+    options: { data: { name, role: "teacher" } }
+  });
+
+  const rpcParams = {
+    p_name: name,
+    p_email: email,
+    p_pix: pix,
+    p_cnpj: cnpj,
+    p_work_start_time: startTime,
+    p_work_end_time: endTime
+  };
+
+  let teacherId = null;
+  const authUser = authData?.user;
+  const existingAccess = authError || (Array.isArray(authUser?.identities) && authUser.identities.length === 0);
+  let registrationResult;
+
+  if (existingAccess) {
+    registrationResult = await supabaseClient.rpc("recover_teacher_from_auth_email", rpcParams);
+  } else if (authUser?.id) {
+    registrationResult = await supabaseClient.rpc(
+      "register_teacher_from_auth",
+      { p_auth_user_id: authUser.id, ...rpcParams }
+    );
+  } else {
+    registrationResult = { error: authError || { message: "O acesso nao foi criado." } };
+  }
+
+  if (registrationResult.error) {
+    fail(registrationResult.error.message || "Nao foi possivel criar o professor.");
+    button.disabled = false;
+    button.textContent = "Criar professor";
+    return;
+  }
+
+  await loadAdminTeachers();
+  teacherId = currentAdminTeachers.find(item =>
+    String(item.teacher_email || "").toLowerCase() === email
+  )?.teacher_id;
+
+  if (!teacherId) {
+    fail("O professor foi criado, mas nao foi localizado para finalizar o perfil.");
+    button.disabled = false;
+    button.textContent = "Criar professor";
+    return;
+  }
+
+  const { error: updateError } = await supabaseClient.rpc(
+    "admin_update_teacher_v2",
+    {
+      p_teacher_id: teacherId,
+      p_name: name,
+      p_email: email,
+      p_phone: phone,
+      p_cpf: cpf,
+      p_pix: pix,
+      p_cnpj: cnpj,
+      p_work_start_time: startTime,
+      p_work_end_time: endTime,
+      p_work_days: workDays,
+      p_access_type: accessType
+    }
+  );
+
+  button.disabled = false;
+  button.textContent = "Criar professor";
+
+  if (updateError) {
+    fail(updateError.message || "O acesso foi criado, mas os dados adicionais falharam.");
+    return;
+  }
+
+  await authClient.auth.signOut();
+  document.getElementById("adminTeacherRegistrationArea").style.display = "none";
+  await loadAdminTeachers();
+  alert("Professor cadastrado com sucesso.");
+}
+
+
+async function saveAdminTeacherAccessV2(teacherId) {
+  const select = document.querySelector(`.admin-teacher-access-type[data-teacher-id="${teacherId}"]`);
+  if (!select) return;
+
+  const { error } = await supabaseClient.rpc(
+    "admin_set_teacher_access_v2",
+    { p_teacher_id: teacherId, p_access_type: select.value }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel alterar o acesso.");
+    return;
+  }
+
+  await loadAdminTeachers();
+}
+
+
+function openAdminTeacherEditV2(teacherId) {
+  const teacher = currentAdminTeachers.find(item => String(item.teacher_id) === String(teacherId));
+  const area = document.getElementById(`adminTeacherEditArea-${teacherId}`);
+  if (!teacher || !area) return;
+
+  area.style.display = "block";
+  area.innerHTML = `
+    <div class="erp-form-grid">
+      <div><label>Nome</label><input id="editTeacherName-${teacherId}" value="${escapeHtml(teacher.teacher_name)}"></div>
+      <div><label>E-mail</label><input id="editTeacherEmail-${teacherId}" type="email" value="${escapeHtml(teacher.teacher_email)}"></div>
+      <div><label>Telefone</label><input id="editTeacherPhone-${teacherId}" value="${escapeHtml(teacher.phone || "")}"></div>
+      <div><label>CPF</label><input id="editTeacherCpf-${teacherId}" value="${escapeHtml(teacher.cpf || "")}"></div>
+      <div><label>PIX</label><input id="editTeacherPix-${teacherId}" value="${escapeHtml(teacher.pix || "")}"></div>
+      <div><label>CNPJ</label><input id="editTeacherCnpj-${teacherId}" value="${escapeHtml(teacher.cnpj || "")}"></div>
+      <div><label>Inicio</label><input id="editTeacherStart-${teacherId}" type="time" step="1800" value="${normalizeTime(teacher.work_start_time)}"></div>
+      <div><label>Fim</label><input id="editTeacherEnd-${teacherId}" type="time" step="1800" value="${normalizeTime(teacher.work_end_time)}"></div>
+      <div class="full-width"><label>Dias de atendimento</label>${renderWeekdayCheckboxesV2(`editTeacherWorkDay-${teacherId}`, teacher.work_days || [])}</div>
+    </div>
+    <button type="button" class="action-button" id="saveTeacherEdit-${teacherId}" style="margin-top:12px;">Salvar cadastro</button>
+  `;
+
+  document.getElementById(`saveTeacherEdit-${teacherId}`)
+    .addEventListener("click", () => saveAdminTeacherEditV2(teacherId));
+}
+
+
+async function saveAdminTeacherEditV2(teacherId) {
+  const teacher = currentAdminTeachers.find(item => String(item.teacher_id) === String(teacherId));
+  const value = prefix => document.getElementById(`${prefix}-${teacherId}`)?.value || "";
+  const params = {
+    p_teacher_id: teacherId,
+    p_name: value("editTeacherName").trim(),
+    p_email: value("editTeacherEmail").trim().toLowerCase(),
+    p_phone: value("editTeacherPhone").trim(),
+    p_cpf: normalizeDigitsV2(value("editTeacherCpf")),
+    p_pix: value("editTeacherPix").trim(),
+    p_cnpj: normalizeDigitsV2(value("editTeacherCnpj")),
+    p_work_start_time: value("editTeacherStart"),
+    p_work_end_time: value("editTeacherEnd"),
+    p_work_days: collectCheckedDaysV2(`editTeacherWorkDay-${teacherId}`),
+    p_access_type: teacher.access_type || "paid"
+  };
+
+  if (
+    params.p_name.length < 3 ||
+    !isValidCpfV2(params.p_cpf) ||
+    !isValidEmailV2(params.p_email) ||
+    normalizeDigitsV2(params.p_phone).length < 10 ||
+    !params.p_pix ||
+    params.p_cnpj.length !== 14 ||
+    params.p_work_days.length === 0 ||
+    !params.p_work_start_time ||
+    !params.p_work_end_time ||
+    timeToMinutes(params.p_work_start_time) >=
+      timeToEndBoundaryMinutes(params.p_work_end_time)
+  ) {
+    alert("Preencha todos os dados obrigatorios com valores validos.");
+    return;
+  }
+
+  if (
+    params.p_email !==
+    String(teacher.teacher_email || "").toLowerCase()
+  ) {
+    const emailResult = await updateUserEmailV2(
+      teacher.profile_id,
+      params.p_email
+    );
+
+    if (emailResult.error) {
+      alert(emailResult.error);
+      return;
+    }
+  }
+
+  const { error } = await supabaseClient.rpc("admin_update_teacher_v2", params);
+  if (error) {
+    alert(error.message || "Nao foi possivel salvar o professor.");
+    return;
+  }
+
+  await loadAdminTeachers();
+}
+
+
+async function sendAdminTeacherPasswordResetV2(email) {
+  if (!email) return;
+
+  const confirmed = window.confirm(
+    `Enviar um e-mail de redefinicao de senha para ${email}?`
+  );
+  if (!confirmed) return;
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    email,
+    { redirectTo: window.location.origin }
+  );
+
+  if (error) {
+    alert(error.message || "Nao foi possivel enviar a redefinicao.");
+    return;
+  }
+
+  alert("E-mail de redefinicao enviado.");
+}
+
+
+async function saveTeacherStudentPersonalDataV2(studentId) {
+  const value = id => document.getElementById(id)?.value.trim() || "";
+  const name = value("teacherStudentPersonalName");
+  const emailInput = document.getElementById("teacherStudentPersonalEmail");
+  const email = value("teacherStudentPersonalEmail").toLowerCase();
+  const phone = value("teacherStudentPersonalPhone");
+  const cpf = normalizeDigitsV2(value("teacherStudentPersonalCpf"));
+  const message = document.getElementById("teacherStudentPersonalMessage");
+
+  if (name.length < 3 || !isValidEmailV2(email) || !isValidCpfV2(cpf) || normalizeDigitsV2(phone).length < 10) {
+    message.textContent = "Informe nome, e-mail, telefone e CPF validos.";
+    message.style.color = "red";
+    return;
+  }
+
+  const originalEmail =
+    String(emailInput?.dataset.originalEmail || "").toLowerCase();
+
+  if (email !== originalEmail) {
+    const emailResult = await updateUserEmailV2(
+      emailInput?.dataset.profileId,
+      email
+    );
+
+    if (emailResult.error) {
+      message.textContent = emailResult.error;
+      message.style.color = "red";
+      return;
+    }
+  }
+
+  const { error } = await supabaseClient.rpc(
+    "save_teacher_student_personal_data_v2",
+    {
+      p_student_id: studentId,
+      p_name: name,
+      p_email: email,
+      p_phone: phone,
+      p_cpf: cpf
+    }
+  );
+
+  if (error) {
+    message.textContent = error.message || "Nao foi possivel salvar os dados.";
+    message.style.color = "red";
+    return;
+  }
+
+  message.textContent = "Dados pessoais atualizados.";
+  message.style.color = "green";
+  await loadTeacherStudentOverview();
+}
+
+
+async function updateUserEmailV2(userId, email) {
+  if (!userId) {
+    return { error: "Nao foi possivel identificar o acesso Auth." };
+  }
+
+  const { data, error } = await supabaseClient.functions.invoke(
+    "update-user-email",
+    {
+      body: { userId, email }
+    }
+  );
+
+  if (error || data?.error) {
+    return {
+      error:
+        data?.error ||
+        error?.message ||
+        "Nao foi possivel atualizar o e-mail de login."
+    };
+  }
+
+  return { error: null };
+}
+
+
+const openPublicTeacherRegistrationButtonV2 =
+  document.getElementById("openPublicTeacherRegistrationButton");
+if (openPublicTeacherRegistrationButtonV2) {
+  openPublicTeacherRegistrationButtonV2.addEventListener(
+    "click",
+    openPublicTeacherRegistrationV2
+  );
+}
+
+const openPublicSupportButtonV2 =
+  document.getElementById("openPublicSupportButton");
+if (openPublicSupportButtonV2) {
+  openPublicSupportButtonV2.addEventListener(
+    "click",
+    openPublicSupportV2
+  );
+}
