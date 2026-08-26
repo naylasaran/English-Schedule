@@ -29,6 +29,7 @@ let publicTeacherFinalizationPromiseV4 = null;
 let adminSupportTicketsV3 = [];
 let adminSupportBeforeV3 = null;
 let adminSupportViewV4 = "active";
+let currentAccessViewV5 = "teacher";
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -173,7 +174,7 @@ async function loadProfile(userId) {
     error
   } =
     await supabaseClient.rpc(
-      "get_current_profile_v2"
+      "get_current_profile_v5"
     );
 
 
@@ -260,6 +261,12 @@ async function showLoggedUser(user) {
       !currentStudentId ||
       currentStudentAccessMode === "blocked"
     ) {
+
+      if (currentProfile.is_admin === true) {
+        currentTeacherAccess = teacherAccount;
+        await showAdminArea();
+        return;
+      }
 
       await supabaseClient.auth.signOut();
 
@@ -1721,6 +1728,8 @@ function renderGuardianFinancialRow(
 
 async function showTeacherArea() {
 
+  currentAccessViewV5 = "teacher";
+
   teacherScreen.classList.remove(
     "hidden"
   );
@@ -1765,7 +1774,10 @@ async function showTeacherArea() {
     header.innerHTML = `
       <h2>Ol\xe1, ${escapeHtml(currentProfile.name)}</h2>
       <p>\xc1rea do professor.</p>
+      ${renderAccessSwitcherV5("teacher")}
     `;
+
+    bindAccessSwitcherV5();
 
   }
 
@@ -2489,6 +2501,8 @@ function formatAgendaStudentName(
 
 async function showAdminArea() {
 
+  currentAccessViewV5 = "admin";
+
   teacherScreen.classList.remove(
     "hidden"
   );
@@ -2531,7 +2545,11 @@ async function showAdminArea() {
         Area administrativa.
       </p>
 
+      ${renderAccessSwitcherV5("admin")}
+
     `;
+
+    bindAccessSwitcherV5();
 
   }
 
@@ -2540,6 +2558,54 @@ async function showAdminArea() {
 
   await loadAdminTeachers();
 
+}
+
+
+function renderAccessSwitcherV5(activeView) {
+  const canUseAdmin = currentProfile?.role === "admin" || currentProfile?.is_admin === true;
+  const canUseTeacher = currentProfile?.role === "teacher";
+
+  if (!canUseAdmin || !canUseTeacher) return "";
+
+  return `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+      <button type="button" class="${activeView === "teacher" ? "primary-button" : "secondary-button"}" data-access-view-v5="teacher">
+        Area do professor
+      </button>
+      <button type="button" class="${activeView === "admin" ? "primary-button" : "secondary-button"}" data-access-view-v5="admin">
+        Administracao
+      </button>
+    </div>
+  `;
+}
+
+
+function bindAccessSwitcherV5() {
+  document.querySelectorAll("[data-access-view-v5]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const targetView = button.dataset.accessViewV5;
+      if (targetView === currentAccessViewV5) return;
+
+      if (targetView === "admin" && (currentProfile?.role === "admin" || currentProfile?.is_admin === true)) {
+        await showAdminArea();
+        return;
+      }
+
+      if (targetView === "teacher" && currentProfile?.role === "teacher") {
+        if (currentTeacherAccess?.access_mode === "blocked") {
+          alert("O acesso da area do professor esta bloqueado.");
+          return;
+        }
+
+        if (currentTeacherAccess?.access_mode === "support_only") {
+          await showTeacherSupportOnlyArea();
+          return;
+        }
+
+        await showTeacherArea();
+      }
+    });
+  });
 }
 
 
