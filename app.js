@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: email-confirmacao-recuperacao-v4-20260826"
+  "Aulora build: identidade-visual-v1-20260826"
 );
 
 // =====================================================
@@ -978,9 +978,9 @@ async function loadGuardianStudentDetail(
       <div
         style="
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
 
@@ -1317,7 +1317,7 @@ function renderGuardianHistoryRow(
               style="
                 margin-top:9px;
                 padding:10px;
-                background:#f7faff;
+                background:#fffaf3;
                 border-radius:8px;
                 white-space:pre-wrap;
               "
@@ -1381,9 +1381,9 @@ async function openGuardianMonthlyFinancialReport(
     <div
       style="
         padding:15px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:8px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
       Carregando aulas do mes...
@@ -1453,7 +1453,7 @@ async function openGuardianMonthlyFinancialReport(
     <div
       style="
         padding:16px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:8px;
         background:#ffffff;
       "
@@ -1769,8 +1769,8 @@ async function showTeacherArea() {
   if (header) {
 
     header.innerHTML = `
-      <h2>Ol\xe1, ${escapeHtml(currentProfile.name)}</h2>
-      <p>\xc1rea do professor.</p>
+      <h2>Ol\xe1, ${escapeHtml(getFirstNameV5(currentProfile.name))}! <span aria-hidden="true">👋</span></h2>
+      <p>Bem-vindo ao seu espa\xe7o. Aqui est\xe1 o resumo das suas aulas e atividades.</p>
       ${renderAccessSwitcherV5("teacher")}
     `;
 
@@ -2697,8 +2697,8 @@ function renderAdminTeacherManagement() {
           margin-top:18px;
           padding:16px;
           border-radius:10px;
-          background:#f7faff;
-          border:1px solid #d9e3f2;
+          background:#fffaf3;
+          border:1px solid #e7dfd5;
         "
       ></div>
 
@@ -2708,8 +2708,8 @@ function renderAdminTeacherManagement() {
           margin-top:18px;
           padding:14px;
           border-radius:9px;
-          background:#eef5ff;
-          border:1px solid #d9e3f2;
+          background:#f7e9e1;
+          border:1px solid #e7dfd5;
         "
       >
 
@@ -2796,7 +2796,7 @@ function renderAdminTeacherManagement() {
           margin-top:18px;
           padding:12px 14px;
           border-radius:9px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
 
@@ -2888,7 +2888,7 @@ function renderAdminTeacherManagement() {
                 margin:0;
               "
             >
-              Seguranca do ERP
+              Seguranca da Aulora
             </h4>
 
 
@@ -2951,7 +2951,7 @@ function renderAdminTeacherManagement() {
                 margin:0;
               "
             >
-              Integridade do ERP
+              Integridade da Aulora
             </h4>
 
 
@@ -3035,7 +3035,7 @@ function renderAdminTeacherManagement() {
               "
             >
               Execute os fluxos com contas de teste e registre
-              aqui o resultado antes de liberar o ERP.
+              aqui o resultado antes de liberar a Aulora.
             </p>
 
           </div>
@@ -3246,7 +3246,7 @@ function getAdminQaChecks() {
       title:
         "Diagnostico de seguranca",
       instruction:
-        "No ADM, execute Seguranca do ERP.",
+        "No ADM, execute Seguranca da Aulora.",
       expected:
         "O diagnostico principal deve retornar OK, sem permissoes sensiveis abertas."
     },
@@ -3259,7 +3259,7 @@ function getAdminQaChecks() {
       title:
         "Diagnostico de integridade",
       instruction:
-        "No ADM, execute Integridade do ERP.",
+        "No ADM, execute Integridade da Aulora.",
       expected:
         "Nenhuma inconsistencia critica deve permanecer antes da liberacao."
     },
@@ -3747,7 +3747,7 @@ function renderAdminQaChecklist(
             : (
                 passed === total
                   ? "#eef8f0"
-                  : "#f7faff"
+                  : "#fffaf3"
               )
         };
         border:1px solid #ddd;
@@ -4013,7 +4013,7 @@ function renderAdminQaCheck(
 
             ? "#fdecea"
 
-            : "#f7faff"
+            : "#fffaf3"
         );
 
 
@@ -4133,7 +4133,7 @@ function renderAdminQaCheck(
           margin-top:7px;
           padding:9px 10px;
           border-radius:7px;
-          background:#f7faff;
+          background:#fffaf3;
           font-size:13px;
         "
       >
@@ -4664,7 +4664,7 @@ async function loadAdminIntegrityDetails(
       style="
         padding:12px;
         border-radius:8px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
       Carregando detalhes...
@@ -4781,7 +4781,7 @@ async function loadAdminIntegrityDetails(
                       style="
                         padding:9px 10px;
                         border-radius:7px;
-                        background:#f7faff;
+                        background:#fffaf3;
                       "
                     >
 
@@ -6315,7 +6315,7 @@ async function loadAdminTeachers() {
         style="
           padding:15px;
           border-radius:9px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
         Nenhum professor cadastrado.
@@ -6358,7 +6358,7 @@ function renderAdminTeacherListV2() {
   container.innerHTML =
     filtered.length === 0
       ? `
-        <div style="padding:15px;border-radius:9px;background:#f7faff;">
+        <div style="padding:15px;border-radius:9px;background:#fffaf3;">
           Nenhum professor nesta categoria.
         </div>
       `
@@ -6903,8 +6903,8 @@ function renderAdminTeacherCard(
           margin-top:16px;
           padding:14px;
           border-radius:9px;
-          background:#eef5ff;
-          border:1px solid #d9e3f2;
+          background:#f7e9e1;
+          border:1px solid #e7dfd5;
         "
       >
 
@@ -7038,8 +7038,8 @@ function renderAdminTeacherCard(
           margin-top:16px;
           padding:14px;
           border-radius:9px;
-          background:#f7faff;
-          border:1px solid #d9e3f2;
+          background:#fffaf3;
+          border:1px solid #e7dfd5;
         "
       >
 
@@ -8280,7 +8280,7 @@ async function loadStudentClassLink() {
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
         display:flex;
         justify-content:space-between;
         align-items:center;
@@ -8981,9 +8981,9 @@ async function openStudentMonthlyFinancialReport(
     <div
       style="
         padding:18px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
       Carregando aulas do mes...
@@ -9050,7 +9050,7 @@ async function openStudentMonthlyFinancialReport(
     <div
       style="
         padding:20px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
         background:#ffffff;
       "
@@ -9988,7 +9988,7 @@ function renderHistoryLesson(
                       style="
                         margin-top:10px;
                         padding:12px;
-                        background:#eef5ff;
+                        background:#f7e9e1;
                         border-radius:8px;
                       "
                     >
@@ -10538,7 +10538,7 @@ function renderMakeupCard(makeup) {
           margin-top:15px;
           padding:14px;
           border-radius:8px;
-          background:#eef5ff;
+          background:#f7e9e1;
         "
       >
 
@@ -10875,7 +10875,7 @@ async function openStudentMakeupFromAgenda(
     <div
       class="card"
       style="
-        border-left:5px solid #6f42c1;
+        border-left:5px solid #a9573a;
       "
     >
 
@@ -12389,10 +12389,10 @@ function renderStudentWeeklySchedule(
         ) {
 
           cell.style.backgroundColor =
-            "#eadcf8";
+            "#f5e8c8";
 
           cell.style.color =
-            "#6f42c1";
+            "#a9573a";
 
           cell.style.fontWeight =
             "bold";
@@ -12640,9 +12640,9 @@ function getStudentAgendaHistoryDisplay(
         label:
           "\u2705 Presente",
         background:
-          "#dcecff",
+          "#f7e9e1",
         color:
-          "#245a9a"
+          "#a9573a"
       };
 
 
@@ -12682,9 +12682,9 @@ function getStudentAgendaHistoryDisplay(
         label:
           "\uD83D\uDD04 Reposicao realizada",
         background:
-          "#eadcf8",
+          "#f5e8c8",
         color:
-          "#6f42c1"
+          "#a9573a"
       };
 
 
@@ -12701,9 +12701,9 @@ function getStudentAgendaHistoryDisplay(
           label:
             "Aula realizada",
           background:
-            "#dcecff",
+            "#f7e9e1",
           color:
-            "#245a9a"
+            "#a9573a"
         };
 
       }
@@ -12749,7 +12749,7 @@ async function openStudentAgendaLessonHistory(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
       Carregando registro da aula...
@@ -12796,7 +12796,7 @@ async function openStudentAgendaLessonHistory(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -12894,9 +12894,9 @@ async function openStudentAgendaLessonHistory(
         style="
           margin-top:15px;
           padding:15px;
-          background:#f7faff;
+          background:#fffaf3;
           border-radius:8px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
         "
       >
 
@@ -13441,7 +13441,7 @@ async function openStudentAgendaOwnLesson(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -13482,8 +13482,8 @@ async function openStudentAgendaOwnLesson(
           margin-top:15px;
           padding:15px;
           border-radius:8px;
-          background:#f7faff;
-          border:1px solid #d9e3f2;
+          background:#fffaf3;
+          border:1px solid #e7dfd5;
         "
       >
 
@@ -13986,7 +13986,7 @@ async function openLessonCancellation(
             margin-top:15px;
             padding:15px;
             border-radius:8px;
-            background:#eef5ff;
+            background:#f7e9e1;
           "
         >
           Como o cancelamento est\u00E1 sendo feito
@@ -15722,9 +15722,9 @@ function setTeacherPage(page) {
               style="
                 grid-column:1 / -1;
                 padding:14px;
-                border:1px solid #d9e3f2;
+                border:1px solid #e7dfd5;
                 border-radius:9px;
-                background:#eef5ff;
+                background:#f7e9e1;
               "
             >
 
@@ -16273,12 +16273,12 @@ function setTeacherPage(page) {
             style="
               margin-top:14px;
               padding:12px;
-              background:#eef5ff;
+              background:#f7e9e1;
               border-radius:8px;
               font-size:13px;
             "
           >
-            A senha nao sera salva nas tabelas do ERP.
+            A senha nao sera salva nas tabelas da Aulora.
             Ela e enviada diretamente ao Supabase Auth.
             Com a confirmacao de e-mail desativada no
             Supabase, o acesso pode ser usado imediatamente.
@@ -21217,7 +21217,7 @@ function openTeacherStudentPauseOptions(
         style="
           padding:14px;
           border-radius:8px;
-          background:#eef5ff;
+          background:#f7e9e1;
           margin-top:15px;
         "
       >
@@ -21232,7 +21232,7 @@ function openTeacherStudentPauseOptions(
           "
         >
           O login do aluno continua ativo.
-          Ele continua podendo entrar no ERP,
+          Ele continua podendo entrar na Aulora,
           ver suas reposicoes e marcar reposicoes normalmente.
           Somente as aulas fixas ficam pausadas.
         </p>
@@ -21556,7 +21556,7 @@ async function deleteTeacherStudent(
       ) +
       "\"?\n\n" +
 
-      "O aluno sumira da lista, o acesso ao ERP sera bloqueado " +
+      "O aluno sumira da lista, o acesso a Aulora sera bloqueado " +
       "e os horarios futuros dele serao liberados.\n\n" +
 
       "O historico das aulas passadas sera preservado."
@@ -21794,7 +21794,7 @@ async function openTeacherStudentDetail(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -22026,7 +22026,7 @@ async function openTeacherStudentDetail(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -22085,7 +22085,7 @@ async function openTeacherStudentDetail(
       </div>
 
 
-      <div style="margin-top:24px;padding:16px;border:1px solid #d9e3f2;border-radius:10px;background:#ffffff;">
+      <div style="margin-top:24px;padding:16px;border:1px solid #e7dfd5;border-radius:10px;background:#ffffff;">
         <h4 style="margin-top:0;">Dados pessoais</h4>
         <div class="erp-form-grid">
           <div><label>Nome</label><input id="teacherStudentPersonalName" value="${escapeHtml(personalData.student_name || "")}"></div>
@@ -22102,7 +22102,7 @@ async function openTeacherStudentDetail(
         style="
           margin-top:24px;
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
           background:#ffffff;
         "
@@ -22378,7 +22378,7 @@ async function openTeacherStudentDetail(
                     style="
                       padding:12px;
                       border-radius:8px;
-                      background:#f7faff;
+                      background:#fffaf3;
                     "
                   >
                     Ainda nao existem contratos anteriores.
@@ -22404,9 +22404,9 @@ async function openTeacherStudentDetail(
         style="
           margin-top:24px;
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
-          background:#eef5ff;
+          background:#f7e9e1;
         "
       >
 
@@ -22510,9 +22510,9 @@ async function openTeacherStudentDetail(
         style="
           margin-top:24px;
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
 
@@ -22641,7 +22641,7 @@ async function openTeacherStudentDetail(
         style="
           margin-top:20px;
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
           background:#ffffff;
         "
@@ -22996,7 +22996,7 @@ async function openTeacherStudentDetail(
         style="
           margin-top:20px;
           padding:16px;
-          border:1px solid #d9e3f2;
+          border:1px solid #e7dfd5;
           border-radius:10px;
           background:#ffffff;
         "
@@ -23098,7 +23098,7 @@ async function openTeacherStudentDetail(
                 <div
                   style="
                     padding:12px;
-                    background:#f7faff;
+                    background:#fffaf3;
                     border-radius:8px;
                   "
                 >
@@ -23628,9 +23628,9 @@ async function loadTeacherOrphanGuardians() {
     <div
       style="
         padding:18px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
       Carregando responsaveis sem aluno ativo...
@@ -23688,7 +23688,7 @@ async function loadTeacherOrphanGuardians() {
     <div
       style="
         padding:18px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
         background:#ffffff;
       "
@@ -23757,7 +23757,7 @@ async function loadTeacherOrphanGuardians() {
                 style="
                   padding:14px;
                   border-radius:8px;
-                  background:#f7faff;
+                  background:#fffaf3;
                 "
               >
                 Nao existe nenhum responsavel disponivel para exclusao.
@@ -24025,7 +24025,7 @@ function openTeacherStudentGuardianForm(
         padding:15px;
         border:1px solid #ddd;
         border-radius:8px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
 
@@ -26246,7 +26246,7 @@ function renderTeacherStudentMakeupRow(
       <div
         style="
           margin-top:4px;
-          color:#6f42c1;
+          color:#a9573a;
         "
       >
         Agendada para
@@ -27736,9 +27736,9 @@ async function openTeacherMonthlyFinancialReport(
     <div
       style="
         padding:18px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
       Carregando relatorio...
@@ -27823,7 +27823,7 @@ async function openTeacherMonthlyFinancialReport(
     <div
       style="
         padding:20px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
         background:#ffffff;
       "
@@ -27894,7 +27894,7 @@ async function openTeacherMonthlyFinancialReport(
         <div
           style="
             padding:12px;
-            background:#f7faff;
+            background:#fffaf3;
             border-radius:8px;
           "
         >
@@ -27918,7 +27918,7 @@ async function openTeacherMonthlyFinancialReport(
         <div
           style="
             padding:12px;
-            background:#f7faff;
+            background:#fffaf3;
             border-radius:8px;
           "
         >
@@ -27940,7 +27940,7 @@ async function openTeacherMonthlyFinancialReport(
         <div
           style="
             padding:12px;
-            background:#f7faff;
+            background:#fffaf3;
             border-radius:8px;
           "
         >
@@ -27964,7 +27964,7 @@ async function openTeacherMonthlyFinancialReport(
         <div
           style="
             padding:12px;
-            background:#f7faff;
+            background:#fffaf3;
             border-radius:8px;
           "
         >
@@ -28394,9 +28394,9 @@ function openTeacherFinancialForm(
     <div
       style="
         padding:18px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
 
@@ -30544,7 +30544,7 @@ function renderTeacherPlanCard(
       "Planejado";
 
     background =
-      "#eef5ff";
+      "#f7e9e1";
 
   }
 
@@ -31648,7 +31648,7 @@ function renderTeacherSubjectCard(
           margin-top:15px;
           padding:15px;
           border-radius:8px;
-          background:#eef5ff;
+          background:#f7e9e1;
         "
       >
 
@@ -32943,7 +32943,7 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#f3e8ff";
+              "#f7e9e1";
 
             cell.style.color =
               "#6b3fa0";
@@ -33193,10 +33193,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#eadcf8";
+              "#f5e8c8";
 
             cell.style.color =
-              "#6f42c1";
+              "#a9573a";
 
           }
 
@@ -33250,10 +33250,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#dcecff";
+              "#f7e9e1";
 
             cell.style.color =
-              "#245a9a";
+              "#a9573a";
 
           }
 
@@ -33286,10 +33286,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#eadcf8";
+              "#f5e8c8";
 
             cell.style.color =
-              "#6f42c1";
+              "#a9573a";
 
           }
 
@@ -34602,7 +34602,7 @@ async function openTeacherAttendanceManager(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -34662,7 +34662,7 @@ async function openTeacherAttendanceManager(
                 margin-top:15px;
                 padding:12px;
                 border-radius:8px;
-                background:#eef5ff;
+                background:#f7e9e1;
               "
             >
 
@@ -35122,7 +35122,7 @@ async function openTeacherAttendanceManager(
                 margin-top:15px;
                 padding:12px;
                 border-radius:8px;
-                background:#f3e8ff;
+                background:#f7e9e1;
               "
             >
               Ao salvar, a reposicao sera marcada
@@ -35244,7 +35244,7 @@ async function openTeacherAttendanceManager(
           style="
             padding:12px;
             border-radius:8px;
-            background:#eef5ff;
+            background:#f7e9e1;
           "
         >
           <strong>Falta justificada:</strong>
@@ -35926,7 +35926,7 @@ async function openTeacherScheduleEditor(
     <div
       class="card"
       style="
-        border-left:5px solid #2f6fed;
+        border-left:5px solid #c96f4a;
       "
     >
 
@@ -36315,11 +36315,11 @@ async function openTeacherScheduleEditor(
 
 
     moveButton.style.borderColor =
-      "#6f42c1";
+      "#a9573a";
 
 
     moveButton.style.color =
-      "#6f42c1";
+      "#a9573a";
 
 
     closeButton.parentElement.insertBefore(
@@ -36403,11 +36403,11 @@ async function openTeacherScheduleEditor(
 
 
     makeupButton.style.borderColor =
-      "#6f42c1";
+      "#a9573a";
 
 
     makeupButton.style.color =
-      "#6f42c1";
+      "#a9573a";
 
 
     closeButton.parentElement.insertBefore(
@@ -36552,7 +36552,7 @@ async function openTeacherMakeupBooking(
     <div
       class="card"
       style="
-        border-left:5px solid #6f42c1;
+        border-left:5px solid #a9573a;
       "
     >
 
@@ -36952,7 +36952,7 @@ function openTeacherMakeupReservationManager(
     <div
       class="card"
       style="
-        border-left:5px solid #6f42c1;
+        border-left:5px solid #a9573a;
       "
     >
 
@@ -36991,7 +36991,7 @@ function openTeacherMakeupReservationManager(
       <p
         style="
           padding:12px;
-          background:#eef5ff;
+          background:#f7e9e1;
           border-radius:8px;
         "
       >
@@ -37774,7 +37774,7 @@ function openTeacherLessonMove(
     <div
       class="card"
       style="
-        border-left:5px solid #6f42c1;
+        border-left:5px solid #a9573a;
       "
     >
 
@@ -38970,7 +38970,7 @@ function renderTeacherCancellationCard(
           margin-top:15px;
           padding:15px;
           border-radius:8px;
-          background:#eef5ff;
+          background:#f7e9e1;
         "
       >
 
@@ -39507,9 +39507,9 @@ async function loadTeacherProfilePage() {
       style="
         margin-top:18px;
         padding:15px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
 
@@ -39622,9 +39622,9 @@ async function loadTeacherProfilePage() {
       style="
         margin-top:18px;
         padding:15px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#eef5ff;
+        background:#f7e9e1;
       "
     >
 
@@ -39885,9 +39885,9 @@ async function loadTeacherProfilePage() {
       style="
         margin-top:18px;
         padding:15px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#f7faff;
+        background:#fffaf3;
       "
     >
 
@@ -40230,7 +40230,7 @@ async function loadTeacherProfilePage() {
         margin-top:14px;
         padding:12px;
         border-radius:8px;
-        background:#eef5ff;
+        background:#f7e9e1;
         font-size:13px;
       "
     >
@@ -40781,9 +40781,9 @@ async function loadTeacherClassLinksForAgenda() {
     <div
       style="
         padding:13px 14px;
-        border:1px solid #d9e3f2;
+        border:1px solid #e7dfd5;
         border-radius:10px;
-        background:#eef5ff;
+        background:#f7e9e1;
       "
     >
 
@@ -40874,9 +40874,9 @@ function renderTeacherHolidayDecisionArea() {
     <div
       style="
         padding:14px;
-        border:1px solid #d9c9ee;
+        border:1px solid #dcccbc;
         border-radius:10px;
-        background:#faf6ff;
+        background:#fffaf3;
       "
     >
 
@@ -41102,8 +41102,8 @@ function renderStudentHolidayArea() {
       style="
         padding:12px 14px;
         border-radius:9px;
-        background:#faf6ff;
-        border:1px solid #d9c9ee;
+        background:#fffaf3;
+        border:1px solid #dcccbc;
       "
     >
 
@@ -41336,7 +41336,7 @@ function renderTeacherMaterialsList() {
         style="
           padding:14px;
           border-radius:9px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
         Nenhum material cadastrado
@@ -41842,7 +41842,7 @@ async function loadStudentMaterials() {
         style="
           padding:16px;
           border-radius:9px;
-          background:#f7faff;
+          background:#fffaf3;
         "
       >
         Nenhum material foi disponibilizado ainda.
@@ -42249,9 +42249,10 @@ async function loadTeacherDashboard() {
 
   area.innerHTML = `
 
-    <div class="card">
+    <div class="card teacher-dashboard-card">
 
       <div
+        class="dashboard-heading"
         style="
           display:flex;
           justify-content:space-between;
@@ -42268,7 +42269,7 @@ async function loadTeacherDashboard() {
               margin:0;
             "
           >
-            Resumo do professor
+            Visao geral
           </h3>
 
 
@@ -42278,7 +42279,7 @@ async function loadTeacherDashboard() {
               color:#666;
             "
           >
-            Pendencias e informacoes importantes do ERP.
+            Acompanhe o que precisa da sua atencao.
           </p>
 
         </div>
@@ -42308,12 +42309,12 @@ async function loadTeacherDashboard() {
       }
 
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:18px;">
+      <div class="dashboard-highlight-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:18px;">
         ${renderTeacherDashboardStat("Aulas hoje", todayOccurrences.length)}
 
-        <div style="padding:13px;border:1px solid #ddd;border-radius:9px;background:#ffffff;">
-          <div style="font-size:12px;color:#666;">Proxima aula</div>
-          <div style="margin-top:5px;font-size:18px;font-weight:bold;">
+        <div class="dashboard-next-lesson" style="padding:13px;border:1px solid #ddd;border-radius:9px;background:#ffffff;">
+          <div class="dashboard-next-label" style="font-size:12px;color:#666;">Proxima aula</div>
+          <div class="dashboard-next-value" style="margin-top:5px;font-size:18px;font-weight:bold;">
             ${
               nextTodayLesson
                 ? `${normalizeTime(nextTodayLesson.start_time)} - ${escapeHtml(formatAgendaStudentName(nextTodayLesson.student_name || "Aluno"))}`
@@ -42325,6 +42326,7 @@ async function loadTeacherDashboard() {
 
 
       <div
+        class="dashboard-stat-grid"
         style="
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
@@ -42422,6 +42424,7 @@ async function loadTeacherDashboard() {
 
 
       <div
+        class="dashboard-attention"
         style="
           margin-top:20px;
         "
@@ -42432,7 +42435,7 @@ async function loadTeacherDashboard() {
             margin-bottom:10px;
           "
         >
-          Precisa de atencao
+          Atencao necessaria
         </h4>
 
 
@@ -42442,12 +42445,14 @@ async function loadTeacherDashboard() {
             ? `
 
               <div
+                class="dashboard-all-good"
                 style="
                   padding:14px;
                   border-radius:9px;
                   background:#eef8f0;
                 "
               >
+                <strong>Tudo em dia!</strong><br>
                 Nenhuma pendencia importante no momento.
               </div>
 
@@ -42456,6 +42461,7 @@ async function loadTeacherDashboard() {
             : `
 
               <div
+                class="dashboard-alert-list"
                 style="
                   display:grid;
                   gap:9px;
@@ -42564,6 +42570,7 @@ function renderTeacherDashboardStat(
   return `
 
     <div
+      class="dashboard-stat"
       style="
         padding:13px;
         border:1px solid #ddd;
@@ -42573,6 +42580,7 @@ function renderTeacherDashboardStat(
     >
 
       <div
+        class="dashboard-stat-label"
         style="
           font-size:12px;
           color:#666;
@@ -42585,6 +42593,7 @@ function renderTeacherDashboardStat(
 
 
       <div
+        class="dashboard-stat-value"
         style="
           margin-top:4px;
           font-size:24px;
@@ -42622,6 +42631,7 @@ function renderTeacherDashboardAlert(
   return `
 
     <div
+      class="dashboard-alert"
       style="
         display:flex;
         justify-content:space-between;
@@ -43758,6 +43768,19 @@ function formatDay(day) {
 // ESCAPAR HTML
 // =====================================================
 
+function getFirstNameV5(value) {
+
+  const normalized =
+    String(value || "")
+      .trim();
+
+  return normalized
+    ? normalized.split(/\s+/)[0]
+    : "Professor";
+
+}
+
+
 function escapeHtml(value) {
 
   return String(
@@ -44228,7 +44251,7 @@ function openPublicTeacherRegistrationV2() {
 
   card.innerHTML = `
     <h2>Novo professor</h2>
-    <p>Crie seu acesso e use o ERP gratuitamente por 15 dias.</p>
+    <p>Crie seu acesso e use a Aulora gratuitamente por 15 dias.</p>
 
     <form id="publicTeacherRegistrationForm">
       <div class="erp-form-grid">
@@ -45299,7 +45322,7 @@ function renderTeacherToolsPageV3(content) {
 
       <section class="card v3-tool-card">
         <h3>Exportacao para contador</h3>
-        <p>Baixa em CSV os lancamentos que o professor registrou no ERP. Nao cria cobrancas.</p>
+        <p>Baixa em CSV os lancamentos que o professor registrou na Aulora. Nao cria cobrancas.</p>
         <div class="v3-actions">
           <input type="month" id="accountantExportMonthV3" value="${month}">
           <button type="button" class="action-button" id="exportAccountantCsvV3">Baixar CSV</button>
@@ -45481,7 +45504,7 @@ async function loadAgendaOnboardingV5() {
   container.innerHTML = `
     <section class="card">
       <h3>Configuracao inicial</h3>
-      <p>Conclua estes passos para deixar o ERP pronto. Este aviso desaparece quando todos forem marcados.</p>
+      <p>Conclua estes passos para deixar seu espaco na Aulora pronto. Este aviso desaparece quando todos forem marcados.</p>
       <div id="onboardingStepsV3" class="v3-check-list">Carregando...</div>
     </section>
   `;
@@ -45600,3 +45623,68 @@ async function saveTeacherStudentGuardian(studentId) {
       : "Responsavel cadastrado ou vinculado. Novos acessos so entram depois da confirmacao do e-mail."
   );
 }
+
+
+// =====================================================
+// CONTROLES VISIVEIS PARA AGENDAS HORIZONTAIS
+// =====================================================
+
+function enhanceAuloraScheduleScrollers() {
+
+  document
+    .querySelectorAll(".schedule-wrapper")
+    .forEach(wrapper => {
+
+      if (wrapper.dataset.auloraScrollReady === "true") {
+        return;
+      }
+
+      wrapper.dataset.auloraScrollReady = "true";
+
+      const controls = document.createElement("div");
+      controls.className = "aulora-schedule-scroll-controls";
+      controls.innerHTML = `
+        <span>Veja todos os dias</span>
+        <button type="button" class="secondary-button" data-scroll-direction="left" aria-label="Rolar agenda para a esquerda">←</button>
+        <button type="button" class="secondary-button" data-scroll-direction="right" aria-label="Rolar agenda para a direita">→</button>
+      `;
+
+      wrapper.parentElement?.insertBefore(controls, wrapper);
+
+      const leftButton = controls.querySelector('[data-scroll-direction="left"]');
+      const rightButton = controls.querySelector('[data-scroll-direction="right"]');
+
+      const updateButtons = () => {
+        const maxScroll = Math.max(0, wrapper.scrollWidth - wrapper.clientWidth);
+        leftButton.disabled = wrapper.scrollLeft <= 2;
+        rightButton.disabled = wrapper.scrollLeft >= maxScroll - 2;
+        controls.classList.toggle("hidden", maxScroll <= 2);
+      };
+
+      controls.addEventListener("click", event => {
+        const button = event.target.closest("button[data-scroll-direction]");
+        if (!button) return;
+        const direction = button.dataset.scrollDirection === "left" ? -1 : 1;
+        wrapper.scrollBy({
+          left: direction * Math.max(280, wrapper.clientWidth * 0.72),
+          behavior: "smooth"
+        });
+      });
+
+      wrapper.addEventListener("scroll", updateButtons, { passive: true });
+      window.addEventListener("resize", updateButtons);
+      requestAnimationFrame(updateButtons);
+
+    });
+
+}
+
+
+const auloraScheduleObserver = new MutationObserver(() => {
+  requestAnimationFrame(enhanceAuloraScheduleScrollers);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  enhanceAuloraScheduleScrollers();
+  auloraScheduleObserver.observe(document.body, { childList: true, subtree: true });
+});
