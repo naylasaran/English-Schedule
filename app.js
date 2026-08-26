@@ -1,5 +1,5 @@
 console.log(
-  "ERP build: trial-suporte-cadastros-v1-20260826"
+  "ERP build: email-confirmacao-recuperacao-v4-20260826"
 );
 
 // =====================================================
@@ -25,6 +25,10 @@ let currentStudentTeacherSettings = null;
 let currentStudentAccessMode = "full";
 let currentTeacherAccess = null;
 let currentAdminTeacherFilter = "all";
+let publicTeacherFinalizationPromiseV4 = null;
+let adminSupportTicketsV3 = [];
+let adminSupportBeforeV3 = null;
+let adminSupportViewV4 = "active";
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -81,6 +85,82 @@ const logoutButton =
 const forgotPasswordButton =
   document.getElementById("forgotPasswordButton");
 
+const resendConfirmationButton =
+  document.getElementById("resendConfirmationButton");
+
+
+function getAppBaseUrlV4() {
+  const url = new URL(".", window.location.href);
+  url.search = "";
+  url.hash = "";
+  return url.href;
+}
+
+
+function isPasswordRecoveryUrlV4() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const query = new URLSearchParams(window.location.search);
+  return hash.get("type") === "recovery" || query.get("type") === "recovery";
+}
+
+
+async function finalizeConfirmedPublicTeacherV4(user) {
+  const metadata = user?.user_metadata || {};
+  if (metadata.signup_source !== "public" || !user?.email_confirmed_at) {
+    return null;
+  }
+
+  if (publicTeacherFinalizationPromiseV4) {
+    return publicTeacherFinalizationPromiseV4;
+  }
+
+  publicTeacherFinalizationPromiseV4 = (async () => {
+    const { error } = await supabaseClient.rpc(
+      "register_public_teacher_from_auth_v2",
+      {
+        p_name: metadata.name,
+        p_email: user.email,
+        p_phone: metadata.phone,
+        p_cpf: metadata.cpf,
+        p_pix: metadata.pix,
+        p_cnpj: metadata.cnpj,
+        p_work_start_time: metadata.work_start_time,
+        p_work_end_time: metadata.work_end_time,
+        p_work_days: Array.isArray(metadata.work_days) ? metadata.work_days : []
+      }
+    );
+
+    if (error && !/ja possui um perfil/i.test(error.message || "")) {
+      console.error("Nao foi possivel finalizar o perfil confirmado:", error);
+      return null;
+    }
+
+    await supabaseClient.auth.updateUser({
+      data: {
+        name: metadata.name,
+        role: "teacher",
+        signup_source: "public",
+        signup_finalized: true,
+        phone: null,
+        cpf: null,
+        pix: null,
+        cnpj: null,
+        work_start_time: null,
+        work_end_time: null,
+        work_days: null
+      }
+    });
+
+    return loadProfile(user.id);
+  })();
+
+  try {
+    return await publicTeacherFinalizationPromiseV4;
+  } finally {
+    publicTeacherFinalizationPromiseV4 = null;
+  }
+}
+
 
 // =====================================================
 // CARREGAR PERFIL
@@ -130,6 +210,10 @@ async function showLoggedUser(user) {
 
   currentProfile =
     await loadProfile(user.id);
+
+  if (!currentProfile) {
+    currentProfile = await finalizeConfirmedPublicTeacherV4(user);
+  }
 
   if (!currentProfile) {
 
@@ -2924,6 +3008,10 @@ function renderAdminTeacherManagement() {
       >
         <h4 style="margin-top:0;">Suporte</h4>
         <p>Mensagens enviadas por professores e interessados.</p>
+        <div class="admin-filter-tabs" style="margin-bottom:14px;">
+          <button type="button" class="secondary-button active" data-admin-support-view-v4="active">Em atendimento</button>
+          <button type="button" class="secondary-button" data-admin-support-view-v4="archived">Arquivados</button>
+        </div>
         <div id="adminSupportArea">Carregando chamados...</div>
       </div>
 
@@ -3067,6 +3155,14 @@ function renderAdminTeacherManagement() {
 
   loadAdminSupportArea();
   loadAdminPrivacyRequestsV3();
+
+  document.querySelectorAll("[data-admin-support-view-v4]")
+    .forEach(button => button.addEventListener("click", () => {
+      adminSupportViewV4 = button.dataset.adminSupportViewV4 || "active";
+      document.querySelectorAll("[data-admin-support-view-v4]")
+        .forEach(item => item.classList.toggle("active", item === button));
+      loadAdminSupportArea(false);
+    }));
 
 }
 
@@ -43663,7 +43759,9 @@ if (loginForm) {
 
 
         loginMessage.textContent =
-          "E-mail ou senha incorretos.";
+          /email.*not.*confirmed|email.*nao.*confirm/i.test(error.message || "")
+            ? "Confirme seu e-mail antes de entrar. Se precisar, use 'Reenviar confirmacao de e-mail'."
+            : "E-mail ou senha incorretos.";
 
 
         return;
@@ -43766,7 +43864,7 @@ if (forgotPasswordButton) {
             email,
             {
               redirectTo:
-                window.location.origin
+                getAppBaseUrlV4()
             }
           );
 
@@ -43793,6 +43891,88 @@ if (forgotPasswordButton) {
 }
 
 
+if (resendConfirmationButton) {
+  resendConfirmationButton.addEventListener(
+    "click",
+    async () => {
+      const email = document.getElementById("email")?.value.trim().toLowerCase() || "";
+      if (!isValidEmailV2(email)) {
+        loginMessage.textContent = "Digite um e-mail valido primeiro.";
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: getAppBaseUrlV4() }
+      });
+
+      loginMessage.textContent = error
+        ? "Nao foi possivel reenviar a confirmacao agora."
+        : "Confirmacao reenviada. Verifique tambem a pasta de spam.";
+    }
+  );
+}
+
+
+function showPasswordRecoveryFormV4() {
+  const mainLoginCard = document.querySelector("#loginScreen > .login-card");
+  const card = document.getElementById("passwordRecoveryCard");
+  if (!card) return;
+
+  loginScreen.classList.remove("hidden");
+  studentScreen.classList.add("hidden");
+  teacherScreen.classList.add("hidden");
+  mainLoginCard?.classList.add("hidden");
+  setPublicCardV2("passwordRecoveryCard");
+
+  card.innerHTML = `
+    <h2>Definir nova senha</h2>
+    <p>Informe uma nova senha para concluir a recuperacao da conta.</p>
+    <form id="passwordRecoveryFormV4">
+      <label for="newRecoveryPasswordV4">Nova senha</label>
+      <input id="newRecoveryPasswordV4" type="password" minlength="8" autocomplete="new-password" required>
+      <label for="confirmRecoveryPasswordV4">Confirmar nova senha</label>
+      <input id="confirmRecoveryPasswordV4" type="password" minlength="8" autocomplete="new-password" required>
+      <button type="submit" class="primary-button" id="saveRecoveryPasswordV4">Salvar nova senha</button>
+      <p id="passwordRecoveryMessageV4" class="message"></p>
+    </form>
+  `;
+
+  document.getElementById("passwordRecoveryFormV4")
+    ?.addEventListener("submit", saveRecoveryPasswordV4);
+}
+
+
+async function saveRecoveryPasswordV4(event) {
+  event.preventDefault();
+  const password = document.getElementById("newRecoveryPasswordV4")?.value || "";
+  const confirmation = document.getElementById("confirmRecoveryPasswordV4")?.value || "";
+  const message = document.getElementById("passwordRecoveryMessageV4");
+  const button = document.getElementById("saveRecoveryPasswordV4");
+
+  if (password.length < 8 || password !== confirmation) {
+    message.textContent = "Use ao menos 8 caracteres e repita a mesma senha.";
+    message.style.color = "red";
+    return;
+  }
+
+  button.disabled = true;
+  const { error } = await supabaseClient.auth.updateUser({ password });
+  if (error) {
+    button.disabled = false;
+    message.textContent = error.message || "Nao foi possivel alterar a senha.";
+    message.style.color = "red";
+    return;
+  }
+
+  message.textContent = "Senha atualizada. Voce ja pode entrar com a nova senha.";
+  message.style.color = "green";
+  await supabaseClient.auth.signOut();
+  window.setTimeout(() => window.location.replace(getAppBaseUrlV4()), 900);
+}
+
+
 // =====================================================
 // INICIALIZA\xc7\xc3O
 // =====================================================
@@ -43809,10 +43989,13 @@ async function initializeApp() {
 
 
   if (session?.user) {
-
-    await showLoggedUser(
-      session.user
-    );
+    if (isPasswordRecoveryUrlV4()) {
+      showPasswordRecoveryFormV4();
+    } else {
+      await showLoggedUser(
+        session.user
+      );
+    }
 
   }
 }
@@ -43827,6 +44010,11 @@ supabaseClient.auth.onAuthStateChange(
     event,
     session
   ) => {
+
+    if (event === "PASSWORD_RECOVERY" && session?.user) {
+      showPasswordRecoveryFormV4();
+      return;
+    }
 
     if (
       event === "SIGNED_IN" &&
@@ -43946,7 +44134,8 @@ function collectCheckedDaysV2(name) {
 function setPublicCardV2(cardId) {
   [
     "publicTeacherRegistrationCard",
-    "publicSupportCard"
+    "publicSupportCard",
+    "passwordRecoveryCard"
   ].forEach(id => {
     const card = document.getElementById(id);
     if (card) {
@@ -44066,11 +44255,34 @@ async function savePublicTeacherV2(event) {
     await authClient.auth.signUp({
       email,
       password,
-      options: { data: { name, role: "teacher", signup_source: "public" } }
+      options: {
+        emailRedirectTo: getAppBaseUrlV4(),
+        data: {
+          name,
+          role: "teacher",
+          signup_source: "public",
+          phone,
+          cpf,
+          pix,
+          cnpj,
+          work_start_time: startTime,
+          work_end_time: endTime,
+          work_days: workDays
+        }
+      }
     });
 
   if (authError || !authData?.user?.id) {
     fail(authError?.message || "Nao foi possivel criar o acesso.");
+    button.disabled = false;
+    button.textContent = "Criar acesso gratuito";
+    return;
+  }
+
+  if (!authData.session) {
+    event.target.reset();
+    message.textContent = "Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar o acesso e iniciar os 15 dias gratuitos.";
+    message.style.color = "green";
     button.disabled = false;
     button.textContent = "Criar acesso gratuito";
     return;
@@ -44203,13 +44415,30 @@ async function loadTeacherSupportArea() {
   if (!area) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "get_my_support_tickets_v2"
+    "get_my_support_tickets_v4"
   );
 
   if (error) {
     area.innerHTML = `<p>${escapeHtml(error.message || "Nao foi possivel carregar o suporte.")}</p>`;
     return;
   }
+
+  const tickets = data || [];
+  const activeTickets = tickets.filter(ticket => ticket.status !== "closed");
+  const archivedTickets = tickets.filter(ticket => ticket.status === "closed");
+  const renderTeacherTicketV4 = (ticket, archived) => `
+    <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
+      <strong>${escapeHtml(ticket.subject)}</strong>
+      <span style="margin-left:8px;">${archived ? "Arquivado" : escapeHtml(ticket.status)}</span>
+      <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
+      ${archived ? `
+        <p style="margin-bottom:0;color:#666;">Este chamado foi encerrado e esta disponivel somente para consulta.</p>
+      ` : `
+        <textarea id="teacherSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
+        <button type="button" class="secondary-button teacher-support-reply-button" data-ticket-id="${ticket.ticket_id}" style="margin-top:8px;">Responder</button>
+      `}
+    </div>
+  `;
 
   area.innerHTML = `
     <div class="support-form">
@@ -44219,17 +44448,17 @@ async function loadTeacherSupportArea() {
       <p id="teacherSupportFormMessage"></p>
     </div>
 
-    <div style="display:grid;gap:14px;margin-top:20px;">
-      ${(data || []).map(ticket => `
-        <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
-          <strong>${escapeHtml(ticket.subject)}</strong>
-          <span style="margin-left:8px;">${escapeHtml(ticket.status)}</span>
-          <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
-          <textarea id="teacherSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
-          <button type="button" class="secondary-button teacher-support-reply-button" data-ticket-id="${ticket.ticket_id}" style="margin-top:8px;">Responder</button>
-        </div>
-      `).join("") || "<p>Nenhum chamado enviado.</p>"}
+    <h4 style="margin:22px 0 10px;">Em atendimento</h4>
+    <div style="display:grid;gap:14px;">
+      ${activeTickets.map(ticket => renderTeacherTicketV4(ticket, false)).join("") || "<p>Nenhum chamado em atendimento.</p>"}
     </div>
+
+    <details style="margin-top:22px;">
+      <summary><strong>Arquivo (${archivedTickets.length})</strong></summary>
+      <div style="display:grid;gap:14px;margin-top:12px;">
+        ${archivedTickets.map(ticket => renderTeacherTicketV4(ticket, true)).join("") || "<p>Nenhum chamado arquivado.</p>"}
+      </div>
+    </details>
   `;
 
   document.getElementById("createTeacherSupportTicketButton")
@@ -44282,16 +44511,17 @@ async function replyTeacherSupportTicketV2(ticketId) {
 }
 
 
-let adminSupportTicketsV3 = [];
-let adminSupportBeforeV3 = null;
-
 async function loadAdminSupportArea(append = false) {
   const area = document.getElementById("adminSupportArea");
   if (!area) return;
 
   const { data, error } = await supabaseClient.rpc(
-    "get_admin_support_tickets_page_v3",
-    { p_limit: 50, p_before: append ? adminSupportBeforeV3 : null }
+    "get_admin_support_tickets_page_v4",
+    {
+      p_archived: adminSupportViewV4 === "archived",
+      p_limit: 50,
+      p_before: append ? adminSupportBeforeV3 : null
+    }
   );
 
   if (error) {
@@ -44314,13 +44544,17 @@ async function loadAdminSupportArea(append = false) {
           <div>${escapeHtml(ticket.contact_name)} - ${escapeHtml(ticket.contact_email)}</div>
           <small>${escapeHtml(ticket.source)} | ${escapeHtml(ticket.status)}</small>
           <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
-          <textarea id="adminSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-            <button type="button" class="secondary-button admin-support-reply-button" data-ticket-id="${ticket.ticket_id}">Responder</button>
-            <button type="button" class="secondary-button admin-support-close-button" data-ticket-id="${ticket.ticket_id}">Encerrar</button>
-          </div>
+          ${adminSupportViewV4 === "archived" ? `
+            <p style="margin-bottom:0;color:#666;">Encerrado e disponivel somente para consulta.</p>
+          ` : `
+            <textarea id="adminSupportReply-${ticket.ticket_id}" rows="2" placeholder="Responder..."></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+              <button type="button" class="secondary-button admin-support-reply-button" data-ticket-id="${ticket.ticket_id}">Responder</button>
+              <button type="button" class="secondary-button admin-support-close-button" data-ticket-id="${ticket.ticket_id}">Encerrar e arquivar</button>
+            </div>
+          `}
         </div>
-      `).join("") || "<p>Nenhum chamado recebido.</p>"}
+      `).join("") || `<p>Nenhum chamado ${adminSupportViewV4 === "archived" ? "arquivado" : "em atendimento"}.</p>`}
       ${(data || []).length === 50 ? '<button type="button" class="secondary-button" id="loadOlderAdminSupportV3">Carregar chamados anteriores</button>' : ''}
     </div>
   `;
@@ -44361,6 +44595,8 @@ async function replyAdminSupportTicketV2(ticketId) {
 
 
 async function closeAdminSupportTicketV2(ticketId) {
+  if (!window.confirm("Encerrar este chamado? Depois disso ele ficara somente para leitura no arquivo.")) return;
+
   const { error } = await supabaseClient.rpc(
     "set_support_ticket_status_v2",
     { p_ticket_id: ticketId, p_status: "closed" }
@@ -44371,7 +44607,7 @@ async function closeAdminSupportTicketV2(ticketId) {
     return;
   }
 
-  await loadAdminSupportArea();
+  await loadAdminSupportArea(false);
 }
 
 
@@ -44562,7 +44798,11 @@ async function saveNewStudentWithAccessV2() {
   currentTeacherStudents = [];
   await loadTeacherStudents();
   await loadTeacherStudentOverview();
-  alert("Aluno e acesso cadastrados com sucesso.");
+  alert(
+    provisionItem.confirmation_sent === false
+      ? "Aluno cadastrado, mas o e-mail de confirmacao nao pode ser enviado agora. Ele pode usar 'Reenviar confirmacao de e-mail' na entrada."
+      : "Aluno cadastrado. O acesso sera liberado depois que ele confirmar o e-mail."
+  );
 }
 
 
@@ -44610,7 +44850,10 @@ async function saveAdminTeacherV2() {
   const { data: authData, error: authError } = await authClient.auth.signUp({
     email,
     password,
-    options: { data: { name, role: "teacher" } }
+    options: {
+      emailRedirectTo: getAppBaseUrlV4(),
+      data: { name, role: "teacher" }
+    }
   });
 
   const rpcParams = {
@@ -44685,7 +44928,7 @@ async function saveAdminTeacherV2() {
   await authClient.auth.signOut();
   document.getElementById("adminTeacherRegistrationArea").style.display = "none";
   await loadAdminTeachers();
-  alert("Professor cadastrado com sucesso.");
+  alert("Professor cadastrado. O acesso sera liberado depois que ele confirmar o e-mail.");
 }
 
 
@@ -44802,7 +45045,7 @@ async function sendAdminTeacherPasswordResetV2(email) {
 
   const { error } = await supabaseClient.auth.resetPasswordForEmail(
     email,
-    { redirectTo: window.location.origin }
+    { redirectTo: getAppBaseUrlV4() }
   );
 
   if (error) {
@@ -45126,7 +45369,8 @@ async function importStudentsCsvV3() {
   const results = data?.results || [];
   const successes = results.filter(item => item.ok).length;
   const failures = results.filter(item => !item.ok);
-  area.innerHTML = `<strong>${successes} importado(s); ${failures.length} nao importado(s).</strong>${failures.length ? `<ul>${failures.map(item => `<li>${escapeHtml(item.email || `linha ${item.index + 2}`)}: ${escapeHtml(item.error)}</li>`).join("")}</ul>` : ""}`;
+  const confirmationsPending = results.filter(item => item.ok && item.confirmation_sent === false);
+  area.innerHTML = `<strong>${successes} importado(s); ${failures.length} nao importado(s).</strong>${confirmationsPending.length ? `<p>${confirmationsPending.length} e-mail(s) de confirmacao precisam ser reenviados pela tela de entrada.</p>` : ""}${failures.length ? `<ul>${failures.map(item => `<li>${escapeHtml(item.email || `linha ${item.index + 2}`)}: ${escapeHtml(item.error)}</li>`).join("")}</ul>` : ""}`;
   if (error) area.textContent = data?.error || error.message || "Falha na importacao.";
   button.disabled = false;
   currentTeacherStudents = [];
@@ -45254,5 +45498,10 @@ async function saveTeacherStudentGuardian(studentId) {
   const { data, error } = await supabaseClient.functions.invoke("provision-users", { body: { kind: "guardian", student_id: studentId, name, email, password } });
   button.disabled = false; button.textContent = "Criar / vincular acesso";
   if (error || data?.error) { message.textContent = data?.error || error.message || "Nao foi possivel vincular."; message.style.color = "red"; return; }
-  await openTeacherStudentDetail(studentId); alert("Responsavel cadastrado ou vinculado com seguranca.");
+  await openTeacherStudentDetail(studentId);
+  alert(
+    data?.confirmation_sent === false
+      ? "Responsavel cadastrado, mas o e-mail de confirmacao precisa ser reenviado pela tela de entrada."
+      : "Responsavel cadastrado ou vinculado. Novos acessos so entram depois da confirmacao do e-mail."
+  );
 }
