@@ -1162,6 +1162,17 @@ textarea:focus,
   box-shadow: 0 0 0 3px rgba(201, 111, 74, 0.13) !important;
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--aulora-graphite) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--aulora-warm-white) inset !important;
+  box-shadow: 0 0 0 1000px var(--aulora-warm-white) inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
 .primary-button,
 .action-button {
   border-radius: 10px;
