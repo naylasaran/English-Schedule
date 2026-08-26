@@ -1757,9 +1757,6 @@ async function showTeacherArea() {
 
   ensureTeacherSupportNavButton();
 
-  ensureTeacherToolsNavButtonV3();
-
-
   await loadCurrentTeacherProfileSettings();
 
 
@@ -1784,7 +1781,7 @@ async function showTeacherArea() {
 
   setTeacherPage("agenda");
 
-  await maybeStartOnboardingV3();
+  await loadAgendaOnboardingV5();
 }
 
 
@@ -15146,7 +15143,7 @@ function setTeacherPage(page) {
     });
 
   if (page === "tools") {
-    renderTeacherToolsPageV3(content);
+    setTeacherPage("profile");
     return;
   }
 
@@ -15199,10 +15196,16 @@ function setTeacherPage(page) {
 
       </div>
 
+      <div id="teacherProfileToolsV5"></div>
+
     `;
 
 
     loadTeacherProfilePage();
+
+    renderTeacherToolsPageV3(
+      document.getElementById("teacherProfileToolsV5")
+    );
 
     return;
   }
@@ -17551,6 +17554,11 @@ function setTeacherPage(page) {
   if (page === "agenda") {
 
     content.innerHTML = `
+
+      <div
+        id="teacherAgendaOnboardingV5"
+        style="margin-bottom:20px;"
+      ></div>
 
       <div
         id="teacherDashboardArea"
@@ -45252,6 +45260,7 @@ function ensureTeacherToolsNavButtonV3() {
 }
 
 function renderTeacherToolsPageV3(content) {
+  if (!content) return;
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const options = (currentTeacherStudents || []).map(student => {
@@ -45261,13 +45270,12 @@ function renderTeacherToolsPageV3(content) {
   }).join("");
 
   content.innerHTML = `
-    <div class="v3-tools-grid">
-      <section class="card v3-tool-card">
-        <h3>Configuracao inicial</h3>
-        <p>Conclua os passos essenciais para deixar o ERP pronto.</p>
-        <div id="onboardingStepsV3" class="v3-check-list">Carregando...</div>
-      </section>
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Recursos do perfil</h3>
+      <p>Importacoes, relatorios e opcoes relacionadas aos seus dados.</p>
+    </div>
 
+    <div class="v3-tools-grid">
       <section class="card v3-tool-card">
         <h3>Importar alunos por CSV</h3>
         <p>Importe ate 200 alunos por lote. Contas existentes nunca sao vinculadas automaticamente.</p>
@@ -45346,7 +45354,6 @@ function renderTeacherToolsPageV3(content) {
   document.getElementById("exportMyDataV3")?.addEventListener("click", exportMyDataV3);
   document.getElementById("requestCorrectionV3")?.addEventListener("click", () => requestPrivacyV3("correction"));
   document.getElementById("requestDeletionV3")?.addEventListener("click", () => requestPrivacyV3("deletion"));
-  loadOnboardingV3();
   populateProgressStudentsV3();
 }
 
@@ -45459,9 +45466,30 @@ async function loadOnboardingV3() {
   document.getElementById("saveOnboardingV3")?.addEventListener("click", saveOnboardingV3);
 }
 
-async function maybeStartOnboardingV3() {
+async function loadAgendaOnboardingV5() {
+  const container = document.getElementById("teacherAgendaOnboardingV5");
+  if (!container) return;
+
   const { data, error } = await supabaseClient.rpc("get_my_onboarding_v3");
-  if (!error && !data?.completed_at) setTeacherPage("tools");
+  if (error || data?.completed_at) {
+    container.innerHTML = "";
+    container.style.display = "none";
+    return;
+  }
+
+  container.style.display = "block";
+  container.innerHTML = `
+    <section class="card">
+      <h3>Configuracao inicial</h3>
+      <p>Conclua estes passos para deixar o ERP pronto. Este aviso desaparece quando todos forem marcados.</p>
+      <div id="onboardingStepsV3" class="v3-check-list">Carregando...</div>
+    </section>
+  `;
+  await loadOnboardingV3();
+}
+
+async function maybeStartOnboardingV3() {
+  await loadAgendaOnboardingV5();
 }
 
 async function saveOnboardingV3() {
@@ -45470,6 +45498,7 @@ async function saveOnboardingV3() {
   const completed = checks.every(item => item.checked);
   const { error } = await supabaseClient.rpc("save_my_onboarding_v3", { p_steps: steps, p_completed: completed });
   alert(error ? (error.message || "Nao foi possivel salvar.") : (completed ? "Configuracao inicial concluida." : "Progresso salvo."));
+  if (!error) await loadAgendaOnboardingV5();
 }
 
 async function loadMonthlyOperationsV3() {
