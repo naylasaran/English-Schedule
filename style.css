@@ -2517,6 +2517,7 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 
 .public-price-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .public-price-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 980px; margin: 0 auto; }
+.public-price-grid-four { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 1220px; margin: 0 auto; }
 .public-price-grid article { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 220px; padding: 25px 20px; border: 1px solid #e2d6c8; border-radius: 14px; background: #fffdfa; text-align: center; }
 .public-price-grid article > span { color: #44534d; font-size: 13px; font-weight: 800; }
 .public-price-grid article > .public-plan-name { color: #263d35; font-size: 18px; }
@@ -2618,6 +2619,7 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-pain-grid { grid-template-columns: repeat(5, 1fr); }
   .public-proof-grid { grid-template-columns: repeat(3, 1fr); }
   .public-price-grid { grid-template-columns: repeat(3, 1fr); }
+  .public-price-grid-four { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 780px; }
   .public-price-grid article:last-child { grid-column: span 1; }
 }
 
@@ -2649,6 +2651,7 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-faq { grid-template-columns: 1fr; gap: 35px; }
   .public-price-grid { grid-template-columns: repeat(2, 1fr); }
   .public-price-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .public-price-grid-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .public-final-cta { grid-template-columns: 55px 1fr; width: calc(100% - 42px); padding: 35px; }
   .public-final-cta .public-button { grid-column: 2; justify-self: start; }.mini-plant { position: absolute; right: 25px; bottom: 10px; opacity: .5; }
   .public-footer { grid-template-columns: 1fr auto; width: calc(100% - 42px); }.public-footer nav { display: none; }
@@ -2676,6 +2679,7 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-before-after { grid-template-columns: 1fr; padding-right: 0; padding-bottom: 130px; }.public-botanical { right: 20px; }
   .public-price-grid { grid-template-columns: 1fr; }.public-price-grid article { min-height: 190px; }.public-plan-notes { flex-direction: column; align-items: center; gap: 8px; }
   .public-price-grid-three { grid-template-columns: 1fr; }
+  .public-price-grid-four { grid-template-columns: 1fr; }
   .public-price-grid article.featured { transform: none; box-shadow: 0 22px 48px rgba(65, 92, 57, .26), 0 0 0 5px rgba(113, 140, 99, .1); }
   .public-enterprise-card { flex-direction: column; align-items: flex-start; padding: 23px; }
   .public-final-cta { grid-template-columns: 1fr; text-align: center; }.public-final-cta .final-sun { display: none; }.public-final-cta .public-button { grid-column: 1; justify-self: center; }.mini-plant { display: none; }
