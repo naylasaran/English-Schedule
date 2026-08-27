@@ -9142,17 +9142,12 @@ async function loadStudentRules() {
 
     container.innerHTML = `
 
-      <div
-        style="
-          padding:20px;
-          text-align:center;
-          border:1px solid #ddd;
-          border-radius:10px;
-        "
-      >
+      <div class="student-rules-empty-v11">
+        <span class="student-rules-empty-icon-v11" aria-hidden="true">☼</span>
         <strong>
-          Nenhuma regra cadastrada.
+          Professor está definindo as regras.
         </strong>
+        <small>Assim que estiverem prontas, elas aparecerão aqui.</small>
       </div>
 
     `;
@@ -9163,26 +9158,14 @@ async function loadStudentRules() {
 
   container.innerHTML = `
 
-    <div
-      style="
-        padding:20px;
-        border:1px solid #ddd;
-        border-radius:10px;
-        background:white;
-      "
-    >
+    <div class="student-rules-card-v11 ${rules ? "has-text" : "image-only"}">
 
       ${
         rules
 
           ? `
 
-            <div
-              style="
-                white-space:pre-wrap;
-                line-height:1.6;
-              "
-            >
+            <div class="student-rules-text-v11">
               ${escapeHtml(
                 rules
               )}
@@ -9204,14 +9187,7 @@ async function loadStudentRules() {
                 imageUrl
               )}"
               alt="Imagem das regras"
-              style="
-                display:block;
-                max-width:100%;
-                max-height:700px;
-                object-fit:contain;
-                margin-top:${rules ? "18px" : "0"};
-                border-radius:10px;
-              "
+              class="student-rules-image-v11"
             >
 
           `
@@ -15728,7 +15704,7 @@ function setTeacherPage(page) {
                 margin-bottom:7px;
               "
             >
-              Aluno
+              Destino inicial
             </label>
 
 
@@ -15742,12 +15718,11 @@ function setTeacherPage(page) {
               "
             >
               <option value="">
-                Selecione o aluno
+                Biblioteca (definir depois)
               </option>
             </select>
 
           </div>
-
 
           <div>
 
@@ -15780,6 +15755,9 @@ function setTeacherPage(page) {
 
         </div>
 
+        <p class="teacher-material-library-help-v11">
+          Voc&ecirc; pode guardar o material na biblioteca e escolher os alunos depois.
+        </p>
 
         <div
           style="
@@ -16230,17 +16208,6 @@ function setTeacherPage(page) {
                   border-radius:8px;
                 "
               >
-
-              <div
-                style="
-                  margin-top:5px;
-                  color:#666;
-                  font-size:12px;
-                "
-              >
-                Opcional. O professor tera um atalho
-                para este link acima da agenda.
-              </div>
 
             </div>
 
@@ -16743,22 +16710,6 @@ function setTeacherPage(page) {
               id="newStudentFixedScheduleRows"
             ></div>
 
-          </div>
-
-
-          <div
-            style="
-              margin-top:14px;
-              padding:12px;
-              background:#f7e9e1;
-              border-radius:8px;
-              font-size:13px;
-            "
-          >
-            A senha nao sera salva nas tabelas do Aularium.
-            Ela e enviada diretamente ao Supabase Auth.
-            Com a confirmacao de e-mail desativada no
-            Supabase, o acesso pode ser usado imediatamente.
           </div>
 
 
@@ -33349,12 +33300,6 @@ function renderTeacherWeeklySchedule(days) {
                 Nao atende
               </strong>
 
-              <br>
-
-              <small>
-                Fora dos dias de atendimento
-              </small>
-
             `;
 
 
@@ -36412,7 +36357,7 @@ async function openTeacherScheduleEditor(
     >
 
       <h3>
-        Editar hor\u00E1rio fixo
+        Alterar hor\u00E1rio
       </h3>
 
 
@@ -36446,20 +36391,45 @@ async function openTeacherScheduleEditor(
       >
 
         <strong>
-          Altera\u00E7\u00E3o da agenda fixa
+          Escolha o alcance da altera\u00E7\u00E3o
         </strong>
 
         <br><br>
 
-        A mudan\u00E7a entra em vigor hoje e vale
-        para as pr\u00F3ximas ocorr\u00EAncias deste hor\u00E1rio.
-
-        <br>
-
-        Semanas e dias anteriores permanecer\u00E3o
-        registrados como estavam.
+        A mudan\u00E7a pode valer somente para esta data
+        ou para todas as pr\u00F3ximas ocorr\u00EAncias da agenda fixa.
 
       </p>
+
+
+      <div style="margin-top:18px;">
+
+        <label
+          for="teacherSlotChangeScope"
+          style="display:block;font-weight:bold;margin-bottom:8px;"
+        >
+          Esta altera\u00E7\u00E3o vale para
+        </label>
+
+
+        <select
+          id="teacherSlotChangeScope"
+          style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;"
+        >
+          <option value="" selected>Escolha uma op\u00E7\u00E3o</option>
+          <option value="single">Somente ${formatDate(date)}</option>
+          <option value="fixed">Agenda fixa a partir de hoje</option>
+        </select>
+
+
+        <p
+          id="teacherSlotScopeHelpV10"
+          style="margin:8px 0 0;color:#666;font-size:13px;"
+        >
+          Selecione uma op\u00E7\u00E3o antes de salvar ou bloquear o dia.
+        </p>
+
+      </div>
 
 
       <div
@@ -36626,6 +36596,16 @@ async function openTeacherScheduleEditor(
         </button>
 
 
+        <button
+          type="button"
+          class="secondary-button"
+          id="blockTeacherWholeDayButtonV10"
+          style="border-color:#a9573a;color:#a9573a;"
+        >
+          Bloquear o dia inteiro
+        </button>
+
+
         ${
           currentStatus === "lesson"
             ? `
@@ -36688,6 +36668,18 @@ async function openTeacherScheduleEditor(
     );
 
 
+  const scopeSelect =
+    document.getElementById(
+      "teacherSlotChangeScope"
+    );
+
+
+  const scopeHelp =
+    document.getElementById(
+      "teacherSlotScopeHelpV10"
+    );
+
+
   function updateStudentVisibility() {
 
     if (
@@ -36736,6 +36728,30 @@ async function openTeacherScheduleEditor(
   }
 
 
+  if (scopeSelect) {
+
+    scopeSelect.addEventListener(
+      "change",
+      () => {
+
+        if (!scopeHelp) {
+          return;
+        }
+
+
+        scopeHelp.textContent =
+          scopeSelect.value === "single"
+            ? `A mudan\u00E7a afetar\u00E1 apenas ${formatDate(date)}. As outras semanas continuar\u00E3o iguais.`
+            : scopeSelect.value === "fixed"
+              ? "A mudan\u00E7a entrar\u00E1 em vigor hoje e valer\u00E1 nas pr\u00F3ximas semanas. O passado ser\u00E1 preservado."
+              : "Selecione uma op\u00E7\u00E3o antes de salvar ou bloquear o dia.";
+
+      }
+    );
+
+  }
+
+
   const saveButton =
     document.getElementById(
       "saveTeacherSlotButton"
@@ -36751,11 +36767,28 @@ async function openTeacherScheduleEditor(
       () => {
 
         saveTeacherWeeklySlot(
+          date,
           dayOfWeek,
           slot.start_time
         );
 
       }
+    );
+
+  }
+
+
+  const blockWholeDayButton =
+    document.getElementById(
+      "blockTeacherWholeDayButtonV10"
+    );
+
+
+  if (blockWholeDayButton) {
+
+    blockWholeDayButton.addEventListener(
+      "click",
+      () => blockTeacherScheduleDayV10(date)
     );
 
   }
@@ -38921,7 +38954,126 @@ async function confirmTeacherLessonMove(
 // SALVAR HOR\u00C1RIO DO PROFESSOR
 // =====================================================
 
+async function blockTeacherScheduleDayV10(
+  date
+) {
+
+  const scopeSelect =
+    document.getElementById(
+      "teacherSlotChangeScope"
+    );
+
+
+  const button =
+    document.getElementById(
+      "blockTeacherWholeDayButtonV10"
+    );
+
+
+  const message =
+    document.getElementById(
+      "teacherSlotMessage"
+    );
+
+
+  const scope =
+    scopeSelect
+      ? scopeSelect.value
+      : "";
+
+
+  if (!["single", "fixed"].includes(scope)) {
+
+    if (message) {
+      message.textContent =
+        "Escolha se o bloqueio vale somente para esta data ou para a agenda fixa.";
+      message.style.color = "red";
+    }
+
+    return;
+  }
+
+
+  const scopeLabel =
+    scope === "single"
+      ? `somente em ${formatDate(date)}`
+      : "na agenda fixa, a partir de hoje";
+
+
+  const warning =
+    scope === "single"
+      ? "As aulas fixas desta data serao canceladas, com reposicao liberada aos alunos. Reposicoes ja reservadas precisam ser tratadas antes."
+      : "Todos os horarios deste dia da semana ficarao indisponiveis nas proximas semanas.";
+
+
+  if (!window.confirm(
+    `Bloquear o dia inteiro ${scopeLabel}?\n\n${warning}`
+  )) {
+    return;
+  }
+
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Bloqueando...";
+  }
+
+
+  const { error } =
+    await supabaseClient.rpc(
+      "block_teacher_schedule_day_v2",
+      {
+        p_date:
+          formatDateForDatabase(date),
+        p_scope:
+          scope
+      }
+    );
+
+
+  if (error) {
+
+    if (message) {
+      message.textContent =
+        error.message ||
+        "Nao foi possivel bloquear o dia inteiro.";
+      message.style.color = "red";
+    }
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Bloquear o dia inteiro";
+    }
+
+    return;
+  }
+
+
+  const area =
+    document.getElementById(
+      "teacherScheduleEditArea"
+    );
+
+
+  if (area) {
+    area.innerHTML = "";
+  }
+
+
+  await loadTeacherWeeklySchedule();
+
+
+  alert(
+    scope === "single"
+      ? "Dia bloqueado somente nesta data. As outras semanas foram preservadas."
+      : "Dia bloqueado na agenda fixa a partir de hoje."
+  );
+
+}
+
+
 async function saveTeacherWeeklySlot(
+  date,
   dayOfWeek,
   startTime
 ) {
@@ -38938,6 +39090,12 @@ async function saveTeacherWeeklySlot(
     );
 
 
+  const scopeSelect =
+    document.getElementById(
+      "teacherSlotChangeScope"
+    );
+
+
   const button =
     document.getElementById(
       "saveTeacherSlotButton"
@@ -38950,13 +39108,29 @@ async function saveTeacherWeeklySlot(
     );
 
 
-  if (!statusSelect) {
+  if (!statusSelect || !scopeSelect) {
     return;
   }
 
 
   const status =
     statusSelect.value;
+
+
+  const scope =
+    scopeSelect.value;
+
+
+  if (!["single", "fixed"].includes(scope)) {
+
+    if (message) {
+      message.textContent =
+        "Escolha se a alteracao vale somente para esta data ou para a agenda fixa.";
+      message.style.color = "red";
+    }
+
+    return;
+  }
 
 
   const studentId =
@@ -39016,31 +39190,38 @@ async function saveTeacherWeeklySlot(
   }
 
 
-  const {
-    error
-  } =
-    await supabaseClient.rpc(
-      "manage_weekly_slot",
-      {
+  const rpcResult =
+    scope === "single"
+      ? await supabaseClient.rpc(
+          "save_teacher_schedule_exception_v2",
+          {
+            p_date:
+              formatDateForDatabase(date),
+            p_start_time:
+              normalizeTime(startTime),
+            p_status:
+              status,
+            p_student_id:
+              studentId
+          }
+        )
+      : await supabaseClient.rpc(
+          "manage_weekly_slot",
+          {
+            p_day_of_week:
+              Number(dayOfWeek),
+            p_start_time:
+              normalizeTime(startTime),
+            p_status:
+              status,
+            p_student_id:
+              studentId
+          }
+        );
 
-        p_day_of_week:
-          Number(
-            dayOfWeek
-          ),
 
-        p_start_time:
-          normalizeTime(
-            startTime
-          ),
-
-        p_status:
-          status,
-
-        p_student_id:
-          studentId
-
-      }
-    );
+  const error =
+    rpcResult.error;
 
 
   if (
@@ -39104,7 +39285,9 @@ async function saveTeacherWeeklySlot(
 
 
   alert(
-    "Hor\u00E1rio atualizado com sucesso."
+    scope === "single"
+      ? "Horario atualizado somente nesta data. A agenda fixa foi preservada."
+      : "Horario atualizado na agenda fixa com sucesso."
   );
 
 }
@@ -40161,7 +40344,7 @@ async function loadTeacherProfilePage() {
             "
           >
 
-            ${[2, 6, 24]
+            ${[2, 4, 6, 12, 24]
               .map(
                 value => `
 
@@ -40244,8 +40427,8 @@ async function loadTeacherProfilePage() {
               font-size:12px;
             "
           >
-            Conta reposi\u00E7\u00F5es agendadas ou realizadas
-            no m\u00EAs. Reposi\u00E7\u00F5es canceladas n\u00E3o contam.
+            Conta reposi\u00E7\u00F5es agendadas, realizadas ou
+            canceladas pelo aluno no m\u00EAs.
           </div>
 
         </div>
@@ -40331,7 +40514,7 @@ async function loadTeacherProfilePage() {
             "
           >
 
-            ${[2, 6, 24]
+            ${[2, 4, 6, 12, 24]
               .map(
                 value => `
 
@@ -41020,7 +41203,7 @@ async function saveTeacherProfilePage() {
 
 
   if (
-    ![2, 6, 24].includes(
+    ![2, 4, 6, 12, 24].includes(
       makeupNoticeHours
     )
     ||
@@ -41032,7 +41215,7 @@ async function saveTeacherProfilePage() {
       makeupMaxCount
     )
     ||
-    ![2, 6, 24].includes(
+    ![2, 4, 6, 12, 24].includes(
       lessonNoticeHours
     )
   ) {
@@ -41712,7 +41895,7 @@ async function loadTeacherMaterialsPage() {
   studentSelect.innerHTML = `
 
     <option value="">
-      Selecione o aluno
+      Biblioteca (definir depois)
     </option>
 
     ${currentTeacherMaterialStudents
@@ -41884,7 +42067,7 @@ function renderTeacherMaterialsList() {
                     "
                   >
                     ${escapeHtml(
-                      item.student_name
+                      item.student_name || "Biblioteca do professor"
                     )}
                   </div>
 
@@ -41941,6 +42124,36 @@ function renderTeacherMaterialsList() {
                 Abrir material
               </a>
 
+              ${
+                !item.student_id
+                  ? `
+                    <div class="teacher-material-assign-v11">
+                      <select
+                        class="teacher-material-assign-target-v11"
+                        data-material-id="${item.material_id}"
+                        aria-label="Escolher aluno para o material"
+                      >
+                        <option value="">Todos os alunos</option>
+                        ${currentTeacherMaterialStudents
+                          .map(student => `
+                            <option value="${student.student_id}">
+                              ${escapeHtml(student.student_name)}
+                            </option>
+                          `)
+                          .join("")}
+                      </select>
+                      <button
+                        type="button"
+                        class="secondary-button assign-teacher-material-button-v11"
+                        data-material-id="${item.material_id}"
+                      >
+                        Disponibilizar
+                      </button>
+                    </div>
+                  `
+                  : ""
+              }
+
             </div>
 
           `
@@ -41969,6 +42182,21 @@ function renderTeacherMaterialsList() {
         }
       );
 
+    });
+
+  document
+    .querySelectorAll(".assign-teacher-material-button-v11")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        const select = document.querySelector(
+          `.teacher-material-assign-target-v11[data-material-id="${button.dataset.materialId}"]`
+        );
+        assignTeacherMaterialV11(
+          button.dataset.materialId,
+          select ? select.value : "",
+          button
+        );
+      });
     });
 
 }
@@ -42037,23 +42265,6 @@ async function saveTeacherMaterial() {
     urlInput.value.trim();
 
 
-  if (!studentId) {
-
-    if (message) {
-
-      message.textContent =
-        "Selecione o aluno.";
-
-      message.style.color =
-        "red";
-
-    }
-
-
-    return;
-  }
-
-
   if (!title) {
 
     if (message) {
@@ -42110,7 +42321,7 @@ async function saveTeacherMaterial() {
       "save_teacher_material",
       {
         p_student_id:
-          studentId,
+          studentId || null,
 
         p_title:
           title,
@@ -42173,8 +42384,9 @@ async function saveTeacherMaterial() {
 
   if (message) {
 
-    message.textContent =
-      "Material adicionado com sucesso.";
+    message.textContent = studentId
+      ? "Material adicionado para o aluno."
+      : "Material salvo na biblioteca. Agora voce pode disponibiliza-lo para um aluno ou para todos.";
 
     message.style.color =
       "green";
@@ -42205,6 +42417,51 @@ async function saveTeacherMaterial() {
 
   }
 
+}
+
+
+async function assignTeacherMaterialV11(materialId, studentId, button) {
+  const targetName = studentId
+    ? currentTeacherMaterialStudents.find(student => String(student.student_id) === String(studentId))?.student_name || "o aluno"
+    : "todos os alunos";
+
+  if (!window.confirm(`Disponibilizar este material para ${targetName}?`)) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Disponibilizando...";
+  }
+
+  const { data, error } = await supabaseClient.rpc("assign_teacher_material", {
+    p_material_id: materialId,
+    p_student_id: studentId || null
+  });
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Disponibilizar";
+  }
+
+  if (error) {
+    alert(error.message || "Nao foi possivel disponibilizar o material.");
+    return;
+  }
+
+  const count = Number(data || 0);
+  alert(
+    count > 0
+      ? `Material disponibilizado para ${count} aluno(s).`
+      : "Esse material ja estava disponivel para o destino selecionado."
+  );
+
+  const { data: materials, error: reloadError } = await supabaseClient.rpc(
+    "get_teacher_materials",
+    { p_student_id: null }
+  );
+  if (!reloadError) {
+    currentTeacherMaterials = materials || [];
+    renderTeacherMaterialsList();
+  }
 }
 
 
@@ -45851,9 +46108,10 @@ function renderTeacherToolsPageV3(content) {
 
       <section class="card v3-tool-card">
         <h3>Exportacao para contador</h3>
-        <p>Baixa em CSV os lancamentos que o professor registrou no Aularium. Nao cria cobrancas.</p>
+        <p>Escolha um ou vários meses e baixe os lançamentos registrados no Aularium. A exportação não cria cobranças.</p>
         <div class="v3-actions">
-          <input type="month" id="accountantExportMonthV3" value="${month}">
+          <label>De<input type="month" id="accountantExportStartV11" value="${month}"></label>
+          <label>Até<input type="month" id="accountantExportEndV11" value="${month}"></label>
           <button type="button" class="action-button" id="exportAccountantCsvV3">Baixar CSV</button>
         </div>
       </section>
@@ -46070,13 +46328,64 @@ async function loadMonthlyOperationsV3() {
 function csvCellV3(value) { return `"${String(value ?? "").replace(/"/g, '""')}"`; }
 
 async function exportAccountantCsvV3() {
-  const value = document.getElementById("accountantExportMonthV3")?.value || "";
-  const [year, month] = value.split("-").map(Number);
-  const { data, error } = await supabaseClient.rpc("get_teacher_financial_records", { p_year: year, p_month: month, p_student_id: null });
-  if (error) { alert(error.message || "Nao foi possivel exportar."); return; }
+  const start = document.getElementById("accountantExportStartV11")?.value || "";
+  const end = document.getElementById("accountantExportEndV11")?.value || "";
+
+  if (!/^\d{4}-\d{2}$/.test(start) || !/^\d{4}-\d{2}$/.test(end) || start > end) {
+    alert("Selecione um periodo valido para a exportacao.");
+    return;
+  }
+
+  const periods = [];
+  let [year, month] = start.split("-").map(Number);
+  const [endYear, endMonth] = end.split("-").map(Number);
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    periods.push({ year, month, key: `${year}-${String(month).padStart(2, "0")}` });
+    month += 1;
+    if (month === 13) {
+      year += 1;
+      month = 1;
+    }
+    if (periods.length > 60) {
+      alert("O periodo maximo da exportacao e de 60 meses.");
+      return;
+    }
+  }
+
+  const results = await Promise.all(periods.map(period =>
+    supabaseClient.rpc("get_teacher_financial_records", {
+      p_year: period.year,
+      p_month: period.month,
+      p_student_id: null
+    })
+  ));
+  const failed = results.find(result => result.error);
+  if (failed) {
+    alert(failed.error?.message || "Nao foi possivel exportar.");
+    return;
+  }
+
   const headers = ["aluno","competencia","vencimento","valor","desconto","status","pago_em","nota_fiscal","observacoes"];
-  const lines = (data || []).map(item => [item.student_name, `${year}-${String(month).padStart(2,"0")}`, item.due_date, item.amount, item.discount, item.payment_status, item.paid_at, item.invoice_issued ? "sim" : "nao", item.notes].map(csvCellV3).join(";"));
-  downloadBlobV3(`financeiro-contador-${value}.csv`, "\uFEFF" + [headers.join(";"), ...lines].join("\n"), "text/csv;charset=utf-8");
+  const lines = results.flatMap((result, index) => {
+    const competence = periods[index].key;
+    return (result.data || []).map(item => [
+      item.student_name,
+      competence,
+      item.due_date,
+      item.amount,
+      item.discount,
+      item.payment_status,
+      item.paid_at,
+      item.invoice_issued ? "sim" : "nao",
+      item.notes
+    ].map(csvCellV3).join(";"));
+  });
+
+  downloadBlobV3(
+    `financeiro-contador-${start}-a-${end}.csv`,
+    "\uFEFF" + [headers.join(";"), ...lines].join("\n"),
+    "text/csv;charset=utf-8"
+  );
 }
 
 function progressReportTextV3() {
