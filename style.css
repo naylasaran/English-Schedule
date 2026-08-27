@@ -2424,13 +2424,22 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 }
 
 .public-price-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.public-price-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 980px; margin: 0 auto; }
 .public-price-grid article { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 220px; padding: 25px 20px; border: 1px solid #e2d6c8; border-radius: 14px; background: #fffdfa; text-align: center; }
 .public-price-grid article > span { color: #44534d; font-size: 13px; font-weight: 800; }
+.public-price-grid article > .public-plan-name { color: #263d35; font-size: 18px; }
+.public-plan-limit { display: block; margin-top: 9px; color: #77817b; font-size: 11px; }
 .public-price-grid strong { display: block; margin: 22px 0; color: #1e342c; font-size: 31px; }
 .public-price-grid strong small { font-size: 13px; }.public-price-grid strong em { color: #69736e; font-size: 11px; font-style: normal; font-weight: 500; }
 .public-price-grid article > i { position: absolute; top: -13px; left: 50%; padding: 6px 14px; border-radius: 20px; color: #fff; background: #6a825c; font-size: 9px; font-style: normal; transform: translateX(-50%); white-space: nowrap; }
 .public-price-grid article.featured { border-color: #819775; box-shadow: 0 15px 35px rgba(77, 105, 68, .14); }
 .public-price-grid .contact-price { font-size: 20px; }
+.public-enterprise-card { display: flex; align-items: center; justify-content: space-between; gap: 28px; max-width: 980px; margin: 18px auto 0; padding: 25px 28px; border: 1px solid #d9cbbc; border-radius: 15px; background: linear-gradient(110deg, #fffaf3, #eef3e8); box-shadow: 0 12px 30px rgba(80, 66, 48, .06); }
+.public-enterprise-card > div { max-width: 680px; }
+.public-enterprise-card span { color: #a35b40; font-size: 9px; font-weight: 850; letter-spacing: .13em; }
+.public-enterprise-card h3 { margin: 5px 0 7px; color: #20382f; font-family: Georgia, "Times New Roman", serif; font-size: 24px; }
+.public-enterprise-card p { margin: 0; color: #69736d; font-size: 13px; line-height: 1.5; }
+.public-enterprise-card .public-button { flex: 0 0 auto; }
 .public-plan-notes { display: flex; justify-content: center; gap: 38px; margin-top: 24px; color: #70776f; font-size: 12px; }
 
 .public-faq { display: grid; grid-template-columns: .72fr 1.28fr; gap: 80px; }
@@ -2515,6 +2524,7 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-experience-copy { text-align: center; }.public-experience-cards { max-width: 680px; margin: auto; }
   .public-faq { grid-template-columns: 1fr; gap: 35px; }
   .public-price-grid { grid-template-columns: repeat(2, 1fr); }
+  .public-price-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .public-final-cta { grid-template-columns: 55px 1fr; width: calc(100% - 42px); padding: 35px; }
   .public-final-cta .public-button { grid-column: 2; justify-self: start; }.mini-plant { position: absolute; right: 25px; bottom: 10px; opacity: .5; }
   .public-footer { grid-template-columns: 1fr auto; width: calc(100% - 42px); }.public-footer nav { display: none; }
@@ -2530,6 +2540,8 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-experience-cards { grid-template-columns: 1fr; }.public-experience-cards > article { min-height: 310px; }
   .public-before-after { grid-template-columns: 1fr; padding-right: 0; padding-bottom: 130px; }.public-botanical { right: 20px; }
   .public-price-grid { grid-template-columns: 1fr; }.public-price-grid article { min-height: 190px; }.public-plan-notes { flex-direction: column; align-items: center; gap: 8px; }
+  .public-price-grid-three { grid-template-columns: 1fr; }
+  .public-enterprise-card { flex-direction: column; align-items: flex-start; padding: 23px; }
   .public-final-cta { grid-template-columns: 1fr; text-align: center; }.public-final-cta .final-sun { display: none; }.public-final-cta .public-button { grid-column: 1; justify-self: center; }.mini-plant { display: none; }
   #loginScreen .public-auth-card { padding: 34px 23px 24px; }
 }
