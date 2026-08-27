@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: sessao-unica-professor-v14-20260827"
+  "Aularium build: sessao-unica-professor-aluno-v15-20260827"
 );
 
 // =====================================================
@@ -31,10 +31,10 @@ let adminSupportBeforeV3 = null;
 let adminSupportViewV4 = "active";
 let currentAccessViewV5 = "teacher";
 let selectedPublicPlanV13 = "starter";
-let teacherLoginSessionTokenV14 = "";
-let teacherLoginHeartbeatV14 = null;
-let teacherLoginHeartbeatBusyV14 = false;
-let teacherSessionForcedLogoutV14 = false;
+let singleLoginSessionTokenV15 = "";
+let singleLoginHeartbeatV15 = null;
+let singleLoginHeartbeatBusyV15 = false;
+let singleLoginForcedLogoutV15 = false;
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -105,37 +105,43 @@ function getAppBaseUrlV4() {
 }
 
 
-function getTeacherLoginSessionTokenV14() {
-  if (teacherLoginSessionTokenV14) return teacherLoginSessionTokenV14;
+function shouldLimitSingleLoginV15(profile = currentProfile) {
+  if (!profile || profile.is_admin === true) return false;
+  return profile.role === "teacher" || profile.role === "student";
+}
 
-  const storageKey = "aularium_teacher_device_session_v14";
+
+function getSingleLoginSessionTokenV15() {
+  if (singleLoginSessionTokenV15) return singleLoginSessionTokenV15;
+
+  const storageKey = "aularium_device_session_v15";
   try {
-    teacherLoginSessionTokenV14 = localStorage.getItem(storageKey) || "";
-    if (!teacherLoginSessionTokenV14) {
-      teacherLoginSessionTokenV14 = crypto.randomUUID();
-      localStorage.setItem(storageKey, teacherLoginSessionTokenV14);
+    singleLoginSessionTokenV15 = localStorage.getItem(storageKey) || "";
+    if (!singleLoginSessionTokenV15) {
+      singleLoginSessionTokenV15 = crypto.randomUUID();
+      localStorage.setItem(storageKey, singleLoginSessionTokenV15);
     }
   } catch {
-    teacherLoginSessionTokenV14 = crypto.randomUUID();
+    singleLoginSessionTokenV15 = crypto.randomUUID();
   }
 
-  return teacherLoginSessionTokenV14;
+  return singleLoginSessionTokenV15;
 }
 
 
-function stopTeacherLoginHeartbeatV14() {
-  if (teacherLoginHeartbeatV14) {
-    window.clearInterval(teacherLoginHeartbeatV14);
-    teacherLoginHeartbeatV14 = null;
+function stopSingleLoginHeartbeatV15() {
+  if (singleLoginHeartbeatV15) {
+    window.clearInterval(singleLoginHeartbeatV15);
+    singleLoginHeartbeatV15 = null;
   }
-  teacherLoginHeartbeatBusyV14 = false;
+  singleLoginHeartbeatBusyV15 = false;
 }
 
 
-async function claimTeacherLoginSessionV14() {
+async function claimSingleLoginSessionV15() {
   const { data, error } = await supabaseClient.rpc(
-    "claim_teacher_login_session_v14",
-    { p_session_token: getTeacherLoginSessionTokenV14() }
+    "claim_single_login_session_v15",
+    { p_session_token: getSingleLoginSessionTokenV15() }
   );
 
   if (error) {
@@ -149,13 +155,13 @@ async function claimTeacherLoginSessionV14() {
 }
 
 
-async function releaseTeacherLoginSessionV14() {
-  if (!teacherLoginSessionTokenV14 || currentProfile?.role !== "teacher") return;
+async function releaseSingleLoginSessionV15() {
+  if (!singleLoginSessionTokenV15 || !shouldLimitSingleLoginV15()) return;
 
   try {
     await supabaseClient.rpc(
-      "release_teacher_login_session_v14",
-      { p_session_token: teacherLoginSessionTokenV14 }
+      "release_single_login_session_v15",
+      { p_session_token: singleLoginSessionTokenV15 }
     );
   } catch (error) {
     console.warn("A sessao exclusiva sera liberada automaticamente.", error);
@@ -163,10 +169,10 @@ async function releaseTeacherLoginSessionV14() {
 }
 
 
-async function blockConcurrentTeacherLoginV14(resultCode = "active_elsewhere") {
-  if (teacherSessionForcedLogoutV14) return;
-  teacherSessionForcedLogoutV14 = true;
-  stopTeacherLoginHeartbeatV14();
+async function blockConcurrentSingleLoginV15(resultCode = "active_elsewhere") {
+  if (singleLoginForcedLogoutV15) return;
+  singleLoginForcedLogoutV15 = true;
+  stopSingleLoginHeartbeatV15();
 
   await supabaseClient.auth.signOut();
   currentUser = null;
@@ -178,30 +184,30 @@ async function blockConcurrentTeacherLoginV14(resultCode = "active_elsewhere") {
   showPublicAuthV6();
 
   loginMessage.textContent = resultCode === "active_elsewhere"
-    ? "Este professor ja esta conectado em outro aparelho ou navegador. Encerre a outra sessao ou aguarde cerca de 2 minutos para tentar novamente."
+    ? "Esta conta ja esta conectada em outro aparelho ou navegador. Encerre a outra sessao ou aguarde cerca de 2 minutos para tentar novamente."
     : "Nao foi possivel validar o acesso exclusivo agora. Verifique sua conexao e tente novamente.";
 
   window.setTimeout(() => {
-    teacherSessionForcedLogoutV14 = false;
+    singleLoginForcedLogoutV15 = false;
   }, 500);
 }
 
 
-function startTeacherLoginHeartbeatV14() {
-  stopTeacherLoginHeartbeatV14();
+function startSingleLoginHeartbeatV15() {
+  stopSingleLoginHeartbeatV15();
 
-  teacherLoginHeartbeatV14 = window.setInterval(async () => {
-    if (teacherLoginHeartbeatBusyV14 || currentProfile?.role !== "teacher") return;
-    teacherLoginHeartbeatBusyV14 = true;
+  singleLoginHeartbeatV15 = window.setInterval(async () => {
+    if (singleLoginHeartbeatBusyV15 || !shouldLimitSingleLoginV15()) return;
+    singleLoginHeartbeatBusyV15 = true;
 
     const { data, error } = await supabaseClient.rpc(
-      "touch_teacher_login_session_v14",
-      { p_session_token: getTeacherLoginSessionTokenV14() }
+      "touch_single_login_session_v15",
+      { p_session_token: getSingleLoginSessionTokenV15() }
     );
 
-    teacherLoginHeartbeatBusyV14 = false;
+    singleLoginHeartbeatBusyV15 = false;
     if (error || data !== true) {
-      await blockConcurrentTeacherLoginV14(
+      await blockConcurrentSingleLoginV15(
         error ? "service_error" : "active_elsewhere"
       );
     }
@@ -380,7 +386,7 @@ async function showLoggedUser(user) {
     ) {
 
       if (currentProfile.is_admin === true) {
-        currentTeacherAccess = teacherAccount;
+        currentTeacherAccess = null;
         await showAdminArea();
         return;
       }
@@ -406,6 +412,17 @@ async function showLoggedUser(user) {
 
       return;
     }
+
+
+    const studentLoginSession = await claimSingleLoginSessionV15();
+    if (studentLoginSession.allowed !== true) {
+      await blockConcurrentSingleLoginV15(
+        studentLoginSession.result_code || "service_error"
+      );
+      return;
+    }
+
+    startSingleLoginHeartbeatV15();
 
 
     await showStudentArea();
@@ -472,15 +489,17 @@ async function showLoggedUser(user) {
     }
 
 
-    const teacherLoginSession = await claimTeacherLoginSessionV14();
-    if (teacherLoginSession.allowed !== true) {
-      await blockConcurrentTeacherLoginV14(
-        teacherLoginSession.result_code || "service_error"
-      );
-      return;
-    }
+    if (shouldLimitSingleLoginV15()) {
+      const teacherLoginSession = await claimSingleLoginSessionV15();
+      if (teacherLoginSession.allowed !== true) {
+        await blockConcurrentSingleLoginV15(
+          teacherLoginSession.result_code || "service_error"
+        );
+        return;
+      }
 
-    startTeacherLoginHeartbeatV14();
+      startSingleLoginHeartbeatV15();
+    }
 
 
     currentTeacherAccess = teacherAccount;
@@ -44761,8 +44780,8 @@ if (logoutButton) {
     "click",
     async () => {
 
-      await releaseTeacherLoginSessionV14();
-      stopTeacherLoginHeartbeatV14();
+      await releaseSingleLoginSessionV15();
+      stopSingleLoginHeartbeatV15();
 
       await supabaseClient.auth.signOut();
 
@@ -45002,7 +45021,7 @@ supabaseClient.auth.onAuthStateChange(
     }
 
     if (event === "SIGNED_OUT") {
-      stopTeacherLoginHeartbeatV14();
+      stopSingleLoginHeartbeatV15();
     }
 
   }
