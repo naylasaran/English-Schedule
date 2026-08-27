@@ -2610,6 +2610,64 @@ function bindAccessSwitcherV5() {
 // TELA ADM
 // =====================================================
 
+function setupAdminSideMenuV8(content) {
+  const teacherCard = content?.querySelector(":scope > .card");
+  if (!content || !teacherCard || content.querySelector(".admin-workspace-v8")) return;
+
+  const layout = document.createElement("div");
+  layout.className = "admin-workspace-v8";
+  layout.innerHTML = `
+    <aside class="admin-side-menu-v8" aria-label="Menu administrativo">
+      <button type="button" class="admin-side-button-v8 active" data-admin-workspace-v8="paid"><span>1</span>Professores assinantes</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="trial"><span>2</span>Professores interessados / teste gr&aacute;tis</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="free"><span>3</span>Professores gr&aacute;tis ilimitado</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>4</span>Suporte</button>
+    </aside>
+    <div class="admin-panels-v8">
+      <section class="admin-panel-v8" data-admin-panel-v8="teachers"></section>
+      <section class="admin-panel-v8" data-admin-panel-v8="support" hidden></section>
+    </div>
+  `;
+
+  content.appendChild(layout);
+  const teacherPanel = layout.querySelector('[data-admin-panel-v8="teachers"]');
+  const supportPanel = layout.querySelector('[data-admin-panel-v8="support"]');
+  teacherPanel.appendChild(teacherCard);
+
+  [
+    document.getElementById("adminSupportArea")?.parentElement,
+    document.getElementById("adminSecurityCheckArea")?.parentElement,
+    document.getElementById("adminIntegrityCheckArea")?.parentElement,
+    document.getElementById("adminQaArea")?.parentElement,
+    document.getElementById("adminPrivacyRequestsV3")?.parentElement
+  ].filter((section, index, sections) => section && sections.indexOf(section) === index)
+    .forEach(section => supportPanel.appendChild(section));
+
+  const selectWorkspace = view => {
+    const isSupport = view === "support";
+    teacherPanel.hidden = isSupport;
+    supportPanel.hidden = !isSupport;
+
+    layout.querySelectorAll("[data-admin-workspace-v8]").forEach(button => {
+      button.classList.toggle("active", button.dataset.adminWorkspaceV8 === view);
+    });
+
+    if (!isSupport) {
+      currentAdminTeacherFilter = view;
+      document.querySelectorAll("[data-admin-teacher-filter]").forEach(button => {
+        button.classList.toggle("active", button.dataset.adminTeacherFilter === view);
+      });
+      renderAdminTeacherListV2();
+    }
+  };
+
+  layout.querySelectorAll("[data-admin-workspace-v8]").forEach(button => {
+    button.addEventListener("click", () => selectWorkspace(button.dataset.adminWorkspaceV8));
+  });
+
+  selectWorkspace("paid");
+}
+
 function renderAdminTeacherManagement() {
 
   const content =
@@ -3226,6 +3284,8 @@ function renderAdminTeacherManagement() {
         .forEach(item => item.classList.toggle("active", item === button));
       loadAdminSupportArea(false);
     }));
+
+  setupAdminSideMenuV8(content);
 
 }
 
