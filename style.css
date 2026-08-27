@@ -2271,9 +2271,9 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .proof-makeups > div { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: 4px; padding: 11px; border: 1px solid #e9e0d6; border-radius: 10px; background: #fff; }
 .proof-makeups > div b { color: #34483f; font-size: 9px; }.proof-makeups > div small { color: #808782; font-size: 7px; }.proof-makeups > div em { grid-row: 1 / 3; grid-column: 2; align-self: center; padding: 4px 7px; border-radius: 8px; color: #5d7654; background: #edf3e8; font-size: 7px; font-style: normal; }
 
-.public-real-gallery { display: grid; grid-template-columns: 1.14fr .86fr; align-items: stretch; gap: 22px; }
+.public-real-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 22px; }
 .public-real-shot { display: flex; flex-direction: column; margin: 0; padding: 12px; overflow: hidden; border: 1px solid #dfd3c6; border-radius: 20px; background: #fffdfa; box-shadow: 0 24px 55px rgba(75, 61, 46, .13); }
-.public-real-shot-main { transform: translateY(-8px); }
+.public-real-shot-main { transform: none; }
 .public-shot-window { position: relative; flex: 1; min-height: 390px; padding-top: 27px; overflow: hidden; border: 1px solid #e6ddd3; border-radius: 13px; background: #f4efe8; }
 .public-shot-dots { position: absolute; z-index: 2; top: 6px; left: 12px; color: #d2a18b; font-size: 8px; letter-spacing: 3px; }
 .public-shot-window img { display: block; width: 100%; height: 100%; min-height: 390px; object-fit: cover; object-position: top left; }
@@ -2522,6 +2522,9 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .public-price-grid article > .public-plan-name { color: #263d35; font-size: 18px; }
 .public-plan-moment { display: block; min-height: 24px; margin-bottom: 7px; color: #a45c40; font-size: 8px; font-weight: 850; letter-spacing: .11em; }
 .public-plan-limit { display: block; margin-top: 9px; color: #77817b; font-size: 11px; }
+.public-limit-info { display: inline-grid; place-items: center; width: 17px; height: 17px; margin-left: 3px; border-radius: 50%; color: #5d7654; background: #e6eedf; font-size: 11px; font-weight: 900; cursor: help; vertical-align: -2px; }
+.public-limit-explanation { max-width: 760px; margin: 27px auto 0; padding: 13px 18px; border: 1px solid #ded2c5; border-radius: 12px; color: #66716b; background: rgba(255,253,249,.75); font-size: 11px; line-height: 1.55; text-align: center; }
+.public-limit-explanation strong { color: #344a41; }
 .public-price-grid strong { display: block; margin: 22px 0; color: #1e342c; font-size: 31px; }
 .public-price-grid strong small { font-size: 13px; }.public-price-grid strong em { color: #69736e; font-size: 11px; font-style: normal; font-weight: 500; }
 .public-price-grid article > i { position: absolute; top: -13px; left: 50%; padding: 6px 14px; border-radius: 20px; color: #fff; background: #6a825c; font-size: 9px; font-style: normal; transform: translateX(-50%); white-space: nowrap; }
