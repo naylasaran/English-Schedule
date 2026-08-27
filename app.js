@@ -45170,7 +45170,7 @@ function closePublicCardsV6() {
 
 const PUBLIC_PLANS_V13 = {
   trial: { name: "Teste gratuito", price: "15 dias grátis", limit: 30, paid: false, trial: true },
-  starter: { name: "Starter", price: "Grátis", limit: 5, paid: false },
+  starter: { name: "Starter", price: "R$ 14,90/mês", limit: 5, paid: true },
   plus: { name: "Plus", price: "R$ 29,90/mês", limit: 10, paid: true },
   pro: { name: "Pro", price: "R$ 59,90/mês", limit: 20, paid: true },
   premium: { name: "Premium", price: "R$ 89,90/mês", limit: 30, paid: true }
@@ -45202,9 +45202,7 @@ function openPublicTeacherRegistrationV2(planCode = "starter") {
     </p>
     <p>${selectedPlan.trial
       ? "Crie seu acesso e experimente o Aularium durante 15 dias, sem cadastrar cartão."
-      : selectedPlan.paid
-      ? "Preencha seus dados para criar a assinatura escolhida no Aularium."
-      : "Crie seu acesso ao plano Starter gratuito do Aularium."
+      : "Preencha seus dados para criar a assinatura escolhida no Aularium."
     }</p>
 
     <form id="publicTeacherRegistrationForm">
