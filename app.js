@@ -1,5 +1,5 @@
 console.log(
-  "Aulora build: identidade-visual-v1-20260826"
+  "Aularium build: pagina-publica-v1-20260827"
 );
 
 // =====================================================
@@ -221,10 +221,14 @@ async function showLoggedUser(user) {
     loginMessage.textContent =
       "N\xe3o foi poss\xedvel carregar seu perfil.";
 
+    loginScreen.classList.remove("hidden");
+    showPublicAuthV6();
+
     return;
   }
 
   loginScreen.classList.add("hidden");
+  loginScreen.classList.remove("modal-open");
 
 
   if (
@@ -284,6 +288,8 @@ async function showLoggedUser(user) {
 
       loginMessage.textContent =
         "Este acesso esta pausado ou desativado e nao possui reposicoes disponiveis.";
+
+      showPublicAuthV6();
 
       return;
     }
@@ -345,6 +351,8 @@ async function showLoggedUser(user) {
 
       loginMessage.textContent =
         "Este acesso de professor foi pausado ou desativado pelo administrador.";
+
+      showPublicAuthV6();
 
 
       return;
@@ -2946,7 +2954,7 @@ function renderAdminTeacherManagement() {
                 margin:0;
               "
             >
-              Seguranca da Aulora
+              Seguranca do Aularium
             </h4>
 
 
@@ -3009,7 +3017,7 @@ function renderAdminTeacherManagement() {
                 margin:0;
               "
             >
-              Integridade da Aulora
+              Integridade do Aularium
             </h4>
 
 
@@ -3093,7 +3101,7 @@ function renderAdminTeacherManagement() {
               "
             >
               Execute os fluxos com contas de teste e registre
-              aqui o resultado antes de liberar a Aulora.
+              aqui o resultado antes de liberar o Aularium.
             </p>
 
           </div>
@@ -3306,7 +3314,7 @@ function getAdminQaChecks() {
       title:
         "Diagnostico de seguranca",
       instruction:
-        "No ADM, execute Seguranca da Aulora.",
+        "No ADM, execute Seguranca do Aularium.",
       expected:
         "O diagnostico principal deve retornar OK, sem permissoes sensiveis abertas."
     },
@@ -3319,7 +3327,7 @@ function getAdminQaChecks() {
       title:
         "Diagnostico de integridade",
       instruction:
-        "No ADM, execute Integridade da Aulora.",
+        "No ADM, execute Integridade do Aularium.",
       expected:
         "Nenhuma inconsistencia critica deve permanecer antes da liberacao."
     },
@@ -16384,7 +16392,7 @@ function setTeacherPage(page) {
               font-size:13px;
             "
           >
-            A senha nao sera salva nas tabelas da Aulora.
+            A senha nao sera salva nas tabelas do Aularium.
             Ela e enviada diretamente ao Supabase Auth.
             Com a confirmacao de e-mail desativada no
             Supabase, o acesso pode ser usado imediatamente.
@@ -21342,7 +21350,7 @@ function openTeacherStudentPauseOptions(
           "
         >
           O login do aluno continua ativo.
-          Ele continua podendo entrar na Aulora,
+          Ele continua podendo entrar no Aularium,
           ver suas reposicoes e marcar reposicoes normalmente.
           Somente as aulas fixas ficam pausadas.
         </p>
@@ -21666,7 +21674,7 @@ async function deleteTeacherStudent(
       ) +
       "\"?\n\n" +
 
-      "O aluno sumira da lista, o acesso a Aulora sera bloqueado " +
+      "O aluno sumira da lista, o acesso ao Aularium sera bloqueado " +
       "e os horarios futuros dele serao liberados.\n\n" +
 
       "O historico das aulas passadas sera preservado."
@@ -44024,6 +44032,8 @@ if (logoutButton) {
         "hidden"
       );
 
+      closePublicCardsV6();
+
 
       if (loginForm) {
 
@@ -44349,6 +44359,32 @@ function setPublicCardV2(cardId) {
       card.classList.toggle("hidden", id !== cardId);
     }
   });
+
+  const authCard = document.getElementById("publicAuthCard");
+  if (cardId && authCard) {
+    authCard.classList.add("hidden");
+  }
+
+  const hasOpenCard = Boolean(cardId) ||
+    Boolean(authCard && !authCard.classList.contains("hidden"));
+  loginScreen?.classList.toggle("modal-open", hasOpenCard);
+}
+
+
+function showPublicAuthV6() {
+  setPublicCardV2("");
+  const authCard = document.getElementById("publicAuthCard");
+  if (!authCard) return;
+  authCard.classList.remove("hidden");
+  loginScreen?.classList.add("modal-open");
+  window.setTimeout(() => document.getElementById("email")?.focus(), 0);
+}
+
+
+function closePublicCardsV6() {
+  document.getElementById("publicAuthCard")?.classList.add("hidden");
+  setPublicCardV2("");
+  loginScreen?.classList.remove("modal-open");
 }
 
 
@@ -44361,7 +44397,7 @@ function openPublicTeacherRegistrationV2() {
 
   card.innerHTML = `
     <h2>Novo professor</h2>
-    <p>Crie seu acesso e use a Aulora gratuitamente por 15 dias.</p>
+    <p>Crie seu acesso e use o Aularium gratuitamente por 15 dias.</p>
 
     <form id="publicTeacherRegistrationForm">
       <div class="erp-form-grid">
@@ -45361,12 +45397,32 @@ if (openPublicSupportButtonV2) {
   );
 }
 
+document.querySelectorAll("[data-public-action]").forEach(button => {
+  button.addEventListener("click", () => {
+    const action = button.dataset.publicAction;
+    if (action === "login") showPublicAuthV6();
+    if (action === "trial") openPublicTeacherRegistrationV2();
+    if (action === "support") openPublicSupportV2();
+  });
+});
+
+document.getElementById("closePublicAuthButton")?.addEventListener(
+  "click",
+  closePublicCardsV6
+);
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && loginScreen?.classList.contains("modal-open")) {
+    closePublicCardsV6();
+  }
+});
+
 
 // =====================================================
 // EXPANSAO V3: FERRAMENTAS, IMPORTACAO, RELATORIOS E LGPD
 // =====================================================
 
-const LEGAL_VERSION_V3 = "2026-08-26";
+const LEGAL_VERSION_V3 = "2026-08-27";
 
 function safeHrefV3(value) {
   try {
@@ -45432,7 +45488,7 @@ function renderTeacherToolsPageV3(content) {
 
       <section class="card v3-tool-card">
         <h3>Exportacao para contador</h3>
-        <p>Baixa em CSV os lancamentos que o professor registrou na Aulora. Nao cria cobrancas.</p>
+        <p>Baixa em CSV os lancamentos que o professor registrou no Aularium. Nao cria cobrancas.</p>
         <div class="v3-actions">
           <input type="month" id="accountantExportMonthV3" value="${month}">
           <button type="button" class="action-button" id="exportAccountantCsvV3">Baixar CSV</button>
@@ -45614,7 +45670,7 @@ async function loadAgendaOnboardingV5() {
   container.innerHTML = `
     <section class="card">
       <h3>Configuracao inicial</h3>
-      <p>Conclua estes passos para deixar seu espaco na Aulora pronto. Este aviso desaparece quando todos forem marcados.</p>
+      <p>Conclua estes passos para deixar seu espaco no Aularium pronto. Este aviso desaparece quando todos forem marcados.</p>
       <div id="onboardingStepsV3" class="v3-check-list">Carregando...</div>
     </section>
   `;

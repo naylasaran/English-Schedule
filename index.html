@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Aulora — Learning &amp; Class Management</title>
+  <title>Aularium — Gestão para professores particulares</title>
+  <meta name="description" content="Organize alunos, agenda, presenças, reposições, materiais, planejamento e financeiro em um só lugar.">
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23fffaf3'/%3E%3Cg fill='none' stroke='%23c96843' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M14 42h36M20 42a12 12 0 0 1 24 0'/%3E%3Cpath d='M32 10v7M15 18l5 5M49 18l-5 5M8 33h7M49 33h7'/%3E%3C/g%3E%3C/svg%3E">
 
@@ -15,7 +16,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260826-aulora-5"
+    href="style.css?v=20260827-aularium-1"
   >
 
   <script
@@ -36,7 +37,7 @@
 
   <header class="site-header">
 
-    <div class="aulora-brand" aria-label="Aulora">
+    <div class="aulora-brand" aria-label="Aularium">
       <span class="aulora-mark" aria-hidden="true">
         <svg viewBox="0 0 72 52">
           <path d="M7 43h58M14 37h44M22 37a14 14 0 0 1 28 0" />
@@ -44,12 +45,12 @@
         </svg>
       </span>
       <span class="aulora-wordmark">
-        <strong>AULORA</strong>
-        <small>Learning &amp; Class Management</small>
+        <strong>AULARIUM</strong>
+        <small>Gestão para professores particulares</small>
       </span>
     </div>
 
-    <p class="brand-message">Ensinar, organizar e acompanhar com leveza.</p>
+    <p class="brand-message">Mais organização. Mais tempo para ensinar.</p>
 
   </header>
 
@@ -60,14 +61,151 @@
 
   <main>
 
-    <section
-      id="loginScreen"
-      class="screen"
-    >
+    <section id="loginScreen" class="screen public-screen">
 
-      <div class="login-card">
+      <div class="public-shell">
+        <header class="public-header">
+          <a class="public-logo" href="#inicio" aria-label="Aularium - início">
+            <span class="public-sun" aria-hidden="true">
+              <svg viewBox="0 0 72 52">
+                <path d="M7 43h58M14 37h44M22 37a14 14 0 0 1 28 0" />
+                <path d="M36 8v8M17 16l6 6M55 16l-6 6M8 29l9 2M64 29l-9 2M25 10l3 7M47 10l-3 7" />
+              </svg>
+            </span>
+            <span><strong>AULARIUM</strong><small>Gestão para professores particulares</small></span>
+          </a>
 
-        <h2>
+          <nav class="public-nav" aria-label="Navegação principal">
+            <a href="#recursos">Recursos</a>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#planos">Planos</a>
+            <a href="#perguntas">Perguntas</a>
+          </nav>
+
+          <div class="public-header-actions">
+            <button type="button" class="public-button public-button-ghost" data-public-action="login">Entrar</button>
+            <button type="button" class="public-button public-button-primary" data-public-action="trial">Testar grátis por 15 dias</button>
+          </div>
+        </header>
+
+        <div id="inicio" class="public-hero">
+          <div class="public-hero-copy">
+            <span class="public-eyebrow">FEITO PARA PROFESSORES PARTICULARES</span>
+            <h1>A gestão completa <em>das suas aulas</em> particulares.</h1>
+            <p>Alunos, agenda, reposições, materiais, planejamento e financeiro em um só lugar — organizado do seu jeito.</p>
+            <ul class="public-check-list">
+              <li>Seu aluno também tem um espaço próprio</li>
+              <li>Controle de presença, faltas e reposições</li>
+              <li>Relatórios e exportação para o contador</li>
+              <li>Tudo na nuvem, seguro e simples</li>
+            </ul>
+            <button type="button" class="public-button public-button-primary public-button-large" data-public-action="trial">Testar grátis por 15 dias <span>→</span></button>
+            <small class="public-no-card">Sem cartão de crédito. Sem compromisso.</small>
+          </div>
+
+          <div class="public-product-stage" aria-label="Prévia do painel do Aularium">
+            <div class="public-orbit public-orbit-one"></div>
+            <div class="public-orbit public-orbit-two"></div>
+            <div class="public-laptop">
+              <div class="public-laptop-screen">
+                <div class="mock-sidebar">
+                  <div class="mock-brand"><span>☀</span> AULARIUM</div>
+                  <b>▣ Agenda</b><span>♧ Alunos</span><span>✓ Presença/Faltas</span><span>↻ Reposições</span><span>▱ Materiais</span><span>▧ Planejamento</span><span>$ Financeiro</span>
+                </div>
+                <div class="mock-main">
+                  <div class="mock-welcome"><small>Olá, Nayla! 👋</small><strong>Área do professor</strong></div>
+                  <h3>Visão geral</h3>
+                  <div class="mock-highlights"><article><small>AULAS HOJE</small><b>2</b></article><article><small>PRÓXIMA AULA</small><b>Amanhã, 14:00</b><span>Ana Souza</span></article></div>
+                  <div class="mock-stats"><article><small>ALUNOS ATIVOS</small><b>18</b></article><article><small>AULAS NO MÊS</small><b>32</b></article><article><small>REPOSIÇÕES</small><b>3</b></article><article><small>A RECEBER</small><b>R$ 1.250</b></article></div>
+                  <div class="mock-activity"><b>Atividades recentes</b><span>Ana Souza reagendou uma aula</span><span>João Silva enviou um comentário</span></div>
+                </div>
+              </div>
+              <div class="public-laptop-base"></div>
+            </div>
+            <div class="public-phone">
+              <div class="public-phone-speaker"></div>
+              <small>Olá, Ana! 👋</small>
+              <article><b>Próxima aula</b><strong>Terça-feira, 14:00</strong><span>Conversação</span></article>
+              <article><b>Reposições</b><span>Você tem 1 disponível</span></article>
+              <article><b>Materiais novos</b><span>2 materiais disponíveis</span></article>
+            </div>
+          </div>
+        </div>
+
+        <section id="recursos" class="public-section public-features">
+          <div class="public-section-heading"><span>UM SÓ LUGAR</span><h2>Tudo que você precisa para focar no que importa: ensinar.</h2></div>
+          <div class="public-feature-grid">
+            <article><i>▣</i><h3>Agenda</h3><p>Visualize horários, aulas e compromissos em uma grade completa.</p></article>
+            <article><i>♧</i><h3>Alunos</h3><p>Informações e histórico de cada aluno sempre organizados.</p></article>
+            <article><i>✓</i><h3>Presença e faltas</h3><p>Registre e acompanhe a frequência com poucos cliques.</p></article>
+            <article><i>↻</i><h3>Reposições</h3><p>Automatize regras, créditos, prazos e reagendamentos.</p></article>
+            <article><i>▱</i><h3>Materiais</h3><p>Compartilhe arquivos, exercícios, links e observações.</p></article>
+            <article><i>▧</i><h3>Planejamento</h3><p>Organize objetivos, conteúdos e evolução por período.</p></article>
+            <article><i>$</i><h3>Financeiro</h3><p>Acompanhe mensalidades e valores sem interferir nos acordos.</p></article>
+            <article><i>↗</i><h3>Relatórios</h3><p>Gere relatórios de evolução e exporte dados para o contador.</p></article>
+          </div>
+        </section>
+
+        <section id="como-funciona" class="public-section public-experience">
+          <div class="public-experience-copy">
+            <span class="public-eyebrow">PROFESSOR E ALUNO CONECTADOS</span>
+            <h2>Seu aluno também tem um espaço próprio.</h2>
+            <p>Nada de procurar informações em várias conversas. Cada aluno acompanha o que é importante para suas aulas.</p>
+            <ul class="public-check-list"><li>Visualiza aulas e horários</li><li>Consulta e agenda reposições permitidas</li><li>Acessa materiais e planejamento</li><li>Acompanha informações financeiras</li><li>Envia comentários sobre as aulas</li></ul>
+          </div>
+          <div class="public-experience-cards">
+            <article class="experience-calendar"><header><b>Agenda semanal</b><span>20 — 26 de maio</span></header><div class="calendar-grid"><span></span><span class="lesson lesson-a">Ana<br>09:00</span><span></span><span class="lesson lesson-b">João<br>10:30</span><span></span><span></span><span class="lesson lesson-c">Maria<br>14:00</span><span></span><span class="lesson lesson-d">Carlos<br>15:30</span><span></span></div></article>
+            <article class="experience-student"><small>Área do aluno</small><h3>Olá, Ana! 👋</h3><div><b>Próxima aula</b><span>Terça, 14:00 — Conversação</span></div><div><b>Reposições disponíveis</b><span>1 reposição para agendar</span></div><div><b>Financeiro</b><span>Mensalidade em dia</span></div></article>
+          </div>
+        </section>
+
+        <section class="public-section public-benefits">
+          <div class="public-section-heading"><span>ROTINA MAIS LEVE</span><h2>Chega de perder tempo com planilhas e mensagens.</h2></div>
+          <div class="public-before-after">
+            <article><h3>Antes</h3><ul><li>WhatsApp para tudo</li><li>Planilhas confusas</li><li>Controle manual de faltas</li><li>Informações espalhadas</li><li>Dúvidas sobre pagamentos</li></ul></article>
+            <article class="after"><h3>Com o Aularium</h3><ul><li>Tudo em um só lugar</li><li>Informações organizadas</li><li>Controle automatizado</li><li>Histórico completo</li><li>Mais tempo para ensinar</li></ul></article>
+            <div class="public-botanical" aria-hidden="true"><span class="book b1"></span><span class="book b2"></span><span class="book b3"></span><span class="pot"></span><span class="stem"></span><span class="leaf l1"></span><span class="leaf l2"></span><span class="leaf l3"></span></div>
+          </div>
+        </section>
+
+        <section id="planos" class="public-section public-pricing">
+          <div class="public-section-heading"><span>PLANOS SIMPLES E JUSTOS</span><h2>Pague apenas pelo número de alunos cadastrados.</h2><p>Todos os planos começam com 15 dias grátis.</p></div>
+          <div class="public-price-grid">
+            <article><span>Até 5 alunos</span><strong><small>R$</small> 15 <em>/mês</em></strong><button type="button" data-public-action="trial">Testar grátis</button></article>
+            <article><span>Até 10 alunos</span><strong><small>R$</small> 25 <em>/mês</em></strong><button type="button" data-public-action="trial">Testar grátis</button></article>
+            <article class="featured"><i>MAIS ESCOLHIDO</i><span>Até 20 alunos</span><strong><small>R$</small> 45 <em>/mês</em></strong><button type="button" data-public-action="trial">Testar grátis</button></article>
+            <article><span>Até 30 alunos</span><strong><small>R$</small> 65 <em>/mês</em></strong><button type="button" data-public-action="trial">Testar grátis</button></article>
+            <article><span>Mais de 30 alunos</span><strong class="contact-price">Fale conosco</strong><button type="button" data-public-action="support">Entrar em contato</button></article>
+          </div>
+          <div class="public-plan-notes"><span>◷ 15 dias grátis</span><span>✓ Sem cartão de crédito</span><span>× Cancele quando quiser</span></div>
+        </section>
+
+        <section id="perguntas" class="public-section public-faq">
+          <div><span class="public-eyebrow">PERGUNTAS FREQUENTES</span><h2>Ficou com alguma dúvida?</h2><p>O suporte do Aularium está disponível para ajudar antes e depois do seu cadastro.</p><button type="button" class="public-button public-button-ghost" data-public-action="support">Falar com o suporte</button></div>
+          <div class="public-faq-list">
+            <details><summary>Preciso instalar algum programa?</summary><p>Não. O Aularium funciona diretamente no navegador do computador ou celular.</p></details>
+            <details><summary>Os alunos podem acessar o sistema?</summary><p>Sim. Cada aluno possui um espaço próprio com agenda, reposições, materiais e informações permitidas pelo professor.</p></details>
+            <details><summary>Como funciona o teste grátis?</summary><p>Você tem acesso por 15 dias após confirmar seu e-mail, sem precisar cadastrar cartão.</p></details>
+            <details><summary>O Aularium define os valores das minhas aulas?</summary><p>Não. A negociação continua sendo diretamente entre professor e aluno.</p></details>
+            <details><summary>O que acontece quando ultrapasso meu limite?</summary><p>O limite considera alunos cadastrados. Você pode mudar de plano para continuar adicionando alunos.</p></details>
+          </div>
+        </section>
+
+        <section class="public-final-cta">
+          <div class="final-sun" aria-hidden="true">☀</div><div><span>SUAS AULAS MERECEM</span><h2>uma gestão mais simples.</h2><p>Experimente o Aularium por 15 dias e descubra como é prático organizar tudo em um só lugar.</p></div><button type="button" class="public-button public-button-light" data-public-action="trial">Testar grátis por 15 dias →</button><div class="mini-plant" aria-hidden="true">♧</div>
+        </section>
+
+        <footer class="public-footer">
+          <a class="public-logo compact" href="#inicio"><span class="public-sun">☀</span><span><strong>AULARIUM</strong><small>Gestão para professores particulares</small></span></a>
+          <nav><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#planos">Planos</a><a href="terms.html">Termos</a><a href="privacy.html">Privacidade</a></nav>
+          <button type="button" class="public-footer-support" data-public-action="support">Suporte</button>
+        </footer>
+      </div>
+
+      <div id="publicAuthCard" class="login-card public-auth-card hidden" role="dialog" aria-modal="true" aria-labelledby="publicAuthTitle">
+        <button type="button" id="closePublicAuthButton" class="public-modal-close" aria-label="Fechar">×</button>
+
+        <h2 id="publicAuthTitle">
           Bem-vindo(a)
         </h2>
 
@@ -129,7 +267,7 @@
             id="openPublicTeacherRegistrationButton"
             class="primary-button"
           >
-            Cadastrar novo professor
+            Testar grátis por 15 dias
             <small>15 dias gratis</small>
           </button>
 
@@ -368,7 +506,7 @@
        ===================================================== -->
 
   <script
-    src="app.js?v=20260826-aulora-3"
+    src="app.js?v=20260827-aularium-1"
   ></script>
 
 </body>
