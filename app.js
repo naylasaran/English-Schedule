@@ -7205,6 +7205,7 @@ function renderAdminTeacherCard(
         <div>
           <strong>Plano:</strong>
           ${escapeHtml({
+            trial: "Teste gratuito (15 dias)",
             starter: "Starter",
             plus: "Plus",
             pro: "Pro",
@@ -45023,6 +45024,7 @@ function closePublicCardsV6() {
 
 
 const PUBLIC_PLANS_V13 = {
+  trial: { name: "Teste gratuito", price: "15 dias grátis", limit: 30, paid: false, trial: true },
   starter: { name: "Starter", price: "Grátis", limit: 5, paid: false },
   plus: { name: "Plus", price: "R$ 29,90/mês", limit: 10, paid: true },
   pro: { name: "Pro", price: "R$ 59,90/mês", limit: 20, paid: true },
@@ -45048,12 +45050,14 @@ function openPublicTeacherRegistrationV2(planCode = "starter") {
   if (!card) return;
 
   card.innerHTML = `
-    <h2>Assine o ${selectedPlan.name}</h2>
+    <h2>${selectedPlan.trial ? "Teste gratuito por 15 dias" : `Assine o ${selectedPlan.name}`}</h2>
     <p class="public-selected-plan-v13">
       <strong>${selectedPlan.price}</strong>
       <span>Até ${selectedPlan.limit} alunos cadastrados</span>
     </p>
-    <p>${selectedPlan.paid
+    <p>${selectedPlan.trial
+      ? "Crie seu acesso e experimente o Aularium durante 15 dias, sem cadastrar cartão."
+      : selectedPlan.paid
       ? "Preencha seus dados para criar a assinatura escolhida no Aularium."
       : "Crie seu acesso ao plano Starter gratuito do Aularium."
     }</p>
@@ -45078,7 +45082,7 @@ function openPublicTeacherRegistrationV2(planCode = "starter") {
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-        <button type="submit" class="primary-button" id="savePublicTeacherButton">Assine o ${selectedPlan.name}</button>
+        <button type="submit" class="primary-button" id="savePublicTeacherButton">${selectedPlan.trial ? "Começar teste gratuito" : `Assine o ${selectedPlan.name}`}</button>
         <button type="button" class="secondary-button" id="closePublicTeacherButton">Cancelar</button>
       </div>
       <p id="publicTeacherMessage" class="message"></p>
@@ -45101,7 +45105,9 @@ async function savePublicTeacherV2(event) {
   const value = id => document.getElementById(id)?.value || "";
   const planCode = normalizePublicPlanV13(value("publicTeacherPlan"));
   const selectedPlan = PUBLIC_PLANS_V13[planCode];
-  const idleButtonLabel = `Assine o ${selectedPlan.name}`;
+  const idleButtonLabel = selectedPlan.trial
+    ? "Começar teste gratuito"
+    : `Assine o ${selectedPlan.name}`;
   const name = value("publicTeacherName").trim();
   const email = value("publicTeacherEmail").trim().toLowerCase();
   const cpf = normalizeDigitsV2(value("publicTeacherCpf"));
@@ -45188,7 +45194,9 @@ async function savePublicTeacherV2(event) {
 
   if (!authData.session) {
     event.target.reset();
-    message.textContent = `Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar o plano ${selectedPlan.name}.`;
+    message.textContent = selectedPlan.trial
+      ? "Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar os 15 dias gratuitos."
+      : `Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar o plano ${selectedPlan.name}.`;
     message.style.color = "green";
     button.disabled = false;
     button.textContent = idleButtonLabel;
@@ -45221,7 +45229,9 @@ async function savePublicTeacherV2(event) {
 
   await authClient.auth.signOut();
   event.target.reset();
-  message.textContent = `Cadastro concluido no plano ${selectedPlan.name}. Entre com seu e-mail e senha para acessar o Aularium.`;
+  message.textContent = selectedPlan.trial
+    ? "Cadastro concluido. Entre com seu e-mail e senha para iniciar os 15 dias gratuitos."
+    : `Cadastro concluido no plano ${selectedPlan.name}. Entre com seu e-mail e senha para acessar o Aularium.`;
   message.style.color = "green";
   button.disabled = false;
   button.textContent = idleButtonLabel;
@@ -46049,7 +46059,7 @@ const openPublicTeacherRegistrationButtonV2 =
 if (openPublicTeacherRegistrationButtonV2) {
   openPublicTeacherRegistrationButtonV2.addEventListener(
     "click",
-    () => openPublicTeacherRegistrationV2("starter")
+    () => openPublicTeacherRegistrationV2("trial")
   );
 }
 
