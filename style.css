@@ -3152,3 +3152,293 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   .public-mobile-cta button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(135deg,#d9774e,#c6532f); font: inherit; font-size: 11px; font-weight: 800; }
 }
 
+/* =========================================================
+   AULARIUM V13 - assinatura maior e dashboard ao lado
+   ========================================================= */
+
+.public-hero {
+  display: grid;
+  grid-template-columns: minmax(430px, .9fr) minmax(560px, 1.1fr);
+  align-items: center;
+  gap: clamp(34px, 5vw, 78px);
+  width: min(1420px, calc(100% - 86px));
+  padding: 68px 0 82px;
+  text-align: left;
+}
+
+.public-hero-copy {
+  align-items: flex-start;
+  width: 100%;
+}
+
+.public-hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 17px;
+  margin: 0 0 24px;
+  color: #ad4f30;
+  font-family: "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: clamp(50px, 5vw, 78px);
+  font-weight: 700;
+  letter-spacing: .075em;
+  line-height: .9;
+  text-indent: 0;
+  text-transform: none;
+  text-shadow: 0 3px 18px rgba(172, 79, 48, .08);
+}
+
+.public-hero-sun {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: clamp(60px, 6vw, 90px);
+  place-items: center;
+}
+
+.public-hero-sun svg {
+  display: block;
+  width: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.public-hero h1 {
+  max-width: 650px;
+  font-size: clamp(48px, 4.7vw, 72px);
+  line-height: .98;
+}
+
+.public-hero h2 {
+  max-width: 620px;
+  margin-top: 27px;
+  font-size: clamp(21px, 2vw, 30px);
+}
+
+.public-hero-copy > p {
+  max-width: 610px;
+  margin: 17px 0 0;
+  font-size: clamp(15px, 1.3vw, 18px);
+}
+
+.public-hero-actions,
+.public-hero-assurance {
+  justify-content: flex-start;
+}
+
+.public-product-stage {
+  width: 100%;
+  min-height: 520px;
+  margin: 0;
+}
+
+.public-product-stage .public-laptop {
+  top: 56px;
+  left: 0;
+  width: 100%;
+}
+
+.public-product-stage .public-laptop-screen {
+  height: 430px;
+}
+
+.public-product-stage .public-orbit-one {
+  inset: 12px 38px 28px;
+}
+
+.public-product-stage .public-orbit-two {
+  inset: 64px 0 0 64px;
+}
+
+@media (max-width: 1120px) {
+  .public-hero {
+    grid-template-columns: minmax(360px, .88fr) minmax(470px, 1.12fr);
+    width: min(1060px, calc(100% - 52px));
+    gap: 30px;
+  }
+
+  .public-hero-brand {
+    gap: 12px;
+    font-size: clamp(42px, 5vw, 59px);
+  }
+
+  .public-product-stage {
+    min-height: 440px;
+  }
+
+  .public-product-stage .public-laptop-screen {
+    height: 360px;
+  }
+}
+
+@media (max-width: 860px) {
+  .public-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: calc(100% - 38px);
+    padding: 46px 0 58px;
+    text-align: center;
+  }
+
+  .public-hero-copy {
+    align-items: center;
+  }
+
+  .public-hero-brand {
+    justify-content: center;
+    font-size: clamp(39px, 10vw, 62px);
+  }
+
+  .public-hero h1,
+  .public-hero h2,
+  .public-hero-copy > p {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .public-hero-actions,
+  .public-hero-assurance {
+    justify-content: center;
+  }
+
+  .public-product-stage {
+    width: min(720px, 100%);
+    min-height: 390px;
+  }
+
+  .public-product-stage .public-laptop {
+    top: 30px;
+    left: 2%;
+    width: 96%;
+  }
+
+  .public-product-stage .public-laptop-screen {
+    height: 320px;
+  }
+}
+
+@media (max-width: 600px) {
+  .public-hero-brand {
+    gap: 9px;
+    margin-bottom: 18px;
+    font-size: clamp(35px, 10.5vw, 48px);
+    letter-spacing: .045em;
+  }
+
+  .public-hero-sun {
+    width: 52px;
+  }
+
+  .public-hero h1 {
+    font-size: clamp(40px, 12vw, 50px);
+  }
+
+  .public-product-stage {
+    min-height: 310px;
+  }
+
+  .public-product-stage .public-laptop-screen {
+    height: 250px;
+  }
+}
+
+/* =========================================================
+   AULARIUM V14 - filigranas, vitrine do painel e planos
+   ========================================================= */
+
+.public-shell {
+  background-color: #fbf8f1;
+  background-image:
+    radial-gradient(circle at 8% 8%, transparent 0 72px, rgba(201, 103, 67, .07) 73px 74px, transparent 75px 105px, rgba(201, 103, 67, .045) 106px 107px, transparent 108px),
+    radial-gradient(circle at 94% 24%, transparent 0 88px, rgba(102, 131, 88, .065) 89px 90px, transparent 91px 126px, rgba(102, 131, 88, .04) 127px 128px, transparent 129px),
+    radial-gradient(circle at 14% 68%, transparent 0 48px, rgba(102, 131, 88, .04) 49px 50px, transparent 51px),
+    linear-gradient(120deg, rgba(255, 255, 255, .32), transparent 35%, rgba(234, 224, 210, .16) 72%, transparent);
+}
+
+.public-hero {
+  padding-bottom: 96px;
+}
+
+.public-product-stage {
+  min-height: 570px;
+}
+
+.public-product-stage .public-laptop {
+  top: 45px;
+}
+
+.public-product-stage .public-laptop-screen {
+  height: auto;
+  aspect-ratio: 1265 / 760;
+  background: #fffdfa;
+}
+
+.public-product-stage .public-laptop-screen > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+}
+
+.public-trust-strip {
+  position: relative;
+  z-index: 3;
+  margin-top: 12px;
+}
+
+.public-selected-plan-v13 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px 0 8px;
+  padding: 13px 15px;
+  border: 1px solid #ead8ca;
+  border-radius: 12px;
+  color: #365043;
+  background: linear-gradient(135deg, #fff7ef, #f0f5eb);
+}
+
+.public-selected-plan-v13 strong {
+  color: #b65434;
+  font-size: 17px;
+}
+
+.public-selected-plan-v13 span {
+  color: #67736c;
+  font-size: 12px;
+}
+
+@media (max-width: 1120px) {
+  .public-product-stage {
+    min-height: 475px;
+  }
+}
+
+@media (max-width: 860px) {
+  .public-hero {
+    padding-bottom: 64px;
+  }
+
+  .public-product-stage {
+    min-height: 500px;
+  }
+
+  .public-trust-strip {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .public-product-stage {
+    min-height: 330px;
+  }
+
+  .public-selected-plan-v13 {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+

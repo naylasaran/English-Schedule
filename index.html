@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#c96743">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Aularium — Gestão para professores particulares">
-  <meta property="og:description" content="Mais organização para suas aulas e mais tempo para ensinar. Teste grátis por 15 dias.">
+  <meta property="og:description" content="Mais organização para suas aulas e mais tempo para ensinar. Comece com o Starter gratuito.">
   <meta property="og:url" content="https://naylasaran.github.io/English-Schedule/">
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23fffaf3'/%3E%3Cg fill='none' stroke='%23c96843' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M14 42h36M20 42a12 12 0 0 1 24 0'/%3E%3Cpath d='M32 10v7M15 18l5 5M49 18l-5 5M8 33h7M49 33h7'/%3E%3C/g%3E%3C/svg%3E">
@@ -21,7 +21,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260827-aularium-12"
+    href="style.css?v=20260827-aularium-14"
   >
 
   <script
@@ -89,20 +89,28 @@
 
           <div class="public-header-actions">
             <button type="button" class="public-button public-button-ghost" data-public-action="login">Entrar</button>
-            <button type="button" class="public-button public-button-primary" data-public-action="trial">Testar grátis por 15 dias</button>
+            <button type="button" class="public-button public-button-primary" data-public-action="trial" data-public-plan="starter">Assine o Starter</button>
           </div>
         </header>
 
         <div id="inicio" class="public-hero">
           <div class="public-hero-copy">
-            <span class="public-hero-brand">AULARIUM</span>
+            <span class="public-hero-brand">
+              <span class="public-hero-sun" aria-hidden="true">
+                <svg viewBox="0 0 72 52" role="img">
+                  <path d="M7 43h58M14 37h44M22 37a14 14 0 0 1 28 0" />
+                  <path d="M36 8v8M17 16l6 6M55 16l-6 6M8 29l9 2M64 29l-9 2M25 10l3 7M47 10l-3 7" />
+                </svg>
+              </span>
+              <span>Aularium</span>
+            </span>
             <h1>Mais tempo para ensinar. <em>Menos tempo administrando.</em></h1>
             <h2>A gestão completa das suas aulas particulares.</h2>
             <p>Alunos, agenda, faltas, reposições, materiais, planejamento e financeiro em um só lugar.</p>
             <div class="public-hero-actions">
-              <button type="button" class="public-button public-button-primary public-button-large" data-public-action="trial">Começar grátis por 15 dias</button>
+              <button type="button" class="public-button public-button-primary public-button-large" data-public-action="trial" data-public-plan="starter">Assine o Starter</button>
             </div>
-            <div class="public-hero-assurance"><span>Sem cartão de crédito</span><b aria-hidden="true">·</b><span>Cancele quando quiser</span></div>
+            <div class="public-hero-assurance"><span>Starter gratuito para até 5 alunos</span><b aria-hidden="true">·</b><span>Mude de plano quando quiser</span></div>
           </div>
 
           <div class="public-product-stage" aria-label="Prévia do painel do Aularium">
@@ -110,7 +118,7 @@
             <div class="public-orbit public-orbit-two"></div>
             <div class="public-laptop">
               <div class="public-laptop-screen">
-                <img src="assets/aularium-painel-real.png" alt="Dashboard real do professor no Aularium" loading="eager">
+                <img src="assets/aularium-programa-real.png" alt="Dashboard completo do professor no Aularium" loading="eager">
               </div>
               <div class="public-laptop-base"></div>
             </div>
@@ -118,7 +126,7 @@
         </div>
 
         <section class="public-trust-strip" aria-label="Vantagens do Aularium">
-          <article><i>◷</i><div><strong>15 dias grátis</strong><span>Sem cadastrar cartão</span></div></article>
+          <article><i>◷</i><div><strong>Starter gratuito</strong><span>Até 5 alunos cadastrados</span></div></article>
           <article><i>☁</i><div><strong>Tudo na nuvem</strong><span>Acesse de qualquer lugar</span></div></article>
           <article><i>♧</i><div><strong>Espaço para o aluno</strong><span>Mais autonomia e organização</span></div></article>
           <article><i>✓</i><div><strong>Comece em poucos minutos</strong><span>Configuração inicial guiada</span></div></article>
@@ -147,23 +155,23 @@
         </section>
 
         <section id="planos" class="public-section public-pricing">
-          <div class="public-section-heading"><span>PLANOS SIMPLES E JUSTOS</span><h2>Escolha o plano ideal para o seu momento.</h2><p>Todos os planos incluem os recursos do Aularium e começam com 15 dias grátis.</p></div>
+          <div class="public-section-heading"><span>PLANOS SIMPLES E JUSTOS</span><h2>Escolha o plano ideal para o seu momento.</h2><p>O Starter é gratuito. Plus, Pro e Premium são assinaturas pagas com mais capacidade e suporte mais rápido.</p></div>
           <div class="public-price-grid public-price-grid-four">
-            <article><small class="public-plan-moment">PARA COMEÇAR</small><span class="public-plan-name">🌱 Starter</span><small class="public-plan-limit">Até 5 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 14,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 24 horas</li></ul><button type="button" data-public-action="trial">Começar gratuitamente</button></article>
-            <article class="featured"><i>MAIS RECOMENDADO</i><small class="public-plan-moment">PARA CRESCER</small><span class="public-plan-name">🌿 Plus</span><span class="public-featured-reason">Ideal para uma agenda em crescimento</span><small class="public-plan-limit">Até 10 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 29,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 12 horas</li></ul><button type="button" data-public-action="trial">Escolher o Plus</button></article>
-            <article><small class="public-plan-moment">PARA UMA AGENDA CONSOLIDADA</small><span class="public-plan-name">🌅 Pro</span><small class="public-plan-limit">Até 20 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 59,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 6 horas</li></ul><button type="button" data-public-action="trial">Começar gratuitamente</button></article>
-            <article><small class="public-plan-moment">PARA UMA ROTINA MAIOR</small><span class="public-plan-name">🌞 Premium</span><small class="public-plan-limit">Até 30 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 89,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Suporte prioritário em até 2 horas</li></ul><button type="button" data-public-action="trial">Começar gratuitamente</button></article>
+            <article><small class="public-plan-moment">PARA COMEÇAR</small><span class="public-plan-name">🌱 Starter</span><small class="public-plan-limit">Até 5 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong>Grátis</strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 24 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="starter">Assine o Starter</button></article>
+            <article class="featured"><i>MAIS RECOMENDADO</i><small class="public-plan-moment">PARA CRESCER</small><span class="public-plan-name">🌿 Plus</span><span class="public-featured-reason">Ideal para uma agenda em crescimento</span><small class="public-plan-limit">Até 10 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 29,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 12 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="plus">Assine o Plus</button></article>
+            <article><small class="public-plan-moment">PARA UMA AGENDA CONSOLIDADA</small><span class="public-plan-name">🌅 Pro</span><small class="public-plan-limit">Até 20 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 59,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 6 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="pro">Assine o Pro</button></article>
+            <article><small class="public-plan-moment">PARA UMA ROTINA MAIOR</small><span class="public-plan-name">🌞 Premium</span><small class="public-plan-limit">Até 30 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 89,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Suporte prioritário em até 2 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="premium">Assine o Premium</button></article>
           </div>
           <p class="public-limit-explanation">O limite considera alunos cadastrados, inclusive alunos pausados ou inativos. Se você atingir o limite do seu plano, será necessário remover alunos cadastrados ou mudar para um plano com capacidade maior para adicionar novos.</p>
           <div class="public-enterprise-card">
             <div><span>UMA SOLUÇÃO SOB MEDIDA</span><h3>Tem mais de 30 alunos?</h3><p>O Aularium também pode acompanhar uma rotina maior. Entre em contato e encontre um plano adequado para a quantidade de alunos que você administra.</p></div>
             <button type="button" class="public-button public-button-primary" data-public-action="support">Falar com a gente</button>
           </div>
-          <div class="public-plan-notes"><span>◷ 15 dias grátis</span><span>✓ Sem cartão de crédito</span><span>× Cancele quando quiser</span></div>
+          <div class="public-plan-notes"><span>✓ Starter gratuito</span><span>✓ Capacidade conforme o plano</span><span>↻ Mude de plano quando quiser</span></div>
         </section>
 
         <section class="public-section public-fit">
-          <div class="public-fit-intro"><span class="public-eyebrow">ISSO É PARA MIM?</span><h2>O Aularium foi feito para você que ensina e também precisa administrar.</h2><p>Se a organização começou a ocupar o tempo e a energia que deveriam estar nas aulas, o sistema acompanha o seu momento.</p><button type="button" class="public-button public-button-primary" data-public-action="trial">Sim, quero experimentar</button></div>
+          <div class="public-fit-intro"><span class="public-eyebrow">ISSO É PARA MIM?</span><h2>O Aularium foi feito para você que ensina e também precisa administrar.</h2><p>Se a organização começou a ocupar o tempo e a energia que deveriam estar nas aulas, o sistema acompanha o seu momento.</p><button type="button" class="public-button public-button-primary" data-public-action="trial" data-public-plan="starter">Assine o Starter</button></div>
           <div class="public-fit-grid">
             <article><i>🌱</i><div><h3>Você está começando</h3><p>Quer construir uma rotina profissional desde os primeiros alunos.</p></div></article>
             <article><i>📚</i><div><h3>Sua agenda está crescendo</h3><p>Já percebe que WhatsApp e planilhas não acompanham mais o volume.</p></div></article>
@@ -194,7 +202,7 @@
             <article><b>2</b><div><h3>Adicione seus alunos</h3><p>Cadastre individualmente ou importe uma lista para começar mais rápido.</p></div></article>
             <article><b>3</b><div><h3>Centralize sua rotina</h3><p>Acompanhe agenda, presenças, reposições, materiais e financeiro no mesmo lugar.</p></div></article>
           </div>
-          <button type="button" class="public-button public-button-primary" data-public-action="trial">Quero organizar minhas aulas</button>
+          <button type="button" class="public-button public-button-primary" data-public-action="trial" data-public-plan="starter">Assine o Starter</button>
         </section>
 
         <section id="area-aluno" class="public-section public-experience">
@@ -203,7 +211,7 @@
             <h2>Menos mensagens para você. Mais autonomia para o aluno.</h2>
             <p>Seu aluno entra no próprio perfil e encontra tudo o que precisa. Você oferece uma experiência profissional sem criar mais trabalho.</p>
             <ul class="public-check-list"><li>Visualiza aulas e horários</li><li>Consulta e agenda reposições permitidas</li><li>Acessa materiais e planejamento</li><li>Acompanha informações financeiras</li><li>Envia comentários sobre as aulas</li></ul>
-            <button type="button" class="public-button public-button-primary" data-public-action="trial">Quero oferecer essa experiência</button>
+            <button type="button" class="public-button public-button-primary" data-public-action="trial" data-public-plan="starter">Assine o Starter</button>
           </div>
           <div class="public-experience-cards">
             <article class="experience-calendar"><header><b>Agenda semanal</b><span>20 — 26 de maio</span></header><div class="calendar-grid"><span></span><span class="lesson lesson-a">Ana<br>09:00</span><span></span><span class="lesson lesson-b">João<br>10:30</span><span></span><span></span><span class="lesson lesson-c">Maria<br>14:00</span><span></span><span class="lesson lesson-d">Carlos<br>15:30</span><span></span></div></article>
@@ -230,7 +238,7 @@
           <div class="public-faq-list">
             <details><summary>Preciso instalar algum programa?</summary><p>Não. O Aularium funciona diretamente no navegador do computador ou celular.</p></details>
             <details><summary>Os alunos podem acessar o sistema?</summary><p>Sim. Cada aluno possui um espaço próprio com agenda, reposições, materiais e informações permitidas pelo professor.</p></details>
-            <details><summary>Como funciona o teste grátis?</summary><p>Você tem acesso por 15 dias após confirmar seu e-mail, sem precisar cadastrar cartão.</p></details>
+            <details><summary>Existe um plano gratuito?</summary><p>Sim. O Starter é gratuito e permite cadastrar até 5 alunos. Plus, Pro e Premium são planos pagos.</p></details>
             <details><summary>O Aularium define os valores das minhas aulas?</summary><p>Não. A negociação continua sendo diretamente entre professor e aluno.</p></details>
             <details><summary>Posso trocar de plano depois?</summary><p>Sim. Você pode ajustar o plano quando a quantidade de alunos cadastrados mudar.</p></details>
             <details><summary>O que acontece quando atinjo meu limite?</summary><p>O limite considera alunos cadastrados, inclusive alunos pausados ou inativos. Para adicionar novos alunos, será necessário remover cadastros existentes ou mudar para um plano com capacidade maior.</p></details>
@@ -238,7 +246,7 @@
         </section>
 
         <section class="public-final-cta">
-          <div class="final-sun" aria-hidden="true">☀</div><div><span>MAIS TEMPO PARA O QUE IMPORTA</span><h2>Você ensina. O Aularium organiza.</h2><p>Comece agora e experimente gratuitamente por 15 dias, sem cartão de crédito e sem compromisso.</p></div><button type="button" class="public-button public-button-light" data-public-action="trial">Criar minha conta grátis →</button><div class="mini-plant" aria-hidden="true">♧</div>
+          <div class="final-sun" aria-hidden="true">☀</div><div><span>MAIS TEMPO PARA O QUE IMPORTA</span><h2>Você ensina. O Aularium organiza.</h2><p>Comece com o Starter gratuito para até 5 alunos e mude de plano conforme sua agenda crescer.</p></div><button type="button" class="public-button public-button-light" data-public-action="trial" data-public-plan="starter">Assine o Starter →</button><div class="mini-plant" aria-hidden="true">♧</div>
         </section>
 
         <footer class="public-footer">
@@ -251,7 +259,7 @@
         </footer>
       </div>
 
-      <div class="public-mobile-cta"><span><strong>15 dias grátis</strong><small>Sem cartão</small></span><button type="button" data-public-action="trial">Começar agora</button></div>
+      <div class="public-mobile-cta"><span><strong>Starter gratuito</strong><small>Até 5 alunos</small></span><button type="button" data-public-action="trial" data-public-plan="starter">Assine agora</button></div>
 
       <div id="publicAuthCard" class="login-card public-auth-card hidden" role="dialog" aria-modal="true" aria-labelledby="publicAuthTitle">
         <button type="button" id="closePublicAuthButton" class="public-modal-close" aria-label="Fechar">×</button>
@@ -318,8 +326,8 @@
             id="openPublicTeacherRegistrationButton"
             class="primary-button"
           >
-            Testar grátis por 15 dias
-            <small>15 dias gratis</small>
+            Assine o Starter
+            <small>Gratuito para até 5 alunos</small>
           </button>
 
           <button
@@ -561,7 +569,7 @@
        ===================================================== -->
 
   <script
-    src="app.js?v=20260827-aularium-12"
+    src="app.js?v=20260827-aularium-13"
   ></script>
 
 </body>

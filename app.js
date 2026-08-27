@@ -30,6 +30,7 @@ let adminSupportTicketsV3 = [];
 let adminSupportBeforeV3 = null;
 let adminSupportViewV4 = "active";
 let currentAccessViewV5 = "teacher";
+let selectedPublicPlanV13 = "starter";
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -119,7 +120,7 @@ async function finalizeConfirmedPublicTeacherV4(user) {
 
   publicTeacherFinalizationPromiseV4 = (async () => {
     const { error } = await supabaseClient.rpc(
-      "register_public_teacher_from_auth_v2",
+      "register_public_teacher_from_auth_v3",
       {
         p_name: metadata.name,
         p_email: user.email,
@@ -129,7 +130,8 @@ async function finalizeConfirmedPublicTeacherV4(user) {
         p_cnpj: metadata.cnpj,
         p_work_start_time: metadata.work_start_time,
         p_work_end_time: metadata.work_end_time,
-        p_work_days: Array.isArray(metadata.work_days) ? metadata.work_days : []
+        p_work_days: Array.isArray(metadata.work_days) ? metadata.work_days : [],
+        p_plan_code: metadata.subscription_plan || "starter"
       }
     );
 
@@ -150,7 +152,8 @@ async function finalizeConfirmedPublicTeacherV4(user) {
         cnpj: null,
         work_start_time: null,
         work_end_time: null,
-        work_days: null
+        work_days: null,
+        subscription_plan: null
       }
     });
 
@@ -6618,7 +6621,7 @@ async function loadAdminTeachers() {
       ),
 
       supabaseClient.rpc(
-        "get_admin_teacher_student_capacity_v2"
+        "get_admin_teacher_student_capacity_v3"
       ),
 
       supabaseClient.rpc(
@@ -7198,6 +7201,17 @@ function renderAdminTeacherCard(
           margin-top:13px;
         "
       >
+
+        <div>
+          <strong>Plano:</strong>
+          ${escapeHtml({
+            starter: "Starter",
+            plus: "Plus",
+            pro: "Pro",
+            premium: "Premium",
+            custom: "Personalizado"
+          }[teacher.subscription_plan] || "Personalizado")}
+        </div>
 
         <div>
           <strong>Alunos cadastrados:</strong>
@@ -45008,7 +45022,25 @@ function closePublicCardsV6() {
 }
 
 
-function openPublicTeacherRegistrationV2() {
+const PUBLIC_PLANS_V13 = {
+  starter: { name: "Starter", price: "Grátis", limit: 5, paid: false },
+  plus: { name: "Plus", price: "R$ 29,90/mês", limit: 10, paid: true },
+  pro: { name: "Pro", price: "R$ 59,90/mês", limit: 20, paid: true },
+  premium: { name: "Premium", price: "R$ 89,90/mês", limit: 30, paid: true }
+};
+
+
+function normalizePublicPlanV13(planCode) {
+  const normalized = String(planCode || "starter").trim().toLowerCase();
+  return PUBLIC_PLANS_V13[normalized] ? normalized : "starter";
+}
+
+
+function openPublicTeacherRegistrationV2(planCode = "starter") {
+  selectedPublicPlanV13 = normalizePublicPlanV13(
+    typeof planCode === "string" ? planCode : "starter"
+  );
+  const selectedPlan = PUBLIC_PLANS_V13[selectedPublicPlanV13];
   const card = document.getElementById(
     "publicTeacherRegistrationCard"
   );
@@ -45016,10 +45048,18 @@ function openPublicTeacherRegistrationV2() {
   if (!card) return;
 
   card.innerHTML = `
-    <h2>Novo professor</h2>
-    <p>Crie seu acesso e use o Aularium gratuitamente por 15 dias.</p>
+    <h2>Assine o ${selectedPlan.name}</h2>
+    <p class="public-selected-plan-v13">
+      <strong>${selectedPlan.price}</strong>
+      <span>Até ${selectedPlan.limit} alunos cadastrados</span>
+    </p>
+    <p>${selectedPlan.paid
+      ? "Preencha seus dados para criar a assinatura escolhida no Aularium."
+      : "Crie seu acesso ao plano Starter gratuito do Aularium."
+    }</p>
 
     <form id="publicTeacherRegistrationForm">
+      <input id="publicTeacherPlan" type="hidden" value="${selectedPublicPlanV13}">
       <div class="erp-form-grid">
         <div><label>Nome completo</label><input id="publicTeacherName" type="text" autocomplete="name" required></div>
         <div><label>E-mail</label><input id="publicTeacherEmail" type="email" autocomplete="email" required></div>
@@ -45038,7 +45078,7 @@ function openPublicTeacherRegistrationV2() {
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-        <button type="submit" class="primary-button" id="savePublicTeacherButton">Criar acesso gratuito</button>
+        <button type="submit" class="primary-button" id="savePublicTeacherButton">Assine o ${selectedPlan.name}</button>
         <button type="button" class="secondary-button" id="closePublicTeacherButton">Cancelar</button>
       </div>
       <p id="publicTeacherMessage" class="message"></p>
@@ -45059,6 +45099,9 @@ async function savePublicTeacherV2(event) {
   event.preventDefault();
 
   const value = id => document.getElementById(id)?.value || "";
+  const planCode = normalizePublicPlanV13(value("publicTeacherPlan"));
+  const selectedPlan = PUBLIC_PLANS_V13[planCode];
+  const idleButtonLabel = `Assine o ${selectedPlan.name}`;
   const name = value("publicTeacherName").trim();
   const email = value("publicTeacherEmail").trim().toLowerCase();
   const cpf = normalizeDigitsV2(value("publicTeacherCpf"));
@@ -45130,7 +45173,8 @@ async function savePublicTeacherV2(event) {
           cnpj,
           work_start_time: startTime,
           work_end_time: endTime,
-          work_days: workDays
+          work_days: workDays,
+          subscription_plan: planCode
         }
       }
     });
@@ -45138,22 +45182,22 @@ async function savePublicTeacherV2(event) {
   if (authError || !authData?.user?.id) {
     fail(authError?.message || "Nao foi possivel criar o acesso.");
     button.disabled = false;
-    button.textContent = "Criar acesso gratuito";
+    button.textContent = idleButtonLabel;
     return;
   }
 
   if (!authData.session) {
     event.target.reset();
-    message.textContent = "Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar o acesso e iniciar os 15 dias gratuitos.";
+    message.textContent = `Enviamos um e-mail de confirmacao. Clique no botao da mensagem para ativar o plano ${selectedPlan.name}.`;
     message.style.color = "green";
     button.disabled = false;
-    button.textContent = "Criar acesso gratuito";
+    button.textContent = idleButtonLabel;
     return;
   }
 
   const { error: profileError } =
     await authClient.rpc(
-      "register_public_teacher_from_auth_v2",
+      "register_public_teacher_from_auth_v3",
       {
         p_name: name,
         p_email: email,
@@ -45163,23 +45207,24 @@ async function savePublicTeacherV2(event) {
         p_cnpj: cnpj,
         p_work_start_time: startTime,
         p_work_end_time: endTime,
-        p_work_days: workDays
+        p_work_days: workDays,
+        p_plan_code: planCode
       }
     );
 
   if (profileError) {
     fail(profileError.message || "O acesso foi criado, mas o perfil nao pode ser finalizado.");
     button.disabled = false;
-    button.textContent = "Criar acesso gratuito";
+    button.textContent = idleButtonLabel;
     return;
   }
 
   await authClient.auth.signOut();
   event.target.reset();
-  message.textContent = "Cadastro concluido. Entre com seu e-mail e senha para iniciar os 15 dias gratuitos.";
+  message.textContent = `Cadastro concluido no plano ${selectedPlan.name}. Entre com seu e-mail e senha para acessar o Aularium.`;
   message.style.color = "green";
   button.disabled = false;
-  button.textContent = "Criar acesso gratuito";
+  button.textContent = idleButtonLabel;
 }
 
 
@@ -46004,7 +46049,7 @@ const openPublicTeacherRegistrationButtonV2 =
 if (openPublicTeacherRegistrationButtonV2) {
   openPublicTeacherRegistrationButtonV2.addEventListener(
     "click",
-    openPublicTeacherRegistrationV2
+    () => openPublicTeacherRegistrationV2("starter")
   );
 }
 
@@ -46021,7 +46066,9 @@ document.querySelectorAll("[data-public-action]").forEach(button => {
   button.addEventListener("click", () => {
     const action = button.dataset.publicAction;
     if (action === "login") showPublicAuthV6();
-    if (action === "trial") openPublicTeacherRegistrationV2();
+    if (action === "trial") {
+      openPublicTeacherRegistrationV2(button.dataset.publicPlan || "starter");
+    }
     if (action === "support") openPublicSupportV2();
   });
 });
