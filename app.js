@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: pagina-publica-v1-20260827"
+  "Aularium build: sessao-unica-professor-v14-20260827"
 );
 
 // =====================================================
@@ -31,6 +31,10 @@ let adminSupportBeforeV3 = null;
 let adminSupportViewV4 = "active";
 let currentAccessViewV5 = "teacher";
 let selectedPublicPlanV13 = "starter";
+let teacherLoginSessionTokenV14 = "";
+let teacherLoginHeartbeatV14 = null;
+let teacherLoginHeartbeatBusyV14 = false;
+let teacherSessionForcedLogoutV14 = false;
 
 let currentStudentTeacherRescheduleRules = {
   makeup_reschedule_notice_hours: 2,
@@ -98,6 +102,110 @@ function getAppBaseUrlV4() {
   url.search = "";
   url.hash = "";
   return url.href;
+}
+
+
+function getTeacherLoginSessionTokenV14() {
+  if (teacherLoginSessionTokenV14) return teacherLoginSessionTokenV14;
+
+  const storageKey = "aularium_teacher_device_session_v14";
+  try {
+    teacherLoginSessionTokenV14 = localStorage.getItem(storageKey) || "";
+    if (!teacherLoginSessionTokenV14) {
+      teacherLoginSessionTokenV14 = crypto.randomUUID();
+      localStorage.setItem(storageKey, teacherLoginSessionTokenV14);
+    }
+  } catch {
+    teacherLoginSessionTokenV14 = crypto.randomUUID();
+  }
+
+  return teacherLoginSessionTokenV14;
+}
+
+
+function stopTeacherLoginHeartbeatV14() {
+  if (teacherLoginHeartbeatV14) {
+    window.clearInterval(teacherLoginHeartbeatV14);
+    teacherLoginHeartbeatV14 = null;
+  }
+  teacherLoginHeartbeatBusyV14 = false;
+}
+
+
+async function claimTeacherLoginSessionV14() {
+  const { data, error } = await supabaseClient.rpc(
+    "claim_teacher_login_session_v14",
+    { p_session_token: getTeacherLoginSessionTokenV14() }
+  );
+
+  if (error) {
+    console.error("Nao foi possivel validar a sessao exclusiva:", error);
+    return { allowed: false, result_code: "service_error", remaining_seconds: 0 };
+  }
+
+  return (
+    Array.isArray(data) ? data[0] : data
+  ) || { allowed: false, result_code: "service_error", remaining_seconds: 0 };
+}
+
+
+async function releaseTeacherLoginSessionV14() {
+  if (!teacherLoginSessionTokenV14 || currentProfile?.role !== "teacher") return;
+
+  try {
+    await supabaseClient.rpc(
+      "release_teacher_login_session_v14",
+      { p_session_token: teacherLoginSessionTokenV14 }
+    );
+  } catch (error) {
+    console.warn("A sessao exclusiva sera liberada automaticamente.", error);
+  }
+}
+
+
+async function blockConcurrentTeacherLoginV14(resultCode = "active_elsewhere") {
+  if (teacherSessionForcedLogoutV14) return;
+  teacherSessionForcedLogoutV14 = true;
+  stopTeacherLoginHeartbeatV14();
+
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  currentProfile = null;
+  currentTeacherAccess = null;
+  teacherScreen.classList.add("hidden");
+  studentScreen.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+  showPublicAuthV6();
+
+  loginMessage.textContent = resultCode === "active_elsewhere"
+    ? "Este professor ja esta conectado em outro aparelho ou navegador. Encerre a outra sessao ou aguarde cerca de 2 minutos para tentar novamente."
+    : "Nao foi possivel validar o acesso exclusivo agora. Verifique sua conexao e tente novamente.";
+
+  window.setTimeout(() => {
+    teacherSessionForcedLogoutV14 = false;
+  }, 500);
+}
+
+
+function startTeacherLoginHeartbeatV14() {
+  stopTeacherLoginHeartbeatV14();
+
+  teacherLoginHeartbeatV14 = window.setInterval(async () => {
+    if (teacherLoginHeartbeatBusyV14 || currentProfile?.role !== "teacher") return;
+    teacherLoginHeartbeatBusyV14 = true;
+
+    const { data, error } = await supabaseClient.rpc(
+      "touch_teacher_login_session_v14",
+      { p_session_token: getTeacherLoginSessionTokenV14() }
+    );
+
+    teacherLoginHeartbeatBusyV14 = false;
+    if (error || data !== true) {
+      await blockConcurrentTeacherLoginV14(
+        error ? "service_error" : "active_elsewhere"
+      );
+    }
+  }, 30000);
 }
 
 
@@ -362,6 +470,17 @@ async function showLoggedUser(user) {
 
       return;
     }
+
+
+    const teacherLoginSession = await claimTeacherLoginSessionV14();
+    if (teacherLoginSession.allowed !== true) {
+      await blockConcurrentTeacherLoginV14(
+        teacherLoginSession.result_code || "service_error"
+      );
+      return;
+    }
+
+    startTeacherLoginHeartbeatV14();
 
 
     currentTeacherAccess = teacherAccount;
@@ -44642,6 +44761,9 @@ if (logoutButton) {
     "click",
     async () => {
 
+      await releaseTeacherLoginSessionV14();
+      stopTeacherLoginHeartbeatV14();
+
       await supabaseClient.auth.signOut();
 
 
@@ -44877,6 +44999,10 @@ supabaseClient.auth.onAuthStateChange(
         session.user
       );
 
+    }
+
+    if (event === "SIGNED_OUT") {
+      stopTeacherLoginHeartbeatV14();
     }
 
   }
