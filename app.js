@@ -40,6 +40,8 @@ let currentStudentTeacherRescheduleRules = {
 
 let currentAdminTeachers = [];
 let currentAdminTeacherSystemFinancial = [];
+let currentAdminPlatformFinanceV9 = [];
+let currentAdminPlatformFinanceRangeV9 = "";
 let currentTeacherHolidayWeek = [];
 let currentStudentHolidayWeek = [];
 let currentTeacherRulesImagePath = null;
@@ -2629,18 +2631,22 @@ function setupAdminSideMenuV8(content) {
       <button type="button" class="admin-side-button-v8 active" data-admin-workspace-v8="paid"><span>1</span>Professores assinantes</button>
       <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="trial"><span>2</span>Professores interessados / teste gr&aacute;tis</button>
       <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="free"><span>3</span>Professores gr&aacute;tis ilimitado</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>4</span>Suporte</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="finance"><span>4</span>Financeiro do Aularium</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>5</span>Suporte</button>
     </aside>
     <div class="admin-panels-v8">
       <section class="admin-panel-v8" data-admin-panel-v8="teachers"></section>
+      <section class="admin-panel-v8" data-admin-panel-v8="finance" hidden></section>
       <section class="admin-panel-v8" data-admin-panel-v8="support" hidden></section>
     </div>
   `;
 
   content.appendChild(layout);
   const teacherPanel = layout.querySelector('[data-admin-panel-v8="teachers"]');
+  const financePanel = layout.querySelector('[data-admin-panel-v8="finance"]');
   const supportPanel = layout.querySelector('[data-admin-panel-v8="support"]');
   teacherPanel.appendChild(teacherCard);
+  renderAdminPlatformFinanceV9(financePanel);
 
   [
     document.getElementById("adminSupportArea")?.parentElement,
@@ -2653,19 +2659,25 @@ function setupAdminSideMenuV8(content) {
 
   const selectWorkspace = view => {
     const isSupport = view === "support";
-    teacherPanel.hidden = isSupport;
+    const isFinance = view === "finance";
+    teacherPanel.hidden = isSupport || isFinance;
+    financePanel.hidden = !isFinance;
     supportPanel.hidden = !isSupport;
 
     layout.querySelectorAll("[data-admin-workspace-v8]").forEach(button => {
       button.classList.toggle("active", button.dataset.adminWorkspaceV8 === view);
     });
 
-    if (!isSupport) {
+    if (!isSupport && !isFinance) {
       currentAdminTeacherFilter = view;
       document.querySelectorAll("[data-admin-teacher-filter]").forEach(button => {
         button.classList.toggle("active", button.dataset.adminTeacherFilter === view);
       });
       renderAdminTeacherListV2();
+    }
+
+    if (isFinance && !currentAdminPlatformFinanceRangeV9) {
+      loadAdminPlatformFinanceV9();
     }
   };
 
@@ -2674,6 +2686,357 @@ function setupAdminSideMenuV8(content) {
   });
 
   selectWorkspace("paid");
+}
+
+
+function getAdminPlatformFinanceDefaultRangeV9() {
+  const now = new Date();
+  const year = now.getFullYear();
+  return {
+    start: `${year}-01`,
+    end: `${year}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  };
+}
+
+
+function renderAdminPlatformFinanceV9(panel) {
+  if (!panel) return;
+
+  const range = getAdminPlatformFinanceDefaultRangeV9();
+  panel.innerHTML = `
+    <div class="admin-platform-finance-v9">
+      <div class="admin-platform-finance-header-v9">
+        <div>
+          <p class="admin-platform-finance-kicker-v9">Financeiro da empresa</p>
+          <h3>Relat&oacute;rio do Aularium para o contador</h3>
+          <p>
+            Consolide as vendas das assinaturas dos professores e informe os custos do per&iacute;odo
+            para calcular o lucro l&iacute;quido. Este relat&oacute;rio &eacute; separado do financeiro dos alunos.
+          </p>
+        </div>
+        <button type="button" class="action-button" id="exportAdminPlatformFinanceV9">
+          Gerar planilha para o contador
+        </button>
+      </div>
+
+      <div class="admin-platform-finance-fields-v9">
+        <label>
+          M&ecirc;s inicial
+          <input type="month" id="adminPlatformFinanceStartV9" value="${range.start}">
+        </label>
+        <label>
+          M&ecirc;s final
+          <input type="month" id="adminPlatformFinanceEndV9" value="${range.end}">
+        </label>
+        <label>
+          Taxas de pagamento (R$)
+          <input type="number" id="adminPlatformFinanceFeesV9" min="0" step="0.01" value="0">
+        </label>
+        <label>
+          Impostos provisionados (R$)
+          <input type="number" id="adminPlatformFinanceTaxesV9" min="0" step="0.01" value="0">
+        </label>
+        <label>
+          Estornos e reembolsos (R$)
+          <input type="number" id="adminPlatformFinanceRefundsV9" min="0" step="0.01" value="0">
+        </label>
+        <label>
+          Outras despesas do CNPJ (R$)
+          <input type="number" id="adminPlatformFinanceExpensesV9" min="0" step="0.01" value="0">
+        </label>
+      </div>
+
+      <div class="admin-platform-finance-actions-v9">
+        <button type="button" class="secondary-button" id="refreshAdminPlatformFinanceV9">
+          Atualizar resumo
+        </button>
+        <span>Os custos informados aqui entram na planilha, mas n&atilde;o alteram os cadastros.</span>
+      </div>
+
+      <div id="adminPlatformFinanceMessageV9" class="admin-platform-finance-message-v9"></div>
+      <div id="adminPlatformFinanceSummaryV9" class="admin-platform-finance-summary-v9">
+        <div class="admin-platform-finance-empty-v9">Carregando dados financeiros...</div>
+      </div>
+
+      <div class="admin-platform-finance-note-v9">
+        <strong>O que a planilha inclui</strong>
+        <p>
+          Resumo do per&iacute;odo, vendas recebidas, pagamentos pendentes ou atrasados,
+          clientes, CNPJ, necessidade de nota fiscal e mem&oacute;ria do c&aacute;lculo do lucro.
+          A classifica&ccedil;&atilde;o fiscal final deve ser validada pelo contador.
+        </p>
+      </div>
+    </div>
+  `;
+
+  panel.querySelector("#refreshAdminPlatformFinanceV9")
+    ?.addEventListener("click", loadAdminPlatformFinanceV9);
+  panel.querySelector("#exportAdminPlatformFinanceV9")
+    ?.addEventListener("click", exportAdminPlatformFinanceV9);
+
+  ["adminPlatformFinanceFeesV9", "adminPlatformFinanceTaxesV9", "adminPlatformFinanceRefundsV9", "adminPlatformFinanceExpensesV9"]
+    .forEach(id => panel.querySelector(`#${id}`)?.addEventListener("input", renderAdminPlatformFinanceSummaryV9));
+}
+
+
+function getAdminPlatformFinanceRangeV9() {
+  const start = document.getElementById("adminPlatformFinanceStartV9")?.value || "";
+  const end = document.getElementById("adminPlatformFinanceEndV9")?.value || "";
+  if (!/^\d{4}-\d{2}$/.test(start) || !/^\d{4}-\d{2}$/.test(end) || start > end) {
+    throw new Error("Selecione um periodo mensal valido.");
+  }
+
+  const months = [];
+  let [year, month] = start.split("-").map(Number);
+  const [endYear, endMonth] = end.split("-").map(Number);
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    months.push({ year, month, key: `${year}-${String(month).padStart(2, "0")}` });
+    month += 1;
+    if (month === 13) {
+      year += 1;
+      month = 1;
+    }
+    if (months.length > 60) throw new Error("O periodo maximo do relatorio e de 60 meses.");
+  }
+  return { start, end, months, key: `${start}:${end}` };
+}
+
+
+function getAdminPlatformFinanceCostsV9() {
+  const read = id => Math.max(0, Number(document.getElementById(id)?.value || 0));
+  return {
+    fees: read("adminPlatformFinanceFeesV9"),
+    taxes: read("adminPlatformFinanceTaxesV9"),
+    refunds: read("adminPlatformFinanceRefundsV9"),
+    expenses: read("adminPlatformFinanceExpensesV9")
+  };
+}
+
+
+function getAdminPlatformFinanceTotalsV9() {
+  const billingRecords = currentAdminPlatformFinanceV9.filter(item => item.amount != null);
+  const paid = billingRecords.filter(item => item.payment_status === "paid");
+  const open = billingRecords.filter(item => item.payment_status !== "paid" && Number(item.amount || 0) > 0);
+  const revenue = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const receivable = open.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const costs = getAdminPlatformFinanceCostsV9();
+  const totalCosts = costs.fees + costs.taxes + costs.refunds + costs.expenses;
+  return { paid, open, revenue, receivable, costs, totalCosts, profit: revenue - totalCosts };
+}
+
+
+async function loadAdminPlatformFinanceV9() {
+  const message = document.getElementById("adminPlatformFinanceMessageV9");
+  const summary = document.getElementById("adminPlatformFinanceSummaryV9");
+  const refresh = document.getElementById("refreshAdminPlatformFinanceV9");
+  if (!summary) return false;
+
+  let range;
+  try {
+    range = getAdminPlatformFinanceRangeV9();
+  } catch (error) {
+    if (message) message.textContent = error.message;
+    return false;
+  }
+
+  if (refresh) {
+    refresh.disabled = true;
+    refresh.textContent = "Atualizando...";
+  }
+  if (message) message.textContent = "Buscando as mensalidades registradas...";
+
+  const results = await Promise.all(range.months.map(({ year, month }) =>
+    supabaseClient.rpc("get_admin_teacher_system_financial", { p_year: year, p_month: month })
+  ));
+  const failed = results.find(result => result.error);
+
+  if (refresh) {
+    refresh.disabled = false;
+    refresh.textContent = "Atualizar resumo";
+  }
+  if (failed) {
+    if (message) message.textContent = failed.error?.message || "Nao foi possivel carregar os dados financeiros.";
+    return false;
+  }
+
+  const teacherMap = new Map(currentAdminTeachers.map(teacher => [String(teacher.teacher_id), teacher]));
+  currentAdminPlatformFinanceV9 = results.flatMap((result, index) => {
+    const period = range.months[index];
+    return (result.data || []).map(record => ({
+      ...record,
+      report_year: period.year,
+      report_month: period.month,
+      report_period: period.key,
+      teacher: teacherMap.get(String(record.teacher_id)) || {}
+    }));
+  });
+  currentAdminPlatformFinanceRangeV9 = range.key;
+  if (message) message.textContent = `Dados atualizados: ${range.start} a ${range.end}.`;
+  renderAdminPlatformFinanceSummaryV9();
+  return true;
+}
+
+
+function renderAdminPlatformFinanceSummaryV9() {
+  const area = document.getElementById("adminPlatformFinanceSummaryV9");
+  if (!area || !currentAdminPlatformFinanceRangeV9) return;
+  const totals = getAdminPlatformFinanceTotalsV9();
+  area.innerHTML = `
+    <article><span>Faturamento recebido</span><strong>${formatCurrency(totals.revenue)}</strong><small>${totals.paid.length} venda(s) paga(s)</small></article>
+    <article><span>A receber</span><strong>${formatCurrency(totals.receivable)}</strong><small>${totals.open.length} pendencia(s)</small></article>
+    <article><span>Custos informados</span><strong>${formatCurrency(totals.totalCosts)}</strong><small>Taxas, impostos, estornos e despesas</small></article>
+    <article class="${totals.profit < 0 ? "negative" : "profit"}"><span>Lucro liquido estimado</span><strong>${formatCurrency(totals.profit)}</strong><small>Recebido menos custos informados</small></article>
+  `;
+}
+
+
+function adminPlatformFinanceStatusV9(item) {
+  if (item.payment_status === "paid") return "Pago";
+  if (item.display_status === "overdue") return "Atrasado";
+  if (item.display_status === "not_configured") return "Nao configurado";
+  return "Pendente";
+}
+
+
+function escapeSpreadsheetXmlV9(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+
+function buildSpreadsheetXmlV9(sheets) {
+  const worksheets = sheets.map(sheet => {
+    const rows = sheet.rows.map((row, rowIndex) => {
+      const cells = row.map((value, cellIndex) => {
+        const isNumber = typeof value === "number" && Number.isFinite(value);
+        const isCurrency = isNumber && (sheet.currencyColumns || []).includes(cellIndex);
+        const style = isCurrency ? ' ss:StyleID="Currency"' : (sheet.headerRows || [0]).includes(rowIndex) ? ' ss:StyleID="Header"' : "";
+        return `<Cell${style}><Data ss:Type="${isNumber ? "Number" : "String"}">${escapeSpreadsheetXmlV9(value)}</Data></Cell>`;
+      }).join("");
+      return `<Row>${cells}</Row>`;
+    }).join("");
+    return `<Worksheet ss:Name="${escapeSpreadsheetXmlV9(sheet.name)}"><Table>${rows}</Table></Worksheet>`;
+  }).join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+  <Style ss:ID="Header"><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/><Interior ss:Color="#F7E9E1" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Currency"><NumberFormat ss:Format="R$ #,##0.00"/></Style>
+ </Styles>
+ ${worksheets}
+</Workbook>`;
+}
+
+
+async function exportAdminPlatformFinanceV9() {
+  const button = document.getElementById("exportAdminPlatformFinanceV9");
+  const message = document.getElementById("adminPlatformFinanceMessageV9");
+  let range;
+  try {
+    range = getAdminPlatformFinanceRangeV9();
+  } catch (error) {
+    if (message) message.textContent = error.message;
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Preparando planilha...";
+  }
+
+  if (currentAdminPlatformFinanceRangeV9 !== range.key) {
+    const loaded = await loadAdminPlatformFinanceV9();
+    if (!loaded) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Gerar planilha para o contador";
+      }
+      return;
+    }
+  }
+
+  const totals = getAdminPlatformFinanceTotalsV9();
+  const generatedAt = new Date().toLocaleString("pt-BR");
+  const summaryRows = [
+    ["AULARIUM - RELATORIO FINANCEIRO PARA O CONTADOR"],
+    ["Periodo", `${range.start} a ${range.end}`],
+    ["Gerado em", generatedAt],
+    [],
+    ["Indicador", "Valor (R$)", "Criterio"],
+    ["Faturamento recebido", totals.revenue, "Somente mensalidades marcadas como pagas"],
+    ["Valores a receber", totals.receivable, "Pagamentos pendentes ou atrasados; nao compoem o lucro"],
+    ["Taxas de pagamento", totals.costs.fees, "Valor informado pelo administrador"],
+    ["Impostos provisionados", totals.costs.taxes, "Valor informado pelo administrador"],
+    ["Estornos e reembolsos", totals.costs.refunds, "Valor informado pelo administrador"],
+    ["Outras despesas do CNPJ", totals.costs.expenses, "Valor informado pelo administrador"],
+    ["Total de custos", totals.totalCosts, "Soma dos quatro itens anteriores"],
+    ["Lucro liquido estimado", totals.profit, "Faturamento recebido menos total de custos"],
+    [],
+    ["Observacao", "Relatorio gerencial. O contador deve validar competencia, regime tributario, documentos fiscais e classificacao contabil."]
+  ];
+  const saleHeader = ["Competencia", "Cliente / professor", "E-mail", "CPF", "CNPJ", "Vencimento", "Data do pagamento", "Valor (R$)", "Status", "Nota fiscal solicitada", "ID do professor"];
+  const saleRows = currentAdminPlatformFinanceV9.filter(item => item.amount != null).map(item => {
+    const teacher = item.teacher || {};
+    return [
+      item.report_period,
+      teacher.teacher_name || item.teacher_name || "",
+      teacher.teacher_email || item.teacher_email || "",
+      teacher.cpf || "",
+      teacher.cnpj || "",
+      item.due_date || "",
+      item.paid_at || item.payment_date || "",
+      Number(item.amount || 0),
+      adminPlatformFinanceStatusV9(item),
+      item.invoice_required === true || item.system_invoice_required === true ? "Sim" : "Nao",
+      item.teacher_id || ""
+    ];
+  });
+  const monthlyMap = new Map(range.months.map(period => [period.key, { received: 0, receivable: 0, paid: 0, open: 0 }]));
+  currentAdminPlatformFinanceV9.forEach(item => {
+    const monthly = monthlyMap.get(item.report_period);
+    if (!monthly) return;
+    if (item.payment_status === "paid") {
+      monthly.received += Number(item.amount || 0);
+      monthly.paid += 1;
+    } else if (Number(item.amount || 0) > 0) {
+      monthly.receivable += Number(item.amount || 0);
+      monthly.open += 1;
+    }
+  });
+  const monthlyRows = [...monthlyMap].map(([period, value]) => [period, value.received, value.paid, value.receivable, value.open]);
+  const costRows = [
+    ["Categoria", "Valor (R$)", "Origem"],
+    ["Taxas de pagamento", totals.costs.fees, "Informado pelo administrador"],
+    ["Impostos provisionados", totals.costs.taxes, "Informado pelo administrador"],
+    ["Estornos e reembolsos", totals.costs.refunds, "Informado pelo administrador"],
+    ["Outras despesas do CNPJ", totals.costs.expenses, "Informado pelo administrador"]
+  ];
+  const workbookXml = buildSpreadsheetXmlV9([
+    { name: "Resumo", rows: summaryRows, currencyColumns: [1], headerRows: [0, 4] },
+    { name: "Vendas e pendencias", rows: [saleHeader, ...saleRows], currencyColumns: [7] },
+    { name: "Resumo mensal", rows: [["Competencia", "Recebido (R$)", "Vendas pagas", "A receber (R$)", "Pendencias"], ...monthlyRows], currencyColumns: [1, 3] },
+    { name: "Custos informados", rows: costRows, currencyColumns: [1] }
+  ]);
+  downloadBlobV3(
+    `aularium-contador-${range.start}-a-${range.end}.xls`,
+    workbookXml,
+    "application/vnd.ms-excel;charset=utf-8"
+  );
+  if (message) message.textContent = "Planilha gerada com sucesso.";
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Gerar planilha para o contador";
+  }
 }
 
 function renderAdminTeacherManagement() {
