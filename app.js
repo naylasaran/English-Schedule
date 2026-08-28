@@ -13745,16 +13745,95 @@ function findScheduleSlot(
   time
 ) {
 
-  return schedule.find(
-    slot =>
+  return choosePreferredScheduleSlot(
+    (schedule || []).filter(
+      slot =>
 
-      Number(
-        slot.day_of_week
-      ) === day &&
+        Number(
+          slot.day_of_week
+        ) === day &&
 
-      normalizeTime(
-        slot.start_time
-      ) === time
+        normalizeTime(
+          slot.start_time
+        ) === time
+    )
+  );
+}
+
+
+function getScheduleSlotPriority(
+  slot
+) {
+
+  const status =
+    String(
+      slot && slot.status || ""
+    ).toLowerCase();
+
+
+  switch (status) {
+
+    case "own_makeup":
+    case "my_makeup":
+    case "makeup":
+      return 120;
+
+    case "own_lesson":
+    case "my_lesson":
+    case "own":
+    case "lesson":
+      return 110;
+
+    case "reservation":
+    case "occupied":
+      return 100;
+
+    case "cancelled":
+      return 90;
+
+    case "unavailable":
+      return 80;
+
+    case "free":
+    case "available":
+      return 0;
+
+    default:
+      return 50;
+
+  }
+}
+
+
+function choosePreferredScheduleSlot(
+  slots
+) {
+
+  return (slots || []).reduce(
+    (
+      preferred,
+      candidate
+    ) => {
+
+      if (!preferred) {
+        return candidate;
+      }
+
+
+      return (
+        getScheduleSlotPriority(
+          candidate
+        )
+        >
+        getScheduleSlotPriority(
+          preferred
+        )
+      )
+        ? candidate
+        : preferred;
+
+    },
+    null
   );
 }
 
@@ -33403,11 +33482,13 @@ function renderTeacherWeeklySchedule(days) {
 
 
           const slot =
-            day.schedule.find(
-              item =>
-                normalizeTime(
-                  item.start_time
-                ) === time
+            choosePreferredScheduleSlot(
+              day.schedule.filter(
+                item =>
+                  normalizeTime(
+                    item.start_time
+                  ) === time
+              )
             );
 
 
