@@ -3745,3 +3745,45 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
     padding: 30px 18px 44px;
   }
 }
+.aularium-home-button-v19 {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aularium-home-button-v19:focus-visible {
+  outline: 2px solid #cf7049;
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+
+.teacher-financial-details-v19[hidden],
+.teacher-financial-actions-v19[hidden] {
+  display: none !important;
+}
+
+.toggle-teacher-financial-v19 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle-teacher-financial-v19 .financial-arrow-v19 {
+  transition: transform .18s ease;
+}
+
+.toggle-teacher-financial-v19[aria-expanded="true"] .financial-arrow-v19 {
+  transform: rotate(90deg);
+}
