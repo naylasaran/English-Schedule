@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: sessao-unica-professor-aluno-v15-20260827"
+  "Aularium build: aulas-flexiveis-multivinculo-v16-20260828"
 );
 
 // =====================================================
@@ -15,6 +15,7 @@ console.log(
 let currentUser = null;
 let currentProfile = null;
 let currentStudentId = null;
+let currentStudentContextsV16 = [];
 let currentTeacherStudents = [];
 let currentTeacherPausePeriods = [];
 let currentTeacherPlans = [];
@@ -649,6 +650,8 @@ async function loadStudentTeacherRescheduleRules() {
 
 async function showStudentArea() {
 
+  await loadStudentContextsV16();
+
   document
     .querySelectorAll(
       "[data-student-page]"
@@ -720,7 +723,22 @@ async function showStudentArea() {
           ? "Acesso temporario somente para reposicoes."
           : "Area do aluno."
       }</p>
+      ${renderStudentContextSwitcherV16()}
     `;
+
+    const contextSelect =
+      document.getElementById(
+        "studentTeacherContextSelectV16"
+      );
+
+    if (contextSelect) {
+      contextSelect.addEventListener(
+        "change",
+        () => switchStudentContextV16(
+          contextSelect.value
+        )
+      );
+    }
 
   }
 
@@ -1038,7 +1056,6 @@ async function loadGuardianStudentDetail(
   if (!area) {
     return;
   }
-
 
   area.innerHTML =
     "Carregando informacoes...";
@@ -13031,7 +13048,7 @@ function renderStudentWeeklySchedule(
             () => {
 
               openStudentAgendaOwnLesson(
-                slot,
+                getStudentLessonAnchorSlotV16(slot),
                 slotDate
               );
 
@@ -13761,6 +13778,98 @@ function findScheduleSlot(
 }
 
 
+async function loadStudentContextsV16() {
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      "get_my_student_contexts_v16"
+    );
+
+  if (error) {
+    console.warn(
+      "Nao foi possivel carregar os professores vinculados ao aluno:",
+      error
+    );
+    currentStudentContextsV16 = [];
+    return [];
+  }
+
+  currentStudentContextsV16 =
+    Array.isArray(data) ? data : [];
+
+  return currentStudentContextsV16;
+}
+
+
+function renderStudentContextSwitcherV16() {
+
+  if (currentStudentContextsV16.length <= 1) {
+    return "";
+  }
+
+  return `
+    <div class="student-teacher-context-v16">
+      <label for="studentTeacherContextSelectV16">
+        Visualizar aulas com
+      </label>
+      <select id="studentTeacherContextSelectV16">
+        ${currentStudentContextsV16.map(context => `
+          <option
+            value="${escapeSelectValue(context.student_id)}"
+            ${String(context.student_id) === String(currentStudentId) ? "selected" : ""}
+          >
+            ${escapeHtml(context.teacher_name || "Professor")}
+          </option>
+        `).join("")}
+      </select>
+    </div>
+  `;
+}
+
+
+async function switchStudentContextV16(studentId) {
+
+  if (!studentId || String(studentId) === String(currentStudentId)) {
+    return;
+  }
+
+  const { error } =
+    await supabaseClient.rpc(
+      "set_my_student_context_v16",
+      { p_student_id: studentId }
+    );
+
+  if (error) {
+    alert(
+      error.message ||
+      "Nao foi possivel trocar o professor exibido."
+    );
+    return;
+  }
+
+  const { data: accessData, error: accessError } =
+    await supabaseClient.rpc(
+      "get_my_student_access_v2"
+    );
+
+  const access =
+    (Array.isArray(accessData) ? accessData[0] : accessData) || null;
+
+  if (accessError || !access || access.access_mode === "blocked") {
+    alert(
+      accessError?.message ||
+      "O acesso com este professor nao esta disponivel."
+    );
+    return;
+  }
+
+  currentStudentId = access.student_id;
+  currentStudentAccessMode = String(access.access_mode || "blocked");
+  selectedWeekStart = getMonday(new Date());
+  await showStudentArea();
+}
+
+
 function getScheduleSlotPriority(
   slot
 ) {
@@ -13902,6 +14011,45 @@ function normalizeStudentScheduleStatus(
       };
 
   }
+}
+
+
+function getStudentLessonAnchorSlotV16(selectedSlot) {
+
+  const context = (currentStudentContextsV16 || []).find(
+    item => String(item.student_id) === String(currentStudentId)
+  );
+  const duration = Number(context?.class_duration_minutes || 30);
+  const blockCount = Math.max(1, Math.min(4, Math.round(duration / 30)));
+  const day = Number(selectedSlot.day_of_week);
+  const selectedMinutes = timeToMinutes(selectedSlot.start_time);
+  const ownStarts = [];
+
+  for (const item of currentStudentSchedule || []) {
+    if (Number(item.day_of_week) !== day) {
+      continue;
+    }
+    const status = normalizeStudentScheduleStatus(item.status);
+    if (status.className === "own") {
+      ownStarts.push(timeToMinutes(item.start_time));
+    }
+  }
+
+  const starts = [...new Set(ownStarts)].sort((a, b) => a - b);
+  let runStart = selectedMinutes;
+
+  while (starts.includes(runStart - 30)) {
+    runStart -= 30;
+  }
+
+  const offset = Math.max(0, Math.round((selectedMinutes - runStart) / 30));
+  const anchor = runStart + Math.floor(offset / blockCount) * blockCount * 30;
+
+  return findScheduleSlot(
+    currentStudentSchedule,
+    day,
+    minutesToTime(anchor)
+  ) || selectedSlot;
 }
 
 
@@ -15375,41 +15523,58 @@ function getCompatibleMakeups(
 
 
     if (
-      duration === 30
+      [30, 60, 90, 120].includes(duration) &&
+      hasContiguousFreeSlotsV16(
+        slot,
+        duration
+      )
     ) {
-
-      result.push(
-        makeup
-      );
-
-      continue;
-    }
-
-
-    if (
-      duration === 60
-    ) {
-
-      const nextSlot =
-        findNextFreeSlot(
-          slot
-        );
-
-
-      if (nextSlot) {
-
-        result.push(
-          makeup
-        );
-
-      }
-
+      result.push(makeup);
     }
 
   }
 
 
   return result;
+}
+
+
+function hasContiguousFreeSlotsV16(
+  slot,
+  durationMinutes
+) {
+
+  const blocks =
+    Number(durationMinutes) / 30;
+
+  if (!Number.isInteger(blocks) || blocks < 1 || blocks > 4) {
+    return false;
+  }
+
+  const day = Number(slot.day_of_week);
+  const firstStart = timeToMinutes(slot.start_time);
+
+  for (let index = 0; index < blocks; index += 1) {
+    const candidate = findScheduleSlot(
+      currentStudentSchedule,
+      day,
+      minutesToTime(firstStart + index * 30)
+    );
+
+    if (!candidate) {
+      return false;
+    }
+
+    const status = normalizeStudentScheduleStatus(
+      candidate.status
+    );
+
+    if (status.className !== "available") {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
@@ -16568,12 +16733,20 @@ function setTeacherPage(page) {
                   border-radius:8px;
                 "
               >
-                <option value="60">
+                <option value="30">
+                  30 minutos
+                </option>
+
+                <option value="60" selected>
                   60 minutos
                 </option>
 
-                <option value="30">
-                  30 minutos
+                <option value="90">
+                  90 minutos
+                </option>
+
+                <option value="120">
+                  120 minutos
                 </option>
               </select>
 
@@ -16920,8 +17093,8 @@ function setTeacherPage(page) {
                     font-size:13px;
                   "
                 >
-                  Para 60 minutos, o sistema reserva
-                  automaticamente dois blocos de 30 minutos.
+                  O sistema reserva automaticamente a quantidade
+                  necessaria de blocos de 30 minutos.
                 </div>
 
               </div>
@@ -18983,13 +19156,7 @@ function collectStudentFixedSchedule(
         timeToMinutes(
           time
         )
-        +
-        (
-          duration ===
-            60
-            ? 60
-            : 30
-        )
+        + duration
       );
 
 
@@ -19759,8 +19926,9 @@ async function saveNewStudentWithAccess() {
 
 
   if (
-    duration !== 30 &&
-    duration !== 60
+    ![30, 60, 90, 120].includes(
+      duration
+    )
   ) {
 
     showError(
@@ -34210,7 +34378,10 @@ function renderTeacherWeeklySchedule(days) {
 
                 openTeacherAttendanceManager(
                   day.date,
-                  slot
+                  getTeacherOccurrenceAnchorSlotV16(
+                    day.schedule,
+                    slot
+                  )
                 );
 
               }
@@ -34247,7 +34418,10 @@ function renderTeacherWeeklySchedule(days) {
 
                 openTeacherScheduleEditor(
                   day.date,
-                  slot
+                  getTeacherOccurrenceAnchorSlotV16(
+                    day.schedule,
+                    slot
+                  )
                 );
 
               }
@@ -34278,7 +34452,10 @@ function renderTeacherWeeklySchedule(days) {
 
                 openTeacherMakeupReservationManager(
                   day.date,
-                  slot
+                  getTeacherOccurrenceAnchorSlotV16(
+                    day.schedule,
+                    slot
+                  )
                 );
 
               }
@@ -36484,6 +36661,73 @@ function normalizeTeacherScheduleStatus(
 // EDITAR HOR\u00C1RIO DO PROFESSOR
 // =====================================================
 
+function getTeacherOccurrenceAnchorSlotV16(
+  daySchedule,
+  selectedSlot
+) {
+
+  const status = String(selectedSlot?.status || "").toLowerCase();
+
+  if (!["lesson", "makeup"].includes(status)) {
+    return selectedSlot;
+  }
+
+  const studentId = String(selectedSlot.student_id || "");
+  const reservationId = String(selectedSlot.reservation_id || "");
+  const student = (currentTeacherStudents || []).find(
+    item => String(item.student_id || item.id) === studentId
+  );
+  const duration = Number(
+    selectedSlot.duration_minutes ||
+    student?.class_duration_minutes ||
+    30
+  );
+  const blockCount = Math.max(
+    1,
+    Math.min(4, Math.round(duration / 30))
+  );
+  const selectedMinutes = timeToMinutes(selectedSlot.start_time);
+  const matchingStarts = [];
+
+  for (const item of daySchedule || []) {
+    const preferred = choosePreferredScheduleSlot(
+      (daySchedule || []).filter(candidate =>
+        normalizeTime(candidate.start_time) === normalizeTime(item.start_time)
+      )
+    );
+
+    if (!preferred) {
+      continue;
+    }
+
+    const sameOccurrence = status === "makeup" && reservationId
+      ? String(preferred.reservation_id || "") === reservationId
+      : String(preferred.student_id || "") === studentId &&
+        String(preferred.status || "").toLowerCase() === status;
+
+    if (sameOccurrence) {
+      matchingStarts.push(timeToMinutes(preferred.start_time));
+    }
+  }
+
+  const uniqueStarts = [...new Set(matchingStarts)].sort((a, b) => a - b);
+  let runStart = selectedMinutes;
+
+  while (uniqueStarts.includes(runStart - 30)) {
+    runStart -= 30;
+  }
+
+  const offsetBlocks = Math.max(0, Math.round((selectedMinutes - runStart) / 30));
+  const anchorMinutes = runStart + Math.floor(offsetBlocks / blockCount) * blockCount * 30;
+  const anchorTime = minutesToTime(anchorMinutes);
+
+  return choosePreferredScheduleSlot(
+    (daySchedule || []).filter(item =>
+      normalizeTime(item.start_time) === anchorTime
+    )
+  ) || selectedSlot;
+}
+
 async function openTeacherScheduleEditor(
   date,
   slot
@@ -37222,6 +37466,10 @@ async function openTeacherMakeupBooking(
     return;
   }
 
+  if (currentTeacherStudents.length === 0) {
+    await loadTeacherStudents();
+  }
+
 
   const {
     data,
@@ -37409,14 +37657,76 @@ async function openTeacherMakeupBooking(
                   color:#666;
                 "
               >
-                Para uma reposi\u00E7\u00E3o de 60 minutos,
-                os dois blocos de 30 minutos precisam estar livres.
+                Todos os blocos de 30 minutos correspondentes
+                \u00E0 dura\u00E7\u00E3o precisam estar livres.
               </p>
 
             </div>
 
           `
       }
+
+      <div class="teacher-manual-makeup-v16">
+        <h4>Conceder uma nova reposi\u00E7\u00E3o</h4>
+        <p>
+          Use esta op\u00E7\u00E3o mesmo quando o aluno n\u00E3o possui
+          um cr\u00E9dito gerado por falta ou cancelamento.
+        </p>
+
+        <div class="teacher-manual-makeup-grid-v16">
+          <label>
+            Aluno
+            <select id="teacherManualMakeupStudentV16">
+              <option value="">Selecione</option>
+              ${(currentTeacherStudents || []).map(student => `
+                <option
+                  value="${escapeSelectValue(student.student_id || student.id)}"
+                  data-duration="${Number(student.class_duration_minutes || 60)}"
+                >
+                  ${escapeHtml(student.student_name || student.name || "Aluno")}
+                </option>
+              `).join("")}
+            </select>
+          </label>
+
+          <label>
+            Dura\u00E7\u00E3o
+            <select id="teacherManualMakeupDurationV16">
+              <option value="30">30 minutos</option>
+              <option value="60" selected>60 minutos</option>
+              <option value="90">90 minutos</option>
+              <option value="120">120 minutos</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          Motivo ou observa\u00E7\u00E3o (opcional)
+          <input
+            id="teacherManualMakeupReasonV16"
+            type="text"
+            maxlength="500"
+            placeholder="Ex.: reposi\u00E7\u00E3o concedida pelo professor"
+          >
+        </label>
+
+        <div class="teacher-manual-makeup-actions-v16">
+          <button
+            type="button"
+            class="secondary-button"
+            id="grantTeacherManualMakeupV16"
+          >
+            Conceder cr\u00E9dito
+          </button>
+          <button
+            type="button"
+            class="action-button"
+            id="grantAndBookTeacherManualMakeupV16"
+          >
+            Conceder e agendar aqui
+          </button>
+        </div>
+      </div>
 
 
       <div
@@ -37492,6 +37802,33 @@ async function openTeacherMakeupBooking(
 
   }
 
+  const manualStudent = document.getElementById(
+    "teacherManualMakeupStudentV16"
+  );
+  const manualDuration = document.getElementById(
+    "teacherManualMakeupDurationV16"
+  );
+
+  if (manualStudent && manualDuration) {
+    manualStudent.addEventListener("change", () => {
+      const option = manualStudent.selectedOptions[0];
+      const duration = Number(option?.dataset.duration || 60);
+      if ([30, 60, 90, 120].includes(duration)) {
+        manualDuration.value = String(duration);
+      }
+    });
+  }
+
+  document.getElementById("grantTeacherManualMakeupV16")
+    ?.addEventListener("click", () =>
+      confirmTeacherManualMakeupV16(date, slot, false)
+    );
+
+  document.getElementById("grantAndBookTeacherManualMakeupV16")
+    ?.addEventListener("click", () =>
+      confirmTeacherManualMakeupV16(date, slot, true)
+    );
+
 
   const backButton =
     document.getElementById(
@@ -37515,6 +37852,109 @@ async function openTeacherMakeupBooking(
 
   }
 
+}
+
+
+async function confirmTeacherManualMakeupV16(
+  date,
+  slot,
+  shouldBook
+) {
+
+  const studentId = document.getElementById(
+    "teacherManualMakeupStudentV16"
+  )?.value || "";
+  const duration = Number(
+    document.getElementById(
+      "teacherManualMakeupDurationV16"
+    )?.value || 0
+  );
+  const reason = document.getElementById(
+    "teacherManualMakeupReasonV16"
+  )?.value.trim() || null;
+  const message = document.getElementById(
+    "teacherMakeupBookingMessage"
+  );
+  const button = document.getElementById(
+    shouldBook
+      ? "grantAndBookTeacherManualMakeupV16"
+      : "grantTeacherManualMakeupV16"
+  );
+
+  if (!studentId || ![30, 60, 90, 120].includes(duration)) {
+    if (message) {
+      message.textContent = "Selecione o aluno e uma duracao valida.";
+      message.style.color = "red";
+    }
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = shouldBook
+      ? "Concedendo e agendando..."
+      : "Concedendo...";
+  }
+
+  const { data: makeupId, error: grantError } =
+    await supabaseClient.rpc(
+      "teacher_grant_makeup_v16",
+      {
+        p_student_id: studentId,
+        p_duration_minutes: duration,
+        p_reason: reason,
+        p_expires_at: null
+      }
+    );
+
+  if (grantError) {
+    if (message) {
+      message.textContent = grantError.message ||
+        "Nao foi possivel conceder a reposicao.";
+      message.style.color = "red";
+    }
+    if (button) {
+      button.disabled = false;
+      button.textContent = shouldBook
+        ? "Conceder e agendar aqui"
+        : "Conceder credito";
+    }
+    return;
+  }
+
+  if (shouldBook) {
+    const { error: bookingError } =
+      await supabaseClient.rpc(
+        "teacher_reserve_makeup",
+        {
+          p_makeup_id: makeupId,
+          p_reservation_date: formatDateForDatabase(date),
+          p_start_time: normalizeTime(slot.start_time)
+        }
+      );
+
+    if (bookingError) {
+      if (message) {
+        message.textContent =
+          "O credito foi concedido, mas nao coube neste horario: " +
+          (bookingError.message || "horario indisponivel.");
+        message.style.color = "#a9573a";
+      }
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Conceder e agendar aqui";
+      }
+      return;
+    }
+  }
+
+  document.getElementById("teacherScheduleEditArea").innerHTML = "";
+  await loadTeacherWeeklySchedule();
+  alert(
+    shouldBook
+      ? "Reposicao concedida e agendada com sucesso."
+      : "Credito de reposicao concedido ao aluno."
+  );
 }
 
 
@@ -38037,9 +38477,33 @@ function openTeacherLessonCancellation(
 
         <br><br>
 
-        Uma reposi\u00E7\u00E3o ser\u00E1 liberada automaticamente
-        para o aluno.
+        Escolha abaixo se o aluno receber\u00E1 reposi\u00E7\u00E3o
+        ou se a aula ser\u00E1 retirada sem cobran\u00E7a e sem cr\u00E9dito.
 
+      </div>
+
+      <div style="margin-top:18px;">
+        <label
+          for="teacherCancelLessonCompensationV16"
+          style="display:block;font-weight:bold;margin-bottom:8px;"
+        >
+          Tratamento da aula cancelada
+        </label>
+        <select
+          id="teacherCancelLessonCompensationV16"
+          style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;"
+        >
+          <option value="makeup" selected>
+            Liberar reposi\u00E7\u00E3o para o aluno
+          </option>
+          <option value="no_makeup">
+            Retirar sem reposi\u00E7\u00E3o e sem cobrar esta aula
+          </option>
+        </select>
+        <p style="margin-top:8px;font-size:13px;color:#666;">
+          Em cobran\u00E7as por aula, a op\u00E7\u00E3o sem reposi\u00E7\u00E3o
+          remove esta ocorr\u00EAncia do valor a receber.
+        </p>
       </div>
 
 
@@ -38306,6 +38770,11 @@ async function confirmTeacherLessonCancellation(
       "teacherCancelLessonOldSlotStatus"
     );
 
+  const compensationSelect =
+    document.getElementById(
+      "teacherCancelLessonCompensationV16"
+    );
+
 
   const button =
     document.getElementById(
@@ -38335,6 +38804,10 @@ async function confirmTeacherLessonCancellation(
       ? "free"
       : "unavailable";
 
+  const grantMakeup =
+    !compensationSelect ||
+    compensationSelect.value !== "no_makeup";
+
 
   const confirmed =
     window.confirm(
@@ -38349,7 +38822,11 @@ async function confirmTeacherLessonCancellation(
         slot.start_time
       ) +
 
-      "\n\nUma reposi\u00E7\u00E3o ser\u00E1 liberada para o aluno." +
+      (
+        grantMakeup
+          ? "\n\nUma reposi\u00E7\u00E3o ser\u00E1 liberada para o aluno."
+          : "\n\nA aula ser\u00E1 retirada sem reposi\u00E7\u00E3o e sem cobran\u00E7a por esta ocorr\u00EAncia."
+      ) +
 
       (
         oldSlotStatus === "free"
@@ -38394,7 +38871,7 @@ async function confirmTeacherLessonCancellation(
     error
   } =
     await supabaseClient.rpc(
-      "teacher_cancel_lesson_occurrence",
+      "teacher_cancel_lesson_occurrence_v16",
       {
 
         p_lesson_date:
@@ -38411,7 +38888,10 @@ async function confirmTeacherLessonCancellation(
           oldSlotStatus,
 
         p_reason:
-          reason || null
+          reason || null,
+
+        p_grant_makeup:
+          grantMakeup
 
       }
     );
@@ -38470,9 +38950,9 @@ async function confirmTeacherLessonCancellation(
 
 
   alert(
-    "Aula cancelada com sucesso.\n\n" +
-    "Uma reposi\u00E7\u00E3o foi liberada para o aluno e " +
-    "a agenda fixa das semanas seguintes foi preservada."
+    grantMakeup
+      ? "Aula cancelada com sucesso.\n\nUma reposi\u00E7\u00E3o foi liberada para o aluno e a agenda fixa das semanas seguintes foi preservada."
+      : "Aula retirada com sucesso.\n\nEla nao gerou reposi\u00E7\u00E3o nem cobran\u00E7a por esta ocorr\u00EAncia; a agenda fixa das semanas seguintes foi preservada."
   );
 
 }
@@ -45862,7 +46342,7 @@ async function saveNewStudentWithAccessV2() {
     return;
   }
 
-  if (![30, 60].includes(duration) || !birthDate || !contractStartDate || !contractEndDate) {
+  if (![30, 60, 90, 120].includes(duration) || !birthDate || !contractStartDate || !contractEndDate) {
     fail("Preencha duracao, nascimento e o periodo completo do contrato.");
     return;
   }

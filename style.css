@@ -5,6 +5,93 @@
 * {
   box-sizing: border-box;
 }
+
+.student-teacher-context-v16 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(201, 111, 74, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 250, 244, 0.86);
+}
+
+.student-teacher-context-v16 label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #173b32;
+}
+
+.student-teacher-context-v16 select {
+  min-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid #d8c9bc;
+  border-radius: 9px;
+  background: #fffdf9;
+}
+
+.teacher-manual-makeup-v16 {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #dfc9bb;
+  border-radius: 14px;
+  background: #fffaf4;
+}
+
+.teacher-manual-makeup-v16 h4 {
+  margin: 0 0 6px;
+  color: #173b32;
+}
+
+.teacher-manual-makeup-v16 p {
+  margin: 0 0 14px;
+  color: #665f58;
+}
+
+.teacher-manual-makeup-grid-v16 {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(150px, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.teacher-manual-makeup-v16 label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+  color: #173b32;
+}
+
+.teacher-manual-makeup-v16 select,
+.teacher-manual-makeup-v16 input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #d8c9bc;
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+.teacher-manual-makeup-actions-v16 {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .teacher-manual-makeup-grid-v16 {
+    grid-template-columns: 1fr;
+  }
+
+  .student-teacher-context-v16 select {
+    min-width: 0;
+    width: 100%;
+  }
+}
 /* Escala mais compacta do menu principal. */
 .navigation .nav-button {
   gap: 9px !important;
@@ -3442,30 +3529,3 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   }
 }
 
-
-
-/* AULARIUM V16 - menu administrativo sob a marca */
-@media (min-width: 901px) {
-  .admin-workspace-v8 {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .admin-side-menu-v8 {
-    position: fixed;
-    z-index: 45;
-    top: 158px;
-    left: 18px;
-    width: 234px;
-    max-height: calc(100vh - 240px);
-    overflow-y: auto;
-  }
-}
-
-@media (max-width: 900px) {
-  .admin-side-menu-v8 {
-    width: 100%;
-    max-height: none;
-    overflow-y: visible;
-  }
-}
