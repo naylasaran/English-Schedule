@@ -3529,3 +3529,122 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   }
 }
 
+/* Densidade visual v17: interface autenticada 10% mais compacta.
+   A agenda semanal preserva suas dimensoes para manter a leitura e a rolagem. */
+#teacherScreen,
+#studentScreen {
+  padding-left: 243px;
+  font-size: 90%;
+}
+
+#teacherScreen .navigation,
+#studentScreen .navigation {
+  inset: 142px auto 74px 0;
+  width: 243px;
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+#teacherScreen .navigation .nav-button,
+#studentScreen .navigation .nav-button {
+  gap: 8px !important;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-size: 10px !important;
+}
+
+#teacherScreen .navigation .nav-button::before,
+#studentScreen .navigation .nav-button::before {
+  flex-basis: 23px !important;
+  width: 23px !important;
+  height: 23px !important;
+  background-size: 23px 23px !important;
+}
+
+#teacherScreen .page-container,
+#studentScreen .page-container {
+  width: min(100%, 1386px);
+  padding: 45px 41px 58px;
+}
+
+#teacherScreen .page-header,
+#studentScreen .page-header {
+  padding-bottom: 20px;
+}
+
+#teacherScreen .page-header h2,
+#studentScreen .page-header h2 {
+  margin-bottom: 6px;
+  font-size: clamp(25px, 2.7vw, 36px);
+}
+
+#teacherScreen .page-header p,
+#studentScreen .page-header p {
+  font-size: 13.5px;
+}
+
+#teacherScreen .page-content,
+#studentScreen .page-content {
+  margin-top: 22px;
+}
+
+#teacherScreen .card:not(.schedule-section),
+#studentScreen .card:not(.schedule-section) {
+  padding: 22px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+}
+
+#teacherScreen .card:not(.schedule-section) button,
+#studentScreen .card:not(.schedule-section) button,
+#teacherScreen .card:not(.schedule-section) input,
+#studentScreen .card:not(.schedule-section) input,
+#teacherScreen .card:not(.schedule-section) select,
+#studentScreen .card:not(.schedule-section) select,
+#teacherScreen .card:not(.schedule-section) textarea,
+#studentScreen .card:not(.schedule-section) textarea {
+  font-size: 90%;
+}
+
+#teacherScreen .admin-workspace-v8 {
+  grid-template-columns: 198px minmax(0, 1fr);
+  gap: 16px;
+}
+
+#teacherScreen .admin-side-menu-v8 {
+  gap: 7px;
+}
+
+#teacherScreen .teacher-dashboard-card,
+#studentScreen .teacher-dashboard-card {
+  font-size: 11.7px;
+}
+
+#teacherScreen .teacher-dashboard-card .dashboard-heading h3,
+#studentScreen .teacher-dashboard-card .dashboard-heading h3 {
+  font-size: 18px;
+}
+
+/* Neutraliza a reducao herdada dentro da agenda. */
+#teacherScreen .schedule-section,
+#studentScreen .schedule-section {
+  font-size: 111.111%;
+}
+
+@media (max-width: 980px) {
+  #teacherScreen,
+  #studentScreen {
+    padding-left: 0;
+  }
+
+  #teacherScreen .navigation,
+  #studentScreen .navigation {
+    width: auto;
+    padding: 10px 14px;
+  }
+
+  #teacherScreen .page-container,
+  #studentScreen .page-container {
+    padding: 30px 18px 44px;
+  }
+}

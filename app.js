@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: aulas-flexiveis-multivinculo-v16-20260828"
+  "Aularium build: importacao-segura-interface-compacta-v17-20260828"
 );
 
 // =====================================================
@@ -17009,6 +17009,20 @@ function setTeacherPage(page) {
                 >
 
 
+                <label
+                  style="
+                    display:flex;
+                    align-items:center;
+                    gap:7px;
+                    margin-top:8px;
+                    font-weight:600;
+                  "
+                >
+                  <input type="checkbox" id="newStudentContractIndefinite">
+                  Indeterminado
+                </label>
+
+
                 <div
                   style="
                     margin-top:5px;
@@ -17016,7 +17030,7 @@ function setTeacherPage(page) {
                     font-size:12px;
                   "
                 >
-                  Pode ficar em branco para contrato sem data de termino.
+                  Selecione “Indeterminado” quando não houver uma data de término.
                 </div>
 
               </div>
@@ -17291,6 +17305,43 @@ function setTeacherPage(page) {
 
 
       updateNewStudentBillingFields();
+
+    }
+
+
+    const contractIndefiniteInput =
+      document.getElementById(
+        "newStudentContractIndefinite"
+      );
+
+
+    const contractEndDateInput =
+      document.getElementById(
+        "newStudentContractEndDate"
+      );
+
+
+    if (contractIndefiniteInput && contractEndDateInput) {
+
+      const updateContractEndState = () => {
+
+        if (contractIndefiniteInput.checked) {
+          contractEndDateInput.value = "";
+        }
+
+        contractEndDateInput.disabled =
+          contractIndefiniteInput.checked;
+
+      };
+
+
+      contractIndefiniteInput.addEventListener(
+        "change",
+        updateContractEndState
+      );
+
+
+      updateContractEndState();
 
     }
 
@@ -23003,7 +23054,7 @@ async function openTeacherStudentDetail(
                       : (
                           contract.contract_status ===
                             "open"
-                            ? "Sem data de termino"
+                            ? "Indeterminado"
                             : "Contrato ativo"
                         )
                   )
@@ -23084,6 +23135,24 @@ async function openTeacherStudentDetail(
             >
 
 
+            <label
+              style="
+                display:flex;
+                align-items:center;
+                gap:7px;
+                margin-top:8px;
+                font-weight:600;
+              "
+            >
+              <input
+                type="checkbox"
+                id="teacherStudentContractIndefinite"
+                ${contract.contract_end_date ? "" : "checked"}
+              >
+              Indeterminado
+            </label>
+
+
             <div
               style="
                 margin-top:5px;
@@ -23091,7 +23160,7 @@ async function openTeacherStudentDetail(
                 font-size:12px;
               "
             >
-              Deixe em branco se o contrato nao tiver data de termino.
+              Se marcado, o contrato permanece sem data de término.
             </div>
 
           </div>
@@ -24116,6 +24185,43 @@ async function openTeacherStudentDetail(
     </div>
 
   `;
+
+
+  const contractIndefiniteInput =
+    document.getElementById(
+      "teacherStudentContractIndefinite"
+    );
+
+
+  const contractEndDateInput =
+    document.getElementById(
+      "teacherStudentContractEndDate"
+    );
+
+
+  if (contractIndefiniteInput && contractEndDateInput) {
+
+    const updateContractEndState = () => {
+
+      if (contractIndefiniteInput.checked) {
+        contractEndDateInput.value = "";
+      }
+
+      contractEndDateInput.disabled =
+        contractIndefiniteInput.checked;
+
+    };
+
+
+    contractIndefiniteInput.addEventListener(
+      "change",
+      updateContractEndState
+    );
+
+
+    updateContractEndState();
+
+  }
 
 
   const saveContractButton =
@@ -25769,7 +25875,7 @@ function renderTeacherStudentContractHistoryRow(
             "T12:00:00"
           )
         )
-      : "Sem data de termino";
+      : "Indeterminado";
 
 
   return `
@@ -46311,7 +46417,8 @@ async function saveNewStudentWithAccessV2() {
   const duration = Number(value("newStudentDuration"));
   const birthDate = value("newStudentBirthDate");
   const contractStartDate = value("newStudentContractStartDate");
-  const contractEndDate = value("newStudentContractEndDate");
+  const contractIndefinite = Boolean(document.getElementById("newStudentContractIndefinite")?.checked);
+  const contractEndDate = contractIndefinite ? null : value("newStudentContractEndDate");
   const contractNotes = value("newStudentContractNotes").trim() || null;
   const billingType = value("newStudentBillingType");
   const monthlyFee = value("newStudentMonthlyFee") === "" ? null : Number(value("newStudentMonthlyFee"));
@@ -46342,12 +46449,12 @@ async function saveNewStudentWithAccessV2() {
     return;
   }
 
-  if (![30, 60, 90, 120].includes(duration) || !birthDate || !contractStartDate || !contractEndDate) {
-    fail("Preencha duracao, nascimento e o periodo completo do contrato.");
+  if (![30, 60, 90, 120].includes(duration) || !birthDate || !contractStartDate || (!contractIndefinite && !contractEndDate)) {
+    fail("Preencha duração, nascimento e informe a data final ou selecione Indeterminado.");
     return;
   }
 
-  if (contractEndDate < contractStartDate || scheduleResult.error) {
+  if ((contractEndDate && contractEndDate < contractStartDate) || scheduleResult.error) {
     fail(scheduleResult.error || "O termino do contrato deve ser posterior ao inicio.");
     return;
   }
@@ -46848,7 +46955,7 @@ function renderTeacherToolsPageV3(content) {
     <div class="v3-tools-grid">
       <section class="card v3-tool-card">
         <h3>Importar alunos por CSV</h3>
-        <p>Importe ate 200 alunos por lote. Contas existentes nunca sao vinculadas automaticamente.</p>
+        <p>Importe até 200 alunos por lote. Datas em DD/MM/AAAA ou AAAA-MM-DD; cobranças “mensal” ou “por aula”. Linhas incompletas são mostradas antes do envio.</p>
         <div class="v3-actions">
           <button type="button" class="secondary-button" id="downloadStudentCsvTemplateV3">Baixar modelo</button>
           <label class="secondary-button v3-file-label">Escolher CSV<input type="file" id="studentCsvFileV3" accept=".csv,text/csv" hidden></label>
@@ -46937,6 +47044,7 @@ async function populateProgressStudentsV3() {
 }
 
 let parsedStudentCsvV3 = [];
+let studentCsvValidationFailuresV17 = [];
 
 function parseCsvV3(text) {
   const firstLine = String(text).split(/\r?\n/, 1)[0] || "";
@@ -46959,22 +47067,86 @@ function parseCsvV3(text) {
   return rows.map(values => Object.fromEntries(headers.map((header, index) => [header, String(values[index] || "").trim()])));
 }
 
+function normalizeCsvDateV17(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^(indeterminado|indefinido|sem data)$/i.test(raw)) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const match = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (!match) return raw;
+  return `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}`;
+}
+
+function normalizeCsvCpfV17(value) {
+  const cpf = normalizeDigitsV2(value);
+  return cpf.length === 10 ? cpf.padStart(11, "0") : cpf;
+}
+
+function normalizeCsvBillingTypeV17(value) {
+  const raw = String(value || "").trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (["per lesson", "per class", "por aula", "aula"].includes(raw)) return "per_lesson";
+  if (["monthly", "mensal", "mensalidade"].includes(raw)) return "monthly";
+  return raw.replace(/\s+/g, "_");
+}
+
+function parseCsvAmountV17(value) {
+  const raw = String(value || "0").trim().replace(/\s/g, "");
+  if (raw.includes(",")) return Number(raw.replace(/\./g, "").replace(",", "."));
+  return Number(raw);
+}
+
+function normalizeCsvTimeV17(value) {
+  const raw = String(value || "").trim();
+  const match = raw.match(/^(\d{1,2}):\/?(\d{2})$/);
+  if (!match) return raw;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return raw;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function validateCsvStudentPayloadV17(student) {
+  const errors = [];
+  if (String(student.name || "").trim().length < 3) errors.push("nome ausente ou muito curto");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email || "")) errors.push("e-mail inválido ou ausente");
+  if (normalizeDigitsV2(student.phone).length < 10) errors.push("telefone inválido ou ausente");
+  if (normalizeDigitsV2(student.cpf).length !== 11) errors.push("CPF inválido ou ausente");
+  if (String(student.password || "").length < 6) errors.push("senha com menos de 6 caracteres");
+  if (![30, 60, 90, 120].includes(student.class_duration_minutes)) errors.push("duração deve ser 30, 60, 90 ou 120");
+  if (!student.schedule.length || student.schedule.some(slot =>
+    !Number.isInteger(slot.day_of_week) || slot.day_of_week < 1 || slot.day_of_week > 7 || !/^\d{2}:\d{2}$/.test(slot.start_time)
+  )) errors.push("dia ou horário inválido");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(student.birth_date || "")) errors.push("nascimento inválido ou ausente");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(student.contract_start_date || "")) errors.push("início do contrato inválido ou ausente");
+  if (student.contract_end_date && !/^\d{4}-\d{2}-\d{2}$/.test(student.contract_end_date)) errors.push("fim do contrato inválido");
+  if (student.contract_end_date && student.contract_start_date && student.contract_end_date < student.contract_start_date) errors.push("fim do contrato anterior ao início");
+  try {
+    const url = new URL(student.class_link || "");
+    if (!["http:", "https:"].includes(url.protocol)) throw new Error();
+  } catch { errors.push("link da aula inválido"); }
+  if (!["monthly", "per_lesson"].includes(student.billing_type)) errors.push("tipo de cobrança inválido");
+  const amount = student.billing_type === "monthly" ? student.monthly_fee : student.lesson_fee;
+  if (!Number.isFinite(amount) || amount < 0) errors.push("valor inválido");
+  if (!Number.isInteger(student.payment_due_day) || student.payment_due_day < 1 || student.payment_due_day > 31) errors.push("vencimento inválido");
+  return errors;
+}
+
 function csvStudentToPayloadV3(row) {
-  const billing = (row.tipo_cobranca || "monthly").toLowerCase();
-  const amount = Number(String(row.valor || "0").replace(",", "."));
+  const billing = normalizeCsvBillingTypeV17(row.tipo_cobranca || "monthly");
+  const amount = parseCsvAmountV17(row.valor);
   const schedule = String(row.dias_horarios || "").split("|").filter(Boolean).map(value => {
     const [day, time] = value.split("@");
-    return { day_of_week: Number(day), start_time: time };
+    return { day_of_week: Number(String(day || "").trim()), start_time: normalizeCsvTimeV17(time) };
   });
   return {
-    name: row.nome, email: String(row.email || "").toLowerCase(), phone: row.telefone,
-    cpf: normalizeDigitsV2(row.cpf), password: row.senha,
+    name: String(row.nome || "").trim(), email: String(row.email || "").trim().toLowerCase(), phone: String(row.telefone || "").trim(),
+    cpf: normalizeCsvCpfV17(row.cpf), password: row.senha,
     class_duration_minutes: Number(row.duracao), schedule,
     billing_type: billing, monthly_fee: billing === "monthly" ? amount : null,
     lesson_fee: billing === "per_lesson" ? amount : null,
     payment_due_day: Number(row.vencimento), invoice_required_default: /^(sim|true|1)$/i.test(row.nota_fiscal || ""),
-    birth_date: row.nascimento, contract_start_date: row.inicio_contrato,
-    contract_end_date: row.fim_contrato, contract_notes: row.observacoes || null,
+    birth_date: normalizeCsvDateV17(row.nascimento), contract_start_date: normalizeCsvDateV17(row.inicio_contrato),
+    contract_end_date: normalizeCsvDateV17(row.fim_contrato), contract_notes: row.observacoes || null,
     class_link: row.link_aula
   };
 }
@@ -46986,7 +47158,18 @@ function downloadBlobV3(name, content, type) {
 }
 
 function downloadStudentCsvTemplateV3() {
-  const csv = "nome;email;telefone;cpf;senha;duracao;nascimento;inicio_contrato;fim_contrato;link_aula;tipo_cobranca;valor;vencimento;dias_horarios;nota_fiscal;observacoes\nMaria Silva;maria@exemplo.com;(11) 99999-9999;12345678909;Senha123;60;2000-01-15;2026-01-01;2026-12-31;https://meet.google.com/sala;monthly;350,00;10;2@09:00|4@09:00;nao;Nivel inicial";
+  const headers = [
+    "nome", "email", "telefone", "cpf", "senha", "duracao", "nascimento",
+    "inicio_contrato", "fim_contrato", "link_aula", "tipo_cobranca", "valor",
+    "vencimento", "dias_horarios", "nota_fiscal", "observacoes"
+  ];
+  const example = [
+    "Maria Silva", "maria@exemplo.com", "(11) 99999-9999", "012.345.678-90",
+    "TrocarSenha123", "60", "15/01/2000", "01/01/2026", "indeterminado",
+    "https://meet.google.com/sala", "por aula", "80,00", "10",
+    "2@09:00|4@09:00", "nao", "Apague este exemplo antes de preencher"
+  ];
+  const csv = [headers, example].map(row => row.map(csvCellV3).join(";")).join("\r\n");
   downloadBlobV3("modelo-importacao-alunos.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
 }
 
@@ -46995,12 +47178,23 @@ async function previewStudentCsvV3(event) {
   const button = document.getElementById("importStudentsCsvV3");
   try {
     const file = event.target.files?.[0];
-    parsedStudentCsvV3 = file ? parseCsvV3(await file.text()).map(csvStudentToPayloadV3) : [];
-    if (!parsedStudentCsvV3.length || parsedStudentCsvV3.length > 200) throw new Error("O arquivo deve conter de 1 a 200 alunos.");
-    area.textContent = `${parsedStudentCsvV3.length} aluno(s) pronto(s) para validacao e importacao.`;
-    button.disabled = false;
+    const rows = file ? parseCsvV3(await file.text()) : [];
+    if (!rows.length || rows.length > 200) throw new Error("O arquivo deve conter de 1 a 200 alunos.");
+    parsedStudentCsvV3 = [];
+    studentCsvValidationFailuresV17 = [];
+    rows.forEach((row, index) => {
+      const student = csvStudentToPayloadV3(row);
+      const errors = validateCsvStudentPayloadV17(student);
+      if (errors.length) studentCsvValidationFailuresV17.push({ index, name: student.name || `Linha ${index + 2}`, errors });
+      else parsedStudentCsvV3.push(student);
+    });
+    const invalidList = studentCsvValidationFailuresV17.length
+      ? `<ul>${studentCsvValidationFailuresV17.map(item => `<li><strong>Linha ${item.index + 2} — ${escapeHtml(item.name)}</strong>: ${escapeHtml(item.errors.join("; "))}</li>`).join("")}</ul>`
+      : "";
+    area.innerHTML = `<strong>${parsedStudentCsvV3.length} aluno(s) pronto(s); ${studentCsvValidationFailuresV17.length} linha(s) precisam de correção.</strong>${invalidList}`;
+    button.disabled = !parsedStudentCsvV3.length;
   } catch (error) {
-    parsedStudentCsvV3 = []; button.disabled = true; area.textContent = error.message || "CSV invalido.";
+    parsedStudentCsvV3 = []; studentCsvValidationFailuresV17 = []; button.disabled = true; area.textContent = error.message || "CSV invalido.";
   }
 }
 
@@ -47014,8 +47208,16 @@ async function importStudentsCsvV3() {
   const successes = results.filter(item => item.ok).length;
   const failures = results.filter(item => !item.ok);
   const confirmationsPending = results.filter(item => item.ok && item.confirmation_sent === false);
-  area.innerHTML = `<strong>${successes} importado(s); ${failures.length} nao importado(s).</strong>${confirmationsPending.length ? `<p>${confirmationsPending.length} e-mail(s) de confirmacao precisam ser reenviados pela tela de entrada.</p>` : ""}${failures.length ? `<ul>${failures.map(item => `<li>${escapeHtml(item.email || `linha ${item.index + 2}`)}: ${escapeHtml(item.error)}</li>`).join("")}</ul>` : ""}`;
-  if (error) area.textContent = data?.error || error.message || "Falha na importacao.";
+  const localFailures = studentCsvValidationFailuresV17.length
+    ? `<p><strong>${studentCsvValidationFailuresV17.length} linha(s) não foram enviadas porque precisam de correção.</strong></p><ul>${studentCsvValidationFailuresV17.map(item => `<li>Linha ${item.index + 2} — ${escapeHtml(item.name)}: ${escapeHtml(item.errors.join("; "))}</li>`).join("")}</ul>`
+    : "";
+  area.innerHTML = `<strong>${successes} importado(s); ${failures.length} rejeitado(s) pelo servidor.</strong>${confirmationsPending.length ? `<p>${confirmationsPending.length} e-mail(s) de confirmacao precisam ser reenviados pela tela de entrada.</p>` : ""}${failures.length ? `<ul>${failures.map(item => `<li>${escapeHtml(item.email || `linha ${item.index + 2}`)}: ${escapeHtml(item.error)}</li>`).join("")}</ul>` : ""}${localFailures}`;
+  if (error) {
+    const connectionMessage = /Failed to send|fetch|network/i.test(error.message || "")
+      ? "Não foi possível conectar ao serviço de importação. Atualize a página e tente novamente; se continuar, abra um chamado no suporte."
+      : (data?.error || error.message || "Falha na importação.");
+    area.textContent = connectionMessage;
+  }
   button.disabled = false;
   currentTeacherStudents = [];
   await loadTeacherStudents();
@@ -47174,8 +47376,110 @@ async function saveProgressReportV3() {
 async function copyProgressReportV3(print) {
   const text = progressReportTextV3();
   if (!print) { await navigator.clipboard.writeText(text); alert("Relatorio copiado."); return; }
+
   const popup = window.open("", "_blank");
-  popup.document.write(`<pre style="white-space:pre-wrap;font:16px Arial;padding:32px;">${escapeHtml(text)}</pre>`); popup.document.close(); popup.print();
+  if (!popup) {
+    alert("Permita a abertura de janelas para imprimir o relatório.");
+    return;
+  }
+  popup.opener = null;
+
+  const select = document.getElementById("progressStudentV3");
+  const student = select?.options[select.selectedIndex]?.text || "Aluno";
+  const teacher = currentProfile?.name || currentProfile?.full_name || "Professor(a)";
+  const start = document.getElementById("progressStartV3")?.value || "";
+  const end = document.getElementById("progressEndV3")?.value || "";
+  const participation = Math.min(5, Math.max(1, Number(document.getElementById("progressParticipationV3")?.value) || 1));
+  const evolution = Math.min(5, Math.max(1, Number(document.getElementById("progressEvolutionV3")?.value) || 1));
+  const strengths = document.getElementById("progressStrengthsV3")?.value || "Nenhum registro informado.";
+  const improvements = document.getElementById("progressImprovementsV3")?.value || "Nenhum registro informado.";
+  const goals = document.getElementById("progressGoalsV3")?.value || "Nenhum registro informado.";
+  const notes = document.getElementById("progressNotesV3")?.value || "Nenhuma observação adicional.";
+  const formatReportDate = value => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Não informado";
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  };
+  const ratingDots = value => Array.from({ length: 5 }, (_, index) =>
+    `<span class="rating-dot ${index < value ? "active" : ""}"></span>`
+  ).join("");
+
+  popup.document.write(`<!doctype html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <title>Relatório de evolução — ${escapeHtml(student)}</title>
+        <style>
+          :root { --terracotta:#d56f49; --terracotta-dark:#ad4e31; --green:#173f35; --sage:#dfeadd; --cream:#fbf8f1; --beige:#efe5d5; --ink:#26362f; }
+          * { box-sizing:border-box; }
+          @page { size:A4; margin:13mm; }
+          body { margin:0; background:#ede8de; color:var(--ink); font-family:"Segoe UI",Arial,sans-serif; }
+          .report { width:100%; max-width:780px; min-height:1040px; margin:24px auto; background:var(--cream); padding:42px 46px 34px; position:relative; overflow:hidden; box-shadow:0 18px 50px rgba(45,56,46,.12); }
+          .report::before,.report::after { content:""; position:absolute; border:1px solid rgba(213,111,73,.16); border-radius:50%; width:310px; height:310px; }
+          .report::before { right:-190px; top:-185px; } .report::after { left:-230px; bottom:-240px; }
+          header { display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding-bottom:24px; border-bottom:2px solid var(--beige); position:relative; z-index:1; }
+          .brand { display:flex; align-items:center; gap:13px; }
+          .sun { width:48px; height:38px; color:var(--terracotta); flex:none; }
+          .brand-name { color:var(--green); font:700 25px Georgia,serif; letter-spacing:2px; }
+          .brand-subtitle { margin-top:3px; color:#7b776e; font-size:10px; letter-spacing:.2px; }
+          .report-label { color:var(--terracotta-dark); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; text-align:right; }
+          h1 { margin:26px 0 8px; color:var(--green); font:700 31px Georgia,serif; position:relative; z-index:1; }
+          .intro { margin:0 0 24px; color:#6c756f; font-size:13px; }
+          .identity { display:grid; grid-template-columns:1.4fr 1fr; gap:12px; margin-bottom:18px; }
+          .identity-card { background:#fff; border:1px solid var(--beige); border-radius:14px; padding:15px 17px; }
+          .eyebrow { color:#8b776c; font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; }
+          .identity-card strong { display:block; margin-top:5px; color:var(--green); font-size:16px; }
+          .ratings { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+          .rating { display:flex; justify-content:space-between; align-items:center; gap:14px; background:var(--sage); border-radius:14px; padding:14px 17px; }
+          .rating strong { color:var(--green); font-size:13px; }
+          .dots { display:flex; gap:5px; }
+          .rating-dot { width:12px; height:12px; border:1.5px solid #89a080; border-radius:50%; background:transparent; }
+          .rating-dot.active { border-color:var(--terracotta); background:var(--terracotta); }
+          .content-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+          .section { min-height:145px; padding:17px 18px; border:1px solid var(--beige); border-radius:14px; background:rgba(255,255,255,.72); position:relative; z-index:1; }
+          .section h2 { display:flex; align-items:center; gap:8px; margin:0 0 10px; color:var(--green); font-size:14px; }
+          .section h2::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--terracotta); }
+          .section p { margin:0; color:#4d5c54; font-size:12.5px; line-height:1.55; white-space:pre-wrap; }
+          .section.goals { background:#f8eee6; border-color:#efd5c6; }
+          footer { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-top:30px; padding-top:18px; border-top:1px solid var(--beige); color:#817a70; font-size:10px; position:relative; z-index:1; }
+          .signature { min-width:220px; padding-top:7px; border-top:1px solid #9f988e; text-align:center; color:var(--green); }
+          @media print { body { background:#fff; } .report { max-width:none; min-height:auto; margin:0; padding:24px 28px; box-shadow:none; } }
+        </style>
+      </head>
+      <body>
+        <main class="report">
+          <header>
+            <div class="brand">
+              <svg class="sun" viewBox="0 0 64 48" aria-hidden="true"><path d="M12 36h40M19 34a13 13 0 0 1 26 0M32 4v9M12 12l7 7M52 12l-7 7M5 26h9M50 26h9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+              <div><div class="brand-name">AULARIUM</div><div class="brand-subtitle">Gestão para professores particulares</div></div>
+            </div>
+            <div class="report-label">Relatório de<br>desenvolvimento</div>
+          </header>
+          <h1>Evolução do aluno</h1>
+          <p class="intro">Um registro claro das conquistas, pontos de atenção e próximos objetivos.</p>
+          <section class="identity">
+            <div class="identity-card"><span class="eyebrow">Aluno(a)</span><strong>${escapeHtml(student)}</strong></div>
+            <div class="identity-card"><span class="eyebrow">Período avaliado</span><strong>${formatReportDate(start)} a ${formatReportDate(end)}</strong></div>
+          </section>
+          <section class="ratings">
+            <div class="rating"><strong>Participação</strong><span class="dots">${ratingDots(participation)}</span></div>
+            <div class="rating"><strong>Evolução</strong><span class="dots">${ratingDots(evolution)}</span></div>
+          </section>
+          <div class="content-grid">
+            <section class="section"><h2>Pontos fortes</h2><p>${escapeHtml(strengths)}</p></section>
+            <section class="section"><h2>Pontos a desenvolver</h2><p>${escapeHtml(improvements)}</p></section>
+            <section class="section goals"><h2>Metas para o próximo período</h2><p>${escapeHtml(goals)}</p></section>
+            <section class="section"><h2>Observações adicionais</h2><p>${escapeHtml(notes)}</p></section>
+          </div>
+          <footer>
+            <div>Gerado pelo Aularium em ${new Date().toLocaleDateString("pt-BR")}</div>
+            <div class="signature">${escapeHtml(teacher)}<br><span>Professor(a)</span></div>
+          </footer>
+        </main>
+        <script>window.addEventListener("load", () => { window.print(); });<\/script>
+      </body>
+    </html>`);
+  popup.document.close();
 }
 
 async function acceptLegalV3() {
