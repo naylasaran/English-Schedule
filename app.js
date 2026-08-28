@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: importacao-segura-interface-compacta-v17-20260828"
+  "Aularium build: agenda-contas-csv-relatorio-v18-20260828"
 );
 
 // =====================================================
@@ -1899,6 +1899,10 @@ async function showTeacherArea() {
   currentAccessViewV5 = "teacher";
 
   teacherScreen.classList.remove(
+    "admin-mode-v18"
+  );
+
+  teacherScreen.classList.remove(
     "hidden"
   );
 
@@ -2668,6 +2672,10 @@ async function showAdminArea() {
 
   currentAccessViewV5 = "admin";
 
+  teacherScreen.classList.add(
+    "admin-mode-v18"
+  );
+
   teacherScreen.classList.remove(
     "hidden"
   );
@@ -2791,11 +2799,13 @@ function setupAdminSideMenuV8(content) {
       <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="free"><span>3</span>Professores gr&aacute;tis ilimitado</button>
       <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="finance"><span>4</span>Financeiro do Aularium</button>
       <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>5</span>Suporte</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="announcements"><span>6</span>Comunicados</button>
     </aside>
     <div class="admin-panels-v8">
       <section class="admin-panel-v8" data-admin-panel-v8="teachers"></section>
       <section class="admin-panel-v8" data-admin-panel-v8="finance" hidden></section>
       <section class="admin-panel-v8" data-admin-panel-v8="support" hidden></section>
+      <section class="admin-panel-v8" data-admin-panel-v8="announcements" hidden></section>
     </div>
   `;
 
@@ -2803,8 +2813,10 @@ function setupAdminSideMenuV8(content) {
   const teacherPanel = layout.querySelector('[data-admin-panel-v8="teachers"]');
   const financePanel = layout.querySelector('[data-admin-panel-v8="finance"]');
   const supportPanel = layout.querySelector('[data-admin-panel-v8="support"]');
+  const announcementsPanel = layout.querySelector('[data-admin-panel-v8="announcements"]');
   teacherPanel.appendChild(teacherCard);
   renderAdminPlatformFinanceV9(financePanel);
+  renderAdminAnnouncementsV18(announcementsPanel);
 
   [
     document.getElementById("adminSupportArea")?.parentElement,
@@ -2818,15 +2830,17 @@ function setupAdminSideMenuV8(content) {
   const selectWorkspace = view => {
     const isSupport = view === "support";
     const isFinance = view === "finance";
-    teacherPanel.hidden = isSupport || isFinance;
+    const isAnnouncements = view === "announcements";
+    teacherPanel.hidden = isSupport || isFinance || isAnnouncements;
     financePanel.hidden = !isFinance;
     supportPanel.hidden = !isSupport;
+    announcementsPanel.hidden = !isAnnouncements;
 
     layout.querySelectorAll("[data-admin-workspace-v8]").forEach(button => {
       button.classList.toggle("active", button.dataset.adminWorkspaceV8 === view);
     });
 
-    if (!isSupport && !isFinance) {
+    if (!isSupport && !isFinance && !isAnnouncements) {
       currentAdminTeacherFilter = view;
       document.querySelectorAll("[data-admin-teacher-filter]").forEach(button => {
         button.classList.toggle("active", button.dataset.adminTeacherFilter === view);
@@ -2836,6 +2850,11 @@ function setupAdminSideMenuV8(content) {
 
     if (isFinance && !currentAdminPlatformFinanceRangeV9) {
       loadAdminPlatformFinanceV9();
+    }
+
+    if (isAnnouncements) {
+      renderAdminAnnouncementsV18(announcementsPanel);
+      loadAdminAnnouncementsV18();
     }
   };
 
@@ -6885,6 +6904,18 @@ async function loadAdminTeachers() {
 
         }
       );
+
+
+  const announcementsPanel =
+    document.querySelector(
+      '[data-admin-panel-v8="announcements"]'
+    );
+
+  if (announcementsPanel) {
+    renderAdminAnnouncementsV18(
+      announcementsPanel
+    );
+  }
 
 
   renderAdminTeacherSystemReceivedSummary(
@@ -13778,6 +13809,166 @@ function findScheduleSlot(
 }
 
 
+function renderAdminAnnouncementsV18(panel) {
+  if (!panel) return;
+
+  const paidTeachers = (currentAdminTeachers || [])
+    .filter(teacher => String(teacher.access_category || teacher.access_type || "paid") === "paid")
+    .sort((a, b) => String(a.teacher_name || "").localeCompare(String(b.teacher_name || ""), "pt-BR"));
+
+  const defaultExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const localExpiry = new Date(defaultExpiry.getTime() - defaultExpiry.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+
+  panel.innerHTML = `
+    <div class="card admin-announcements-v18">
+      <h3>Comunicados aos professores assinantes</h3>
+      <p>Envie avisos de manutenção, instabilidade, novidades ou orientações para um assinante específico ou para todos.</p>
+
+      <div class="v3-form-grid">
+        <label>
+          Destinatário
+          <select id="adminAnnouncementTeacherV18">
+            <option value="">Todos os professores assinantes</option>
+            ${paidTeachers.map(teacher => `
+              <option value="${escapeHtml(teacher.teacher_id)}">
+                ${escapeHtml(teacher.teacher_name || teacher.name || teacher.teacher_email || "Professor")}
+              </option>
+            `).join("")}
+          </select>
+        </label>
+        <label>
+          Visível até
+          <input type="datetime-local" id="adminAnnouncementExpiresV18" value="${localExpiry}">
+        </label>
+      </div>
+
+      <label>
+        Título
+        <input type="text" id="adminAnnouncementTitleV18" maxlength="120" placeholder="Ex.: Manutenção programada">
+      </label>
+      <label>
+        Mensagem
+        <textarea id="adminAnnouncementMessageV18" rows="6" maxlength="3000" placeholder="Explique o aviso e, se necessário, informe data e horário."></textarea>
+      </label>
+
+      <div class="v3-actions">
+        <button type="button" class="action-button" id="sendAdminAnnouncementV18">Enviar comunicado</button>
+      </div>
+      <div id="adminAnnouncementResultV18" class="v3-result"></div>
+      <div id="adminAnnouncementHistoryV18" class="admin-announcement-history-v18">Carregando comunicados...</div>
+    </div>
+  `;
+
+  document.getElementById("sendAdminAnnouncementV18")?.addEventListener("click", sendAdminAnnouncementV18);
+}
+
+
+async function sendAdminAnnouncementV18() {
+  const teacherId = document.getElementById("adminAnnouncementTeacherV18")?.value || null;
+  const title = document.getElementById("adminAnnouncementTitleV18")?.value.trim() || "";
+  const messageText = document.getElementById("adminAnnouncementMessageV18")?.value.trim() || "";
+  const expiresValue = document.getElementById("adminAnnouncementExpiresV18")?.value || "";
+  const resultArea = document.getElementById("adminAnnouncementResultV18");
+  const button = document.getElementById("sendAdminAnnouncementV18");
+
+  if (title.length < 3 || messageText.length < 5 || !expiresValue) {
+    if (resultArea) resultArea.textContent = "Preencha o título, a mensagem e a validade.";
+    return;
+  }
+
+  const audience = teacherId
+    ? document.getElementById("adminAnnouncementTeacherV18")?.selectedOptions?.[0]?.textContent?.trim()
+    : "todos os professores assinantes";
+  if (!window.confirm(`Enviar este comunicado para ${audience}?`)) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Enviando...";
+  }
+
+  const { error } = await supabaseClient.rpc("admin_send_teacher_announcement_v18", {
+    p_teacher_id: teacherId,
+    p_title: title,
+    p_message: messageText,
+    p_expires_at: new Date(expiresValue).toISOString()
+  });
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Enviar comunicado";
+  }
+  if (error) {
+    if (resultArea) resultArea.textContent = error.message || "Não foi possível enviar o comunicado.";
+    return;
+  }
+
+  if (resultArea) resultArea.textContent = "Comunicado enviado com sucesso.";
+  const titleInput = document.getElementById("adminAnnouncementTitleV18");
+  const messageInput = document.getElementById("adminAnnouncementMessageV18");
+  if (titleInput) titleInput.value = "";
+  if (messageInput) messageInput.value = "";
+  await loadAdminAnnouncementsV18();
+}
+
+
+async function loadAdminAnnouncementsV18() {
+  const area = document.getElementById("adminAnnouncementHistoryV18");
+  if (!area) return;
+  const { data, error } = await supabaseClient.rpc("get_admin_teacher_announcements_v18");
+  if (error) {
+    area.textContent = error.message || "Não foi possível carregar os comunicados.";
+    return;
+  }
+
+  const items = data || [];
+  area.innerHTML = items.length
+    ? `<h4>Comunicados recentes</h4><div class="admin-announcement-list-v18">${items.map(item => `
+        <article>
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.teacher_name || "Todos os professores assinantes")}</span>
+          <p>${escapeHtml(item.message)}</p>
+          <small>Enviado em ${new Date(item.created_at).toLocaleString("pt-BR")} · válido até ${new Date(item.expires_at).toLocaleString("pt-BR")}</small>
+        </article>
+      `).join("")}</div>`
+    : "<p>Nenhum comunicado enviado.</p>";
+}
+
+
+async function loadTeacherAnnouncementsV18() {
+  const area = document.getElementById("teacherPlatformNoticesV18");
+  if (!area) return;
+  const { data, error } = await supabaseClient.rpc("get_my_teacher_announcements_v18");
+  if (error || !Array.isArray(data) || data.length === 0) {
+    area.innerHTML = "";
+    return;
+  }
+
+  area.innerHTML = data.map(item => `
+    <article class="teacher-announcement-v18" data-teacher-announcement-v18="${item.announcement_id}">
+      <div>
+        <span>Comunicado do Aularium</span>
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.message)}</p>
+        <small>Válido até ${new Date(item.expires_at).toLocaleString("pt-BR")}</small>
+      </div>
+      <button type="button" class="secondary-button" data-read-teacher-announcement-v18="${item.announcement_id}">Entendi</button>
+    </article>
+  `).join("");
+
+  area.querySelectorAll("[data-read-teacher-announcement-v18]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.readTeacherAnnouncementV18;
+      const { error: readError } = await supabaseClient.rpc("mark_teacher_announcement_read_v18", {
+        p_announcement_id: id
+      });
+      if (!readError) button.closest("[data-teacher-announcement-v18]")?.remove();
+    });
+  });
+}
+
+
 async function loadStudentContextsV16() {
 
   const { data, error } =
@@ -17314,7 +17505,6 @@ function setTeacherPage(page) {
         "newStudentContractIndefinite"
       );
 
-
     const contractEndDateInput =
       document.getElementById(
         "newStudentContractEndDate"
@@ -18444,6 +18634,11 @@ function setTeacherPage(page) {
     content.innerHTML = `
 
       <div
+        id="teacherPlatformNoticesV18"
+        style="margin-bottom:20px;"
+      ></div>
+
+      <div
         id="teacherAgendaOnboardingV5"
         style="margin-bottom:20px;"
       ></div>
@@ -18623,6 +18818,8 @@ function setTeacherPage(page) {
     // =================================================
     // SEMANA ANTERIOR
     // =================================================
+
+    loadTeacherAnnouncementsV18();
 
     loadTeacherDashboard();
 
@@ -19058,7 +19255,8 @@ function resetStudentFixedScheduleEditor(
 
 
 function collectStudentFixedSchedule(
-  containerId
+  containerId,
+  options = {}
 ) {
 
   const container =
@@ -19085,12 +19283,25 @@ function collectStudentFixedSchedule(
     );
 
 
-  if (rows.length === 0) {
+  if (
+    rows.length === 0 &&
+    !options.allowEmpty
+  ) {
 
     return {
       schedule: [],
       error:
         "Adicione pelo menos um dia e horario."
+    };
+
+  }
+
+
+  if (rows.length === 0) {
+
+    return {
+      schedule: [],
+      error: null
     };
 
   }
@@ -19195,11 +19406,13 @@ function collectStudentFixedSchedule(
 
 
     const duration =
-      durationSelect
-        ? Number(
-            durationSelect.value
-          )
-        : 30;
+      Number(options.durationMinutes) > 0
+        ? Number(options.durationMinutes)
+        : durationSelect
+          ? Number(
+              durationSelect.value
+            )
+          : 30;
 
 
     const proposedEnd =
@@ -22439,8 +22652,9 @@ async function deleteTeacherStudent(
       ) +
       "\"?\n\n" +
 
-      "O aluno sumira da lista, o acesso ao Aularium sera bloqueado " +
-      "e os horarios futuros dele serao liberados.\n\n" +
+      "O aluno sumira da lista, os horarios futuros serao liberados " +
+      "e o e-mail de acesso sera liberado para um novo cadastro quando " +
+      "nao houver vinculo ativo com outro professor.\n\n" +
 
       "O historico das aulas passadas sera preservado."
 
@@ -22453,13 +22667,16 @@ async function deleteTeacherStudent(
 
 
   const {
+    data,
     error
   } =
-    await supabaseClient.rpc(
-      "delete_teacher_student",
+    await supabaseClient.functions.invoke(
+      "provision-users",
       {
-        p_student_id:
-          studentId
+        body: {
+          kind: "delete_student",
+          student_id: studentId
+        }
       }
     );
 
@@ -22473,6 +22690,7 @@ async function deleteTeacherStudent(
 
 
     alert(
+      data?.error ||
       error.message ||
       "Nao foi possivel excluir o aluno."
     );
@@ -22506,7 +22724,9 @@ async function deleteTeacherStudent(
 
 
   alert(
-    "Aluno excluido com sucesso."
+    data?.account_released
+      ? "Aluno excluido e e-mail liberado para um novo cadastro."
+      : "Aluno excluido deste professor. O acesso foi mantido porque existe outro vinculo ativo."
   );
 
 }
@@ -24285,7 +24505,10 @@ async function openTeacherStudentDetail(
           student
             ? student.student_name
             : "Aluno",
-          fixedSchedule
+          fixedSchedule,
+          student
+            ? student.class_duration_minutes
+            : 30
         );
 
       }
@@ -26723,7 +26946,8 @@ async function saveTeacherStudentFinancialSettings(
 function openTeacherStudentScheduleEditor(
   studentId,
   studentName,
-  fixedSchedule
+  fixedSchedule,
+  classDurationMinutes
 ) {
 
   const area =
@@ -26765,6 +26989,7 @@ function openTeacherStudentScheduleEditor(
       >
         A alteracao passa a valer a partir de hoje.
         As semanas anteriores continuam preservadas.
+        Para retirar todos os horarios fixos, remova todas as linhas e salve.
       </p>
 
 
@@ -26919,7 +27144,8 @@ function openTeacherStudentScheduleEditor(
       () => {
 
         saveTeacherStudentFixedSchedule(
-          studentId
+          studentId,
+          classDurationMinutes
         );
 
       }
@@ -26956,12 +27182,18 @@ function openTeacherStudentScheduleEditor(
 // =====================================================
 
 async function saveTeacherStudentFixedSchedule(
-  studentId
+  studentId,
+  classDurationMinutes
 ) {
 
   const result =
     collectStudentFixedSchedule(
-      "teacherStudentFixedScheduleRows"
+      "teacherStudentFixedScheduleRows",
+      {
+        allowEmpty: true,
+        durationMinutes:
+          classDurationMinutes
+      }
     );
 
 
@@ -26997,7 +27229,11 @@ async function saveTeacherStudentFixedSchedule(
   const confirmed =
     window.confirm(
 
-      "Salvar os novos dias e horarios deste aluno?\n\n" +
+      (
+        result.schedule.length
+          ? "Salvar os novos dias e horarios deste aluno?\n\n"
+          : "Retirar todos os horarios fixos deste aluno?\n\n"
+      ) +
       "A alteracao passa a valer a partir de hoje e o passado sera preservado."
 
     );
@@ -37203,7 +37439,7 @@ async function openTeacherScheduleEditor(
                   color:#c0392b;
                 "
               >
-                Cancelar somente esta aula
+                Excluir esta aula
               </button>
 
             `
@@ -38529,7 +38765,7 @@ function openTeacherLessonCancellation(
     >
 
       <h3>
-        Cancelar somente esta aula
+        Excluir somente esta aula
       </h3>
 
 
@@ -38600,10 +38836,10 @@ function openTeacherLessonCancellation(
           style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;"
         >
           <option value="makeup" selected>
-            Liberar reposi\u00E7\u00E3o para o aluno
+            Cancelar e liberar reposi\u00E7\u00E3o para o aluno
           </option>
           <option value="no_makeup">
-            Retirar sem reposi\u00E7\u00E3o e sem cobrar esta aula
+            Excluir sem reposi\u00E7\u00E3o e sem cobrar esta aula
           </option>
         </select>
         <p style="margin-top:8px;font-size:13px;color:#666;">
@@ -38750,7 +38986,7 @@ function openTeacherLessonCancellation(
             background:#c0392b;
           "
         >
-          Confirmar cancelamento
+          Confirmar exclus\u00E3o desta aula
         </button>
 
 
@@ -46103,6 +46339,7 @@ async function savePublicSupportV2(event) {
 
 
 async function showTeacherSupportOnlyArea() {
+  teacherScreen.classList.remove("admin-mode-v18");
   loginScreen.classList.add("hidden");
   teacherScreen.classList.remove("hidden");
   studentScreen.classList.add("hidden");
@@ -46955,7 +47192,7 @@ function renderTeacherToolsPageV3(content) {
     <div class="v3-tools-grid">
       <section class="card v3-tool-card">
         <h3>Importar alunos por CSV</h3>
-        <p>Importe até 200 alunos por lote. Datas em DD/MM/AAAA ou AAAA-MM-DD; cobranças “mensal” ou “por aula”. Linhas incompletas são mostradas antes do envio.</p>
+        <p>Importe até 200 alunos por lote. Datas em DD/MM/AAAA ou AAAA-MM-DD; cobranças “mensal” ou “por aula”. Nos dias: 2=segunda, 3=terça, 4=quarta, 5=quinta, 6=sexta, 7=sábado e 1=domingo.</p>
         <div class="v3-actions">
           <button type="button" class="secondary-button" id="downloadStudentCsvTemplateV3">Baixar modelo</button>
           <label class="secondary-button v3-file-label">Escolher CSV<input type="file" id="studentCsvFileV3" accept=".csv,text/csv" hidden></label>
@@ -47105,6 +47342,14 @@ function normalizeCsvTimeV17(value) {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
+function normalizeCsvWeekdayV18(value) {
+  const externalDay = Number(String(value || "").trim());
+  if (!Number.isInteger(externalDay) || externalDay < 1 || externalDay > 7) {
+    return Number.NaN;
+  }
+  return externalDay === 1 ? 7 : externalDay - 1;
+}
+
 function validateCsvStudentPayloadV17(student) {
   const errors = [];
   if (String(student.name || "").trim().length < 3) errors.push("nome ausente ou muito curto");
@@ -47136,7 +47381,7 @@ function csvStudentToPayloadV3(row) {
   const amount = parseCsvAmountV17(row.valor);
   const schedule = String(row.dias_horarios || "").split("|").filter(Boolean).map(value => {
     const [day, time] = value.split("@");
-    return { day_of_week: Number(String(day || "").trim()), start_time: normalizeCsvTimeV17(time) };
+    return { day_of_week: normalizeCsvWeekdayV18(day), start_time: normalizeCsvTimeV17(time) };
   });
   return {
     name: String(row.nome || "").trim(), email: String(row.email || "").trim().toLowerCase(), phone: String(row.telefone || "").trim(),
@@ -47167,7 +47412,7 @@ function downloadStudentCsvTemplateV3() {
     "Maria Silva", "maria@exemplo.com", "(11) 99999-9999", "012.345.678-90",
     "TrocarSenha123", "60", "15/01/2000", "01/01/2026", "indeterminado",
     "https://meet.google.com/sala", "por aula", "80,00", "10",
-    "2@09:00|4@09:00", "nao", "Apague este exemplo antes de preencher"
+    "2@09:00|4@09:00", "nao", "Dias: 2=segunda, 3=terça, 4=quarta, 5=quinta, 6=sexta, 7=sábado e 1=domingo"
   ];
   const csv = [headers, example].map(row => row.map(csvCellV3).join(";")).join("\r\n");
   downloadBlobV3("modelo-importacao-alunos.csv", "\uFEFF" + csv, "text/csv;charset=utf-8");
@@ -47420,7 +47665,7 @@ async function copyProgressReportV3(print) {
           header { display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding-bottom:24px; border-bottom:2px solid var(--beige); position:relative; z-index:1; }
           .brand { display:flex; align-items:center; gap:13px; }
           .sun { width:48px; height:38px; color:var(--terracotta); flex:none; }
-          .brand-name { color:var(--green); font:700 25px Georgia,serif; letter-spacing:2px; }
+          .brand-name { color:var(--terracotta-dark); font:700 25px Georgia,serif; letter-spacing:2px; }
           .brand-subtitle { margin-top:3px; color:#7b776e; font-size:10px; letter-spacing:.2px; }
           .report-label { color:var(--terracotta-dark); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; text-align:right; }
           h1 { margin:26px 0 8px; color:var(--green); font:700 31px Georgia,serif; position:relative; z-index:1; }
@@ -47440,7 +47685,6 @@ async function copyProgressReportV3(print) {
           .section h2 { display:flex; align-items:center; gap:8px; margin:0 0 10px; color:var(--green); font-size:14px; }
           .section h2::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--terracotta); }
           .section p { margin:0; color:#4d5c54; font-size:12.5px; line-height:1.55; white-space:pre-wrap; }
-          .section.goals { background:#f8eee6; border-color:#efd5c6; }
           footer { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-top:30px; padding-top:18px; border-top:1px solid var(--beige); color:#817a70; font-size:10px; position:relative; z-index:1; }
           .signature { min-width:220px; padding-top:7px; border-top:1px solid #9f988e; text-align:center; color:var(--green); }
           @media print { body { background:#fff; } .report { max-width:none; min-height:auto; margin:0; padding:24px 28px; box-shadow:none; } }
@@ -47468,7 +47712,7 @@ async function copyProgressReportV3(print) {
           <div class="content-grid">
             <section class="section"><h2>Pontos fortes</h2><p>${escapeHtml(strengths)}</p></section>
             <section class="section"><h2>Pontos a desenvolver</h2><p>${escapeHtml(improvements)}</p></section>
-            <section class="section goals"><h2>Metas para o próximo período</h2><p>${escapeHtml(goals)}</p></section>
+            <section class="section"><h2>Metas para o próximo período</h2><p>${escapeHtml(goals)}</p></section>
             <section class="section"><h2>Observações adicionais</h2><p>${escapeHtml(notes)}</p></section>
           </div>
           <footer>
