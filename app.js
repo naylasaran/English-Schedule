@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: agenda-contas-csv-relatorio-v18-20260828"
+  "Aularium build: navegacao-perfil-financeiro-v19-20260828"
 );
 
 // =====================================================
@@ -298,11 +298,28 @@ async function loadProfile(userId) {
     );
 
 
-  if (error) {
+  if (error || !data || (Array.isArray(data) && !data.length)) {
+
+    // Depois da confirmacao do e-mail, o gateway pode levar alguns instantes
+    // para reconhecer a nova sessao. Repetimos antes de exibir um erro.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+      const retry = await supabaseClient.rpc("get_current_profile_v5");
+      const retryProfile = (Array.isArray(retry.data) ? retry.data[0] : retry.data) || null;
+      if (!retry.error && retryProfile) return retryProfile;
+    }
+
+    const fallback = await supabaseClient
+      .from("profiles")
+      .select("id,name,email,role,active,phone,cpf,is_admin")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!fallback.error && fallback.data) return fallback.data;
 
     console.error(
       "Erro ao carregar perfil:",
-      error
+      fallback.error || error
     );
 
     return null;
@@ -13812,8 +13829,7 @@ function findScheduleSlot(
 function renderAdminAnnouncementsV18(panel) {
   if (!panel) return;
 
-  const paidTeachers = (currentAdminTeachers || [])
-    .filter(teacher => String(teacher.access_category || teacher.access_type || "paid") === "paid")
+  const allTeachers = (currentAdminTeachers || [])
     .sort((a, b) => String(a.teacher_name || "").localeCompare(String(b.teacher_name || ""), "pt-BR"));
 
   const defaultExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -13823,15 +13839,15 @@ function renderAdminAnnouncementsV18(panel) {
 
   panel.innerHTML = `
     <div class="card admin-announcements-v18">
-      <h3>Comunicados aos professores assinantes</h3>
-      <p>Envie avisos de manutenção, instabilidade, novidades ou orientações para um assinante específico ou para todos.</p>
+      <h3>Comunicados aos professores</h3>
+      <p>Envie avisos de manutenção, instabilidade, novidades ou orientações para um professor específico ou para todos, incluindo administradores, testes e acessos gratuitos.</p>
 
       <div class="v3-form-grid">
         <label>
           Destinatário
           <select id="adminAnnouncementTeacherV18">
-            <option value="">Todos os professores assinantes</option>
-            ${paidTeachers.map(teacher => `
+            <option value="">Todos os professores</option>
+            ${allTeachers.map(teacher => `
               <option value="${escapeHtml(teacher.teacher_id)}">
                 ${escapeHtml(teacher.teacher_name || teacher.name || teacher.teacher_email || "Professor")}
               </option>
@@ -13880,7 +13896,7 @@ async function sendAdminAnnouncementV18() {
 
   const audience = teacherId
     ? document.getElementById("adminAnnouncementTeacherV18")?.selectedOptions?.[0]?.textContent?.trim()
-    : "todos os professores assinantes";
+    : "todos os professores";
   if (!window.confirm(`Enviar este comunicado para ${audience}?`)) return;
 
   if (button) {
@@ -13927,7 +13943,7 @@ async function loadAdminAnnouncementsV18() {
     ? `<h4>Comunicados recentes</h4><div class="admin-announcement-list-v18">${items.map(item => `
         <article>
           <strong>${escapeHtml(item.title)}</strong>
-          <span>${escapeHtml(item.teacher_name || "Todos os professores assinantes")}</span>
+          <span>${escapeHtml(item.teacher_name || "Todos os professores")}</span>
           <p>${escapeHtml(item.message)}</p>
           <small>Enviado em ${new Date(item.created_at).toLocaleString("pt-BR")} · válido até ${new Date(item.expires_at).toLocaleString("pt-BR")}</small>
         </article>
@@ -16298,6 +16314,8 @@ function setTeacherPage(page) {
 
             <select
               id="teacherMaterialStudent"
+              multiple
+              size="6"
               style="
                 width:100%;
                 padding:10px;
@@ -16305,9 +16323,8 @@ function setTeacherPage(page) {
                 border-radius:8px;
               "
             >
-              <option value="">
-                Biblioteca (definir depois)
-              </option>
+              <option value="__library__" selected>Somente biblioteca (definir depois)</option>
+              <option value="__all__">Todos os alunos</option>
             </select>
 
           </div>
@@ -16344,7 +16361,7 @@ function setTeacherPage(page) {
         </div>
 
         <p class="teacher-material-library-help-v11">
-          Voc&ecirc; pode guardar o material na biblioteca e escolher os alunos depois.
+          Escolha todos os alunos ou selecione vários nomes usando Ctrl (Windows) / Command (Mac). Também é possível guardar somente na biblioteca.
         </p>
 
         <div
@@ -16797,6 +16814,10 @@ function setTeacherPage(page) {
                 "
               >
 
+              <button type="button" class="secondary-button" id="useTeacherDefaultClassLinkV19" style="margin-top:8px;">
+                Usar link padrão do meu perfil
+              </button>
+
             </div>
 
 
@@ -16995,10 +17016,10 @@ function setTeacherPage(page) {
 
               <input
                 id="newStudentMonthlyFee"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0,00"
+                type="text"
+                inputmode="decimal"
+                data-currency-v19
+                placeholder="R$ 0,00"
                 style="
                   width:100%;
                   box-sizing:border-box;
@@ -17031,10 +17052,10 @@ function setTeacherPage(page) {
 
               <input
                 id="newStudentLessonFee"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0,00"
+                type="text"
+                inputmode="decimal"
+                data-currency-v19
+                placeholder="R$ 0,00"
                 style="
                   width:100%;
                   box-sizing:border-box;
@@ -22652,11 +22673,12 @@ async function deleteTeacherStudent(
       ) +
       "\"?\n\n" +
 
-      "O aluno sumira da lista, os horarios futuros serao liberados " +
-      "e o e-mail de acesso sera liberado para um novo cadastro quando " +
-      "nao houver vinculo ativo com outro professor.\n\n" +
+      "Esta acao e definitiva. Todos os dados e o historico deste aluno " +
+      "com voce serao apagados, inclusive aulas, reposicoes, financeiro, " +
+      "materiais e observacoes.\n\n" +
 
-      "O historico das aulas passadas sera preservado."
+      "Se o aluno tambem estiver vinculado a outro professor, somente o seu " +
+      "cadastro e o seu historico serao excluidos. Deseja continuar?"
 
     );
 
@@ -28555,7 +28577,7 @@ function renderTeacherFinancialRecords() {
 
   document
     .querySelectorAll(
-      ".edit-teacher-financial-button"
+      ".toggle-teacher-financial-v19"
     )
     .forEach(button => {
 
@@ -28575,13 +28597,25 @@ function renderTeacherFinancialRecords() {
             );
 
 
-          if (item) {
-
-            openTeacherFinancialForm(
-              item
-            );
-
-          }
+          if (!item) return;
+          const card = button.closest(".teacher-financial-card-v19");
+          const details = card?.querySelector(".teacher-financial-details-v19");
+          const actions = card?.querySelector(".teacher-financial-actions-v19");
+          const opening = details?.hidden !== false;
+          document.querySelectorAll(".teacher-financial-details-v19").forEach(area => area.hidden = true);
+          document.querySelectorAll(".teacher-financial-actions-v19").forEach(area => area.hidden = true);
+          document.querySelectorAll(".toggle-teacher-financial-v19").forEach(toggle => {
+            toggle.setAttribute("aria-expanded", "false");
+            toggle.textContent = "⌄";
+          });
+          if (!opening || !card || !details) return;
+          details.hidden = false;
+          if (actions) actions.hidden = false;
+          button.setAttribute("aria-expanded", "true");
+          button.textContent = "⌃";
+          const formArea = document.getElementById("teacherFinancialFormArea");
+          if (formArea) card.appendChild(formArea);
+          openTeacherFinancialForm(item);
 
         }
       );
@@ -28644,6 +28678,8 @@ function renderTeacherFinancialRecordCard(
   return `
 
     <div
+      class="teacher-financial-card-v19"
+      data-financial-card-v19="${item.financial_id}"
       style="
         padding:17px;
         border:1px solid #ddd;
@@ -28673,6 +28709,8 @@ function renderTeacherFinancialRecordCard(
               item.student_name
             )}
           </strong>
+
+          <button type="button" class="toggle-teacher-financial-v19" data-financial-id="${item.financial_id}" aria-expanded="false" aria-label="Abrir opções de ${escapeHtml(item.student_name)}">⌄</button>
 
 
           <div
@@ -28741,6 +28779,8 @@ function renderTeacherFinancialRecordCard(
 
 
       <div
+        class="teacher-financial-details-v19"
+        hidden
         style="
           display:grid;
           grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -28832,6 +28872,8 @@ function renderTeacherFinancialRecordCard(
 
 
       <div
+        class="teacher-financial-actions-v19"
+        hidden
         style="
           display:flex;
           gap:8px;
@@ -28846,15 +28888,6 @@ function renderTeacherFinancialRecordCard(
           data-financial-id="${item.financial_id}"
         >
           Ver relatorio
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary-button edit-teacher-financial-button"
-          data-financial-id="${item.financial_id}"
-        >
-          Editar
         </button>
 
 
@@ -41143,6 +41176,14 @@ async function loadTeacherProfilePage() {
       </div>
 
 
+      <div style="grid-column:1 / -1;">
+        <label for="teacherProfileDefaultClassLinkV19" style="display:block;font-weight:bold;margin-bottom:7px;">
+          Link padrão das aulas
+        </label>
+        <input type="url" id="teacherProfileDefaultClassLinkV19" placeholder="https://meet.google.com/..." style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        <small style="display:block;margin-top:5px;color:#666;">Este link poderá preencher automaticamente o cadastro de novos alunos.</small>
+      </div>
+
       <div>
 
         <label
@@ -41998,6 +42039,8 @@ async function loadTeacherProfilePage() {
 
   }
 
+  await loadTeacherDefaultClassLinkV19();
+
 }
 
 
@@ -42027,6 +42070,8 @@ async function saveTeacherProfilePage() {
     document.getElementById(
       "teacherProfileCpf"
     );
+
+  const defaultClassLinkInput = document.getElementById("teacherProfileDefaultClassLinkV19");
 
 
   const cnpjInput =
@@ -42396,6 +42441,20 @@ async function saveTeacherProfilePage() {
       message.style.color = "red";
     }
 
+    return;
+  }
+
+  const { error: defaultLinkError } = await supabaseClient.rpc(
+    "save_my_teacher_default_class_link_v19",
+    { p_link: defaultClassLinkInput?.value.trim() || null }
+  );
+
+  if (defaultLinkError) {
+    if (message) {
+      message.textContent = defaultLinkError.message ||
+        "Os demais dados foram salvos, mas o link padrão da aula falhou.";
+      message.style.color = "red";
+    }
     return;
   }
 
@@ -42950,9 +43009,8 @@ async function loadTeacherMaterialsPage() {
 
   studentSelect.innerHTML = `
 
-    <option value="">
-      Biblioteca (definir depois)
-    </option>
+    <option value="__library__" selected>Somente biblioteca (definir depois)</option>
+    <option value="__all__">Todos os alunos</option>
 
     ${currentTeacherMaterialStudents
       .map(
@@ -42992,11 +43050,6 @@ async function loadTeacherMaterialsPage() {
   }
 
 
-  studentSelect.addEventListener(
-    "change",
-    renderTeacherMaterialsList
-  );
-
 }
 
 
@@ -43023,26 +43076,8 @@ function renderTeacherMaterialsList() {
   }
 
 
-  const selectedStudentId =
-    select
-      ? select.value
-      : "";
-
-
-  const materials =
-    selectedStudentId
-
-      ? currentTeacherMaterials.filter(
-          item =>
-            String(
-              item.student_id
-            ) ===
-            String(
-              selectedStudentId
-            )
-        )
-
-      : currentTeacherMaterials;
+  const selectedStudentId = "";
+  const materials = currentTeacherMaterials;
 
 
   if (
@@ -43309,8 +43344,15 @@ async function saveTeacherMaterial() {
   }
 
 
-  const studentId =
-    studentSelect.value;
+  const selectedDestinations = Array.from(studentSelect.selectedOptions || [])
+    .map(option => option.value)
+    .filter(Boolean);
+  const sendToAll = selectedDestinations.includes("__all__");
+  const selectedStudentIds = selectedDestinations.filter(value =>
+    value !== "__all__" && value !== "__library__"
+  );
+  const libraryOnly = selectedDestinations.length === 0 ||
+    (selectedDestinations.length === 1 && selectedDestinations[0] === "__library__");
 
 
   const title =
@@ -43371,13 +43413,14 @@ async function saveTeacherMaterial() {
 
 
   const {
+    data: savedMaterialId,
     error
   } =
     await supabaseClient.rpc(
       "save_teacher_material",
       {
         p_student_id:
-          studentId || null,
+          null,
 
         p_title:
           title,
@@ -43422,6 +43465,24 @@ async function saveTeacherMaterial() {
   }
 
 
+  if (!libraryOnly && savedMaterialId) {
+    const destinations = sendToAll ? [null] : selectedStudentIds;
+    for (const destination of destinations) {
+      const { error: assignmentError } = await supabaseClient.rpc(
+        "assign_teacher_material",
+        { p_material_id: savedMaterialId, p_student_id: destination }
+      );
+      if (assignmentError) {
+        if (message) {
+          message.textContent = assignmentError.message ||
+            "O material foi salvo, mas nem todos os acessos puderam ser liberados.";
+          message.style.color = "red";
+        }
+        return;
+      }
+    }
+  }
+
   titleInput.value =
     "";
 
@@ -43440,9 +43501,11 @@ async function saveTeacherMaterial() {
 
   if (message) {
 
-    message.textContent = studentId
-      ? "Material adicionado para o aluno."
-      : "Material salvo na biblioteca. Agora voce pode disponibiliza-lo para um aluno ou para todos.";
+    message.textContent = libraryOnly
+      ? "Material salvo na biblioteca."
+      : sendToAll
+        ? "Material disponibilizado para todos os alunos."
+        : `Material disponibilizado para ${selectedStudentIds.length} aluno(s).`;
 
     message.style.color =
       "green";
@@ -43733,6 +43796,25 @@ async function loadStudentMaterials() {
 // PAINEL OPERACIONAL DO PROFESSOR
 // =====================================================
 
+function collapseTeacherOccurrencesV19(rows) {
+  return (rows || []).reduce((lessons, row) => {
+    const previous = lessons[lessons.length - 1];
+    const sameStudent = String(previous?.student_id || "") === String(row.student_id || "");
+    const sameType = normalizeTeacherScheduleStatus(previous?.status).type ===
+      normalizeTeacherScheduleStatus(row.status).type;
+    const isContinuation = previous && sameStudent && sameType &&
+      String(previous.end_time || "").slice(0, 5) === String(row.start_time || "").slice(0, 5);
+
+    if (isContinuation) {
+      previous.end_time = row.end_time;
+      return lessons;
+    }
+
+    lessons.push({ ...row });
+    return lessons;
+  }, []);
+}
+
 async function loadTeacherDashboard() {
 
   const area =
@@ -43920,7 +44002,7 @@ async function loadTeacherDashboard() {
     || {};
 
 
-  const todayOccurrences =
+  const todayOccurrences = collapseTeacherOccurrencesV19(
     (todayScheduleResult.error
       ? []
       : (todayScheduleResult.data || [])
@@ -43938,7 +44020,8 @@ async function loadTeacherDashboard() {
         (a, b) =>
           timeToMinutes(a.start_time) -
           timeToMinutes(b.start_time)
-      );
+      )
+  );
 
 
   const nowMinutes =
@@ -46658,8 +46741,8 @@ async function saveNewStudentWithAccessV2() {
   const contractEndDate = contractIndefinite ? null : value("newStudentContractEndDate");
   const contractNotes = value("newStudentContractNotes").trim() || null;
   const billingType = value("newStudentBillingType");
-  const monthlyFee = value("newStudentMonthlyFee") === "" ? null : Number(value("newStudentMonthlyFee"));
-  const lessonFee = value("newStudentLessonFee") === "" ? null : Number(value("newStudentLessonFee"));
+  const monthlyFee = value("newStudentMonthlyFee") === "" ? null : parseCurrencyInputV19(value("newStudentMonthlyFee"));
+  const lessonFee = value("newStudentLessonFee") === "" ? null : parseCurrencyInputV19(value("newStudentLessonFee"));
   const dueDay = Number(value("newStudentDueDay"));
   const invoiceRequired = Boolean(document.getElementById("newStudentInvoiceDefault")?.checked);
   const scheduleResult = collectStudentFixedSchedule("newStudentFixedScheduleRows");
@@ -47831,7 +47914,80 @@ const auloraScheduleObserver = new MutationObserver(() => {
   requestAnimationFrame(enhanceAuloraScheduleScrollers);
 });
 
+function formatPhoneV19(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  const local = digits.slice(2);
+  const split = local.length > 8 ? 5 : 4;
+  return `(${digits.slice(0, 2)}) ${local.slice(0, split)}${local.length > split ? `-${local.slice(split)}` : ""}`;
+}
+
+function formatCpfV19(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+function parseCurrencyInputV19(value) {
+  const raw = String(value || "").trim().replace(/R\$\s?/g, "").replace(/\./g, "").replace(",", ".");
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function formatCurrencyInputV19(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  const amount = Number(digits || "0") / 100;
+  return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+async function loadTeacherDefaultClassLinkV19() {
+  const input = document.getElementById("teacherProfileDefaultClassLinkV19");
+  if (!input) return;
+  const { data, error } = await supabaseClient.rpc("get_my_teacher_default_class_link_v19");
+  if (!error) input.value = data || "";
+}
+
+async function useTeacherDefaultClassLinkV19() {
+  const target = document.getElementById("newStudentClassLink");
+  if (!target) return;
+  const { data, error } = await supabaseClient.rpc("get_my_teacher_default_class_link_v19");
+  if (error || !data) {
+    alert("Cadastre primeiro o link padrao no seu Perfil.");
+    return;
+  }
+  target.value = data;
+  target.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+async function goToAulariumHomeV19() {
+  if (!currentProfile) return;
+  if (currentProfile.role === "student") {
+    setStudentPage("agenda");
+    return;
+  }
+  if (currentProfile.role === "teacher" || currentProfile.is_admin === true) {
+    if (currentAccessViewV5 === "admin") await showTeacherArea();
+    else setTeacherPage("agenda");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   enhanceAuloraScheduleScrollers();
   auloraScheduleObserver.observe(document.body, { childList: true, subtree: true });
+
+  document.getElementById("aulariumHomeButtonV19")?.addEventListener("click", goToAulariumHomeV19);
+
+  document.addEventListener("click", event => {
+    if (event.target.closest("#useTeacherDefaultClassLinkV19")) useTeacherDefaultClassLinkV19();
+  });
+
+  document.addEventListener("input", event => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    if (input.id === "newStudentPhone" || input.dataset.mask === "phone") input.value = formatPhoneV19(input.value);
+    if (input.id === "newStudentCpf" || input.dataset.mask === "cpf") input.value = formatCpfV19(input.value);
+    if (input.dataset.currencyV19 !== undefined) input.value = formatCurrencyInputV19(input.value);
+  });
 });
