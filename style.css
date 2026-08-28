@@ -3533,32 +3533,32 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
    A agenda semanal preserva suas dimensoes para manter a leitura e a rolagem. */
 #teacherScreen,
 #studentScreen {
-  padding-left: 243px;
+  padding-left: 270px;
   font-size: 90%;
 }
 
 #teacherScreen .navigation,
 #studentScreen .navigation {
-  inset: 142px auto 74px 0;
-  width: 243px;
-  gap: 4px;
-  padding: 14px 16px;
+  inset: 158px auto 82px 0;
+  width: 270px;
+  gap: 5px;
+  padding: 16px 18px;
 }
 
 #teacherScreen .navigation .nav-button,
 #studentScreen .navigation .nav-button {
-  gap: 8px !important;
-  padding: 11px 13px;
-  border-radius: 11px;
-  font-size: 10px !important;
+  gap: 12px !important;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px !important;
 }
 
 #teacherScreen .navigation .nav-button::before,
 #studentScreen .navigation .nav-button::before {
-  flex-basis: 23px !important;
-  width: 23px !important;
-  height: 23px !important;
-  background-size: 23px 23px !important;
+  flex-basis: 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+  background-size: 24px 24px !important;
 }
 
 #teacherScreen .page-container,
@@ -3615,6 +3615,88 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   gap: 7px;
 }
 
+/* Na area administrativa, o menu numerado ocupa a coluna sob o logotipo. */
+#teacherScreen.admin-mode-v18 .admin-workspace-v8 {
+  display: block;
+}
+
+#teacherScreen.admin-mode-v18 .admin-side-menu-v8 {
+  position: fixed;
+  inset: 158px auto 82px 0;
+  z-index: 45;
+  width: 270px;
+  overflow-y: auto;
+  padding: 16px 18px;
+  border: 0;
+  border-right: 1px solid var(--aulora-border);
+  border-radius: 0;
+  background: rgba(255, 253, 249, 0.96);
+  box-shadow: none;
+}
+
+.admin-announcements-v18 > label {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.admin-announcements-v18 > label input,
+.admin-announcements-v18 > label textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px;
+  border: 1px solid var(--aulora-border);
+  border-radius: 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.admin-announcement-history-v18 {
+  margin-top: 24px;
+}
+
+.admin-announcement-list-v18,
+#teacherPlatformNoticesV18 {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-announcement-list-v18 article,
+.teacher-announcement-v18 {
+  padding: 16px 18px;
+  border: 1px solid #e7cbbd;
+  border-left: 5px solid var(--aulora-terracotta);
+  border-radius: 13px;
+  background: #fffaf5;
+}
+
+.admin-announcement-list-v18 article span,
+.admin-announcement-list-v18 article small,
+.teacher-announcement-v18 small,
+.teacher-announcement-v18 > div > span {
+  display: block;
+  margin-top: 5px;
+  color: var(--aulora-taupe);
+  font-size: 12px;
+}
+
+.teacher-announcement-v18 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+
+.teacher-announcement-v18 h3 {
+  margin: 4px 0 7px;
+  color: var(--aulora-terracotta-dark);
+}
+
+.teacher-announcement-v18 p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 #teacherScreen .teacher-dashboard-card,
 #studentScreen .teacher-dashboard-card {
   font-size: 11.7px;
@@ -3641,6 +3723,21 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   #studentScreen .navigation {
     width: auto;
     padding: 10px 14px;
+  }
+
+  #teacherScreen.admin-mode-v18 .admin-side-menu-v8 {
+    position: static;
+    width: auto;
+    grid-template-columns: repeat(6, minmax(180px, 1fr));
+    overflow-x: auto;
+    padding: 12px;
+    border: 1px solid var(--aulora-border);
+    border-radius: 17px;
+  }
+
+  .teacher-announcement-v18 {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   #teacherScreen .page-container,
