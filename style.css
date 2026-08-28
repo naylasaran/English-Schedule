@@ -3442,3 +3442,30 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   }
 }
 
+
+
+/* AULARIUM V16 - menu administrativo sob a marca */
+@media (min-width: 901px) {
+  .admin-workspace-v8 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .admin-side-menu-v8 {
+    position: fixed;
+    z-index: 45;
+    top: 158px;
+    left: 18px;
+    width: 234px;
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-side-menu-v8 {
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
