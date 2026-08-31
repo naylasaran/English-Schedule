@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: financial-schedule-v22-20260831"
+  "Aularium build: admin-workspace-v24-20260831"
 );
 
 // =====================================================
@@ -46,6 +46,7 @@ let currentStudentTeacherRescheduleRules = {
 
 let currentAdminTeachers = [];
 let currentAdminTeacherSystemFinancial = [];
+let adminTeacherStudentsV24 = new Map();
 let currentAdminPlatformFinanceV9 = [];
 let currentAdminPlatformFinanceRangeV9 = "";
 let currentTeacherHolidayWeek = [];
@@ -2904,14 +2905,17 @@ function setupAdminSideMenuV8(content) {
   layout.className = "admin-workspace-v8";
   layout.innerHTML = `
     <aside class="admin-side-menu-v8" aria-label="Menu administrativo">
-      <button type="button" class="admin-side-button-v8 active" data-admin-workspace-v8="paid"><span>1</span>Professores assinantes</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="trial"><span>2</span>Professores interessados / teste gr&aacute;tis</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="free"><span>3</span>Professores gr&aacute;tis ilimitado</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="finance"><span>4</span>Financeiro do Aularium</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>5</span>Suporte</button>
-      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="announcements"><span>6</span>Comunicados</button>
+      <button type="button" class="admin-side-button-v8 active" data-admin-workspace-v8="summary"><span>1</span>Resumo</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="all"><span>2</span>Todos os professores</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="paid"><span>3</span>Professores assinantes</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="trial"><span>4</span>Professores em teste</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="free"><span>5</span>Acessos gratuitos</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="finance"><span>6</span>Financeiro do Aularium</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="support"><span>7</span>Suporte</button>
+      <button type="button" class="admin-side-button-v8" data-admin-workspace-v8="announcements"><span>8</span>Comunicados</button>
     </aside>
     <div class="admin-panels-v8">
+      <section class="admin-panel-v8" data-admin-panel-v8="summary"></section>
       <section class="admin-panel-v8" data-admin-panel-v8="teachers"></section>
       <section class="admin-panel-v8" data-admin-panel-v8="finance" hidden></section>
       <section class="admin-panel-v8" data-admin-panel-v8="support" hidden></section>
@@ -2920,11 +2924,14 @@ function setupAdminSideMenuV8(content) {
   `;
 
   content.appendChild(layout);
+  const summaryPanel = layout.querySelector('[data-admin-panel-v8="summary"]');
   const teacherPanel = layout.querySelector('[data-admin-panel-v8="teachers"]');
   const financePanel = layout.querySelector('[data-admin-panel-v8="finance"]');
   const supportPanel = layout.querySelector('[data-admin-panel-v8="support"]');
   const announcementsPanel = layout.querySelector('[data-admin-panel-v8="announcements"]');
   teacherPanel.appendChild(teacherCard);
+  document.getElementById("adminLegacySystemBillingSettingsV24")?.remove();
+  renderAdminSummaryV24(summaryPanel);
   renderAdminPlatformFinanceV9(financePanel);
   renderAdminAnnouncementsV18(announcementsPanel);
 
@@ -2938,10 +2945,12 @@ function setupAdminSideMenuV8(content) {
     .forEach(section => supportPanel.appendChild(section));
 
   const selectWorkspace = view => {
+    const isSummary = view === "summary";
     const isSupport = view === "support";
     const isFinance = view === "finance";
     const isAnnouncements = view === "announcements";
-    teacherPanel.hidden = isSupport || isFinance || isAnnouncements;
+    summaryPanel.hidden = !isSummary;
+    teacherPanel.hidden = isSummary || isSupport || isFinance || isAnnouncements;
     financePanel.hidden = !isFinance;
     supportPanel.hidden = !isSupport;
     announcementsPanel.hidden = !isAnnouncements;
@@ -2950,7 +2959,7 @@ function setupAdminSideMenuV8(content) {
       button.classList.toggle("active", button.dataset.adminWorkspaceV8 === view);
     });
 
-    if (!isSupport && !isFinance && !isAnnouncements) {
+    if (!isSummary && !isSupport && !isFinance && !isAnnouncements) {
       currentAdminTeacherFilter = view;
       document.querySelectorAll("[data-admin-teacher-filter]").forEach(button => {
         button.classList.toggle("active", button.dataset.adminTeacherFilter === view);
@@ -2966,13 +2975,97 @@ function setupAdminSideMenuV8(content) {
       renderAdminAnnouncementsV18(announcementsPanel);
       loadAdminAnnouncementsV18();
     }
+
+    if (isSummary) {
+      renderAdminSummaryV24(summaryPanel);
+    }
   };
 
   layout.querySelectorAll("[data-admin-workspace-v8]").forEach(button => {
     button.addEventListener("click", () => selectWorkspace(button.dataset.adminWorkspaceV8));
   });
 
-  selectWorkspace("paid");
+  selectWorkspace("summary");
+}
+
+
+function getTeacherPlanLabelV24(planCode) {
+  return ({
+    trial: "Teste gratuito (15 dias)",
+    starter: "Starter",
+    plus: "Plus",
+    pro: "Pro",
+    premium: "Premium",
+    custom: "Personalizado"
+  })[String(planCode || "").toLowerCase()] || "Personalizado";
+}
+
+
+function renderAdminSummaryV24(panel) {
+  if (!panel) return;
+
+  const countByAccess = type => currentAdminTeachers.filter(teacher =>
+    String(teacher.access_category || teacher.access_type || "paid") === type
+  ).length;
+  const pendingPayments = currentAdminTeachers.filter(teacher =>
+    String(teacher.access_category || teacher.access_type || "paid") === "paid" &&
+    String(teacher.payment_status || "pending") !== "paid"
+  );
+  const activeTickets = adminSupportTicketsV3.filter(ticket =>
+    !["closed", "resolved", "archived"].includes(String(ticket.status || "").toLowerCase())
+  );
+
+  panel.innerHTML = `
+    <section class="admin-summary-v24">
+      <div class="admin-summary-heading-v24">
+        <div><span>VISÃO GERAL</span><h3>Resumo administrativo</h3><p>Acompanhe professores, pagamentos e solicitações de suporte em um só lugar.</p></div>
+        <button type="button" class="secondary-button" id="refreshAdminSummaryV24">Atualizar resumo</button>
+      </div>
+      <div class="admin-summary-stats-v24">
+        <article><small>Professores cadastrados</small><strong>${currentAdminTeachers.length}</strong></article>
+        <article><small>Assinantes</small><strong>${countByAccess("paid")}</strong></article>
+        <article><small>Em teste</small><strong>${countByAccess("trial")}</strong></article>
+        <article><small>Gratuitos</small><strong>${countByAccess("free")}</strong></article>
+        <article class="${pendingPayments.length ? "needs-attention" : ""}"><small>Pagamentos pendentes</small><strong>${pendingPayments.length}</strong></article>
+        <article class="${activeTickets.length ? "needs-attention" : ""}"><small>Chamados em atendimento</small><strong>${activeTickets.length}</strong></article>
+      </div>
+      <div class="admin-summary-columns-v24">
+        <section>
+          <h4>Quem precisa de atenção</h4>
+          ${pendingPayments.length ? `<ul>${pendingPayments.map(teacher => `<li><strong>${escapeHtml(teacher.teacher_name)}</strong><span>${getTeacherPlanLabelV24(teacher.subscription_plan)} · pagamento ${escapeHtml(teacher.payment_status || "pendente")}</span></li>`).join("")}</ul>` : `<p class="admin-summary-empty-v24">Nenhum pagamento pendente no período selecionado.</p>`}
+          ${activeTickets.length ? `<ul>${activeTickets.slice(0, 8).map(ticket => `<li><strong>${escapeHtml(ticket.contact_name || ticket.contact_email || "Contato")}</strong><span>${escapeHtml(ticket.subject || "Solicitação de suporte")}</span></li>`).join("")}</ul>` : `<p class="admin-summary-empty-v24">Nenhum chamado aberto carregado.</p>`}
+        </section>
+        <section>
+          <h4>Pagamento do Aularium</h4>
+          <p>Definição única exibida para todos os professores.</p>
+          <label>Chave PIX<input type="text" id="adminSystemPixKey" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></label>
+          <label>Link HTTPS da imagem do QR Code<input type="url" id="adminSystemPixQrV24" placeholder="https://..."></label>
+          <div id="adminSystemPixQrPreviewV24" class="admin-system-pix-qr-preview-v24"></div>
+          <button type="button" class="action-button" id="saveAdminSystemPixButton">Salvar dados de pagamento</button>
+          <p id="adminSystemPixMessage" class="admin-summary-message-v24"></p>
+        </section>
+      </div>
+    </section>
+  `;
+
+  document.getElementById("refreshAdminSummaryV24")?.addEventListener("click", async () => {
+    await Promise.all([loadAdminTeachers(), loadAdminSupportArea(false)]);
+    renderAdminSummaryV24(panel);
+    await loadAdminSystemPix();
+  });
+  document.getElementById("saveAdminSystemPixButton")?.addEventListener("click", saveAdminSystemPix);
+  document.getElementById("adminSystemPixQrV24")?.addEventListener("input", renderAdminSystemPixQrPreviewV24);
+  loadAdminSystemPix();
+}
+
+
+function renderAdminSystemPixQrPreviewV24() {
+  const area = document.getElementById("adminSystemPixQrPreviewV24");
+  const value = document.getElementById("adminSystemPixQrV24")?.value.trim() || "";
+  if (!area) return;
+  area.innerHTML = /^https:\/\//i.test(value)
+    ? `<img src="${escapeHtml(value)}" alt="Prévia do QR Code PIX do Aularium">`
+    : "";
 }
 
 
@@ -3420,6 +3513,7 @@ function renderAdminTeacherManagement() {
 
 
       <div
+        id="adminLegacySystemBillingSettingsV24"
         style="
           margin-top:18px;
           padding:14px;
@@ -3886,22 +3980,6 @@ function renderAdminTeacherManagement() {
     systemMonthInput.addEventListener(
       "change",
       loadAdminTeachers
-    );
-
-  }
-
-
-  const savePixButton =
-    document.getElementById(
-      "saveAdminSystemPixButton"
-    );
-
-
-  if (savePixButton) {
-
-    savePixButton.addEventListener(
-      "click",
-      saveAdminSystemPix
     );
 
   }
@@ -6705,13 +6783,17 @@ async function loadAdminSystemPix() {
   }
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.rpc(
+  let { data, error } = await supabaseClient.rpc(
+    "get_admin_system_billing_settings_v24"
+  );
+
+  if (error) {
+    const fallback = await supabaseClient.rpc(
       "get_admin_system_billing_settings"
     );
+    data = fallback.data;
+    error = fallback.error;
+  }
 
 
   if (error) {
@@ -6722,6 +6804,11 @@ async function loadAdminSystemPix() {
     );
 
     return;
+  }
+
+  if (!data || (Array.isArray(data) && data.length === 0)) {
+    const fallback = await supabaseClient.rpc("get_admin_system_billing_settings");
+    if (!fallback.error) data = fallback.data;
   }
 
 
@@ -6738,6 +6825,10 @@ async function loadAdminSystemPix() {
 
   input.value =
     settings.pix_key || "";
+
+  const qrInput = document.getElementById("adminSystemPixQrV24");
+  if (qrInput) qrInput.value = settings.pix_qr_code_url || "";
+  renderAdminSystemPixQrPreviewV24();
 
 }
 
@@ -6782,16 +6873,14 @@ async function saveAdminSystemPix() {
   }
 
 
-  const {
-    error
-  } =
-    await supabaseClient.rpc(
-      "save_admin_system_billing_settings",
-      {
-        p_pix_key:
-          input.value.trim() || null
-      }
-    );
+  const qrInput = document.getElementById("adminSystemPixQrV24");
+  const { error } = await supabaseClient.rpc(
+    "save_admin_system_billing_settings_v24",
+    {
+      p_pix_key: input.value.trim() || null,
+      p_pix_qr_code_url: qrInput?.value.trim() || null
+    }
+  );
 
 
   if (button) {
@@ -6800,7 +6889,7 @@ async function saveAdminSystemPix() {
       false;
 
     button.textContent =
-      "Salvar PIX";
+      "Salvar dados de pagamento";
 
   }
 
@@ -6811,7 +6900,7 @@ async function saveAdminSystemPix() {
 
       message.textContent =
         error.message ||
-        "Nao foi possivel salvar o PIX.";
+        "Não foi possível salvar os dados de pagamento.";
 
       message.style.color =
         "red";
@@ -6825,7 +6914,7 @@ async function saveAdminSystemPix() {
   if (message) {
 
     message.textContent =
-      "PIX atualizado com sucesso.";
+      "PIX e QR Code atualizados com sucesso.";
 
     message.style.color =
       "green";
@@ -7064,6 +7153,9 @@ async function loadAdminTeachers() {
     month
   );
 
+  const summaryPanel = document.querySelector('[data-admin-panel-v8="summary"]');
+  if (summaryPanel) renderAdminSummaryV24(summaryPanel);
+
 
   if (
     currentAdminTeachers.length ===
@@ -7214,6 +7306,77 @@ function bindAdminTeacherCardEventsV2() {
         )
       );
     });
+
+  document.querySelectorAll(".open-admin-teacher-students-v24").forEach(button => {
+    button.addEventListener("click", () => loadAdminTeacherStudentsV24(button.dataset.teacherId));
+  });
+}
+
+
+async function loadAdminTeacherStudentsV24(teacherId) {
+  const area = document.getElementById(`adminTeacherStudentsV24-${teacherId}`);
+  if (!area) return;
+  area.innerHTML = `<p>Carregando alunos...</p>`;
+
+  const { data, error } = await supabaseClient.rpc(
+    "get_admin_teacher_students_v24",
+    { p_teacher_id: teacherId }
+  );
+  if (error) {
+    area.innerHTML = `<p class="admin-summary-message-v24">${escapeHtml(error.message || "Não foi possível carregar os alunos.")}</p>`;
+    return;
+  }
+
+  const students = data || [];
+  adminTeacherStudentsV24.set(String(teacherId), students);
+  area.innerHTML = students.length ? students.map(student => `
+    <article>
+      <div><strong>${escapeHtml(student.student_name)}</strong><span>${escapeHtml(student.student_email)}</span><small>${student.active === false ? "Inativo" : (student.classes_paused ? "Aulas pausadas" : "Ativo")}</small></div>
+      <div>
+        <button type="button" class="secondary-button admin-reset-student-v24" data-student-email="${escapeHtml(student.student_email)}">Redefinir senha</button>
+        <button type="button" class="secondary-button admin-delete-student-v24" data-teacher-id="${teacherId}" data-student-id="${student.student_id}" data-student-name="${escapeHtml(student.student_name)}">Excluir definitivamente</button>
+      </div>
+    </article>
+  `).join("") : `<p>Nenhum aluno vinculado a este professor.</p>`;
+
+  area.querySelectorAll(".admin-reset-student-v24").forEach(button => {
+    button.addEventListener("click", () => sendPasswordResetV24(button.dataset.studentEmail));
+  });
+  area.querySelectorAll(".admin-delete-student-v24").forEach(button => {
+    button.addEventListener("click", () => deleteAdminTeacherStudentV24(
+      button.dataset.teacherId,
+      button.dataset.studentId,
+      button.dataset.studentName
+    ));
+  });
+}
+
+
+async function sendPasswordResetV24(email) {
+  if (!email || !window.confirm(`Enviar um e-mail de redefinição de senha para ${email}?`)) return;
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(
+    email,
+    { redirectTo: getAppBaseUrlV4() }
+  );
+  alert(error ? (error.message || "Não foi possível enviar a redefinição.") : "E-mail de redefinição enviado.");
+}
+
+
+async function deleteAdminTeacherStudentV24(teacherId, studentId, studentName) {
+  const confirmed = window.confirm(
+    `Excluir definitivamente o cadastro de ${studentName}?\n\nTodo o histórico deste vínculo será apagado, incluindo aulas, reposições, financeiro, materiais e observações. Esta ação não pode ser desfeita.`
+  );
+  if (!confirmed) return;
+
+  const { data, error } = await supabaseClient.functions.invoke("provision-users", {
+    body: { kind: "admin_delete_student", student_id: studentId }
+  });
+  if (error || data?.error) {
+    alert(data?.error || error?.message || "Não foi possível excluir o aluno.");
+    return;
+  }
+  alert("Cadastro e histórico excluídos.");
+  await Promise.all([loadAdminTeacherStudentsV24(teacherId), loadAdminTeachers()]);
 }
 
 
@@ -7466,15 +7629,13 @@ function renderAdminTeacherCard(
 
 
   return `
-
-    <div
-      style="
-        padding:16px;
-        border:1px solid #ddd;
-        border-radius:10px;
-        background:#ffffff;
-      "
-    >
+    <details class="admin-teacher-details-v24">
+      <summary>
+        <span><strong>${escapeHtml(teacher.teacher_name)}</strong><small>${escapeHtml(teacher.teacher_email)}</small></span>
+        <span class="admin-teacher-summary-plan-v24">${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan))}</span>
+        <span class="admin-teacher-summary-status-v24 status-${escapeHtml(status)}">${statusLabel}</span>
+      </summary>
+      <div class="admin-teacher-details-body-v24">
 
       <div
         style="
@@ -8127,6 +8288,12 @@ function renderAdminTeacherCard(
 
       </div>
 
+      <div class="admin-teacher-students-block-v24">
+        <div><strong>Alunos deste professor</strong><p>Consulte os cadastros, envie redefinição de senha ou exclua definitivamente um vínculo.</p></div>
+        <button type="button" class="secondary-button open-admin-teacher-students-v24" data-teacher-id="${teacher.teacher_id}">Mostrar alunos</button>
+        <div class="admin-teacher-students-list-v24" id="adminTeacherStudentsV24-${teacher.teacher_id}"></div>
+      </div>
+
 
       ${
         status !==
@@ -8204,7 +8371,8 @@ function renderAdminTeacherCard(
           : ""
       }
 
-    </div>
+      </div>
+    </details>
 
   `;
 
@@ -9471,10 +9639,9 @@ async function loadStudentRules() {
     ).trim();
 
 
-  const imageUrl =
-    getRulesImagePublicUrl(
-      content.rules_image_path
-    );
+  const imageUrl = rules
+    ? getRulesImagePublicUrl(content.rules_image_path)
+    : "";
 
 
   if (
@@ -23674,7 +23841,10 @@ async function openTeacherStudentDetail(
           <div><label>Telefone</label><input id="teacherStudentPersonalPhone" value="${escapeHtml(personalData.phone || "")}"></div>
           <div><label>CPF</label><input id="teacherStudentPersonalCpf" value="${escapeHtml(personalData.cpf || "")}"></div>
         </div>
-        <button type="button" class="secondary-button" id="saveTeacherStudentPersonalButton" style="margin-top:12px;">Salvar dados pessoais</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+          <button type="button" class="secondary-button" id="saveTeacherStudentPersonalButton">Salvar dados pessoais</button>
+          <button type="button" class="secondary-button" id="resetTeacherStudentPasswordV24" data-student-email="${escapeHtml(personalData.student_email || "")}">Enviar redefinição de senha</button>
+        </div>
         <p id="teacherStudentPersonalMessage"></p>
       </div>
 
@@ -25117,6 +25287,11 @@ async function openTeacherStudentDetail(
       )
     );
   }
+
+  document.getElementById("resetTeacherStudentPasswordV24")?.addEventListener(
+    "click",
+    event => sendPasswordResetV24(event.currentTarget.dataset.studentEmail)
+  );
 
 
   const closeButton =
@@ -41610,6 +41785,15 @@ async function loadTeacherProfilePage() {
           || null
         );
 
+  const { data: systemPaymentSettingsData } = await supabaseClient.rpc(
+    "get_my_system_billing_settings_v24"
+  );
+  const systemPaymentSettings = (
+    Array.isArray(systemPaymentSettingsData)
+      ? systemPaymentSettingsData[0]
+      : systemPaymentSettingsData
+  ) || {};
+
 
   if (systemFinancialError) {
 
@@ -42568,10 +42752,10 @@ async function loadTeacherProfilePage() {
                 "
               >
                 ${
-                  systemFinancial.pix_key
+                  systemPaymentSettings.pix_key || systemFinancial.pix_key
 
                     ? escapeHtml(
-                        systemFinancial.pix_key
+                        systemPaymentSettings.pix_key || systemFinancial.pix_key
                       )
 
                     : "PIX ainda nao informado pelo administrador."
@@ -42579,6 +42763,13 @@ async function loadTeacherProfilePage() {
               </strong>
 
             </div>
+
+            ${systemPaymentSettings.pix_qr_code_url ? `
+              <div class="teacher-system-pix-qr-v24">
+                <span>QR Code PIX do Aularium</span>
+                <img src="${escapeHtml(systemPaymentSettings.pix_qr_code_url)}" alt="QR Code PIX para pagamento do Aularium">
+              </div>
+            ` : ""}
 
 
             ${
@@ -47268,6 +47459,12 @@ async function loadAdminSupportArea(append = false) {
         <div style="padding:14px;border:1px solid #ddd;border-radius:10px;">
           <strong>${escapeHtml(ticket.subject)}</strong>
           <div>${escapeHtml(ticket.contact_name)} - ${escapeHtml(ticket.contact_email)}</div>
+          ${(() => {
+            const teacher = currentAdminTeachers.find(item =>
+              String(item.teacher_email || "").toLowerCase() === String(ticket.contact_email || "").toLowerCase()
+            );
+            return teacher ? `<div class="admin-support-plan-v24">Plano: <strong>${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan))}</strong> · ${escapeHtml(teacher.access_type || "pago")}</div>` : "";
+          })()}
           <small>${escapeHtml(ticket.source)} | ${escapeHtml(ticket.status)}</small>
           <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
           ${adminSupportViewV4 === "archived" ? `
@@ -47299,6 +47496,9 @@ async function loadAdminSupportArea(append = false) {
 
   document.getElementById("loadOlderAdminSupportV3")
     ?.addEventListener("click", () => loadAdminSupportArea(true));
+
+  const summaryPanel = document.querySelector('[data-admin-panel-v8="summary"]');
+  if (summaryPanel && !append && !summaryPanel.hidden) renderAdminSummaryV24(summaryPanel);
 }
 
 

@@ -3743,6 +3743,74 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
   border-radius: 0;
   background: rgba(255, 253, 249, 0.96);
   box-shadow: none;
+  align-content: start;
+  grid-auto-rows: max-content;
+}
+
+/* Aularium V24 — painel administrativo mais compacto e orientado a tarefas. */
+.admin-summary-v24,
+.admin-teacher-details-v24 {
+  border: 1px solid var(--aulora-border);
+  border-radius: 16px;
+  background: #fffdfa;
+  box-shadow: 0 8px 26px rgba(73, 57, 45, .055);
+}
+
+.admin-summary-v24 { padding: 22px; }
+.admin-summary-heading-v24 { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+.admin-summary-heading-v24 span { color: var(--aulora-terracotta-dark); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.admin-summary-heading-v24 h3 { margin: 5px 0; font-size: 25px; }
+.admin-summary-heading-v24 p { margin: 0; color: #6f6a64; }
+.admin-summary-stats-v24 { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-top: 20px; }
+.admin-summary-stats-v24 article { padding: 15px; border: 1px solid var(--aulora-border); border-radius: 12px; background: #fff; }
+.admin-summary-stats-v24 article.needs-attention { background: #fff6df; border-color: #ebc976; }
+.admin-summary-stats-v24 small { display: block; color: #716b64; }
+.admin-summary-stats-v24 strong { display: block; margin-top: 5px; font-size: 25px; }
+.admin-summary-columns-v24 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.admin-summary-columns-v24 > section { padding: 17px; border: 1px solid var(--aulora-border); border-radius: 13px; background: #fff; }
+.admin-summary-columns-v24 h4 { margin: 0 0 8px; }
+.admin-summary-columns-v24 ul { display: grid; gap: 7px; padding: 0; margin: 10px 0 0; list-style: none; }
+.admin-summary-columns-v24 li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 10px; border-radius: 9px; background: #fff8f1; }
+.admin-summary-columns-v24 li span { color: #6e675f; font-size: 12px; text-align: right; }
+.admin-summary-columns-v24 label { display: grid; gap: 5px; margin-top: 11px; font-weight: 700; font-size: 12px; }
+.admin-summary-columns-v24 input { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--aulora-border); border-radius: 9px; font: inherit; }
+.admin-summary-columns-v24 .action-button { margin-top: 12px; }
+.admin-summary-empty-v24 { color: #746e67; font-size: 13px; }
+.admin-summary-message-v24 { margin: 9px 0 0; font-size: 13px; }
+.admin-system-pix-qr-preview-v24 img { display: block; width: 112px; height: 112px; object-fit: contain; margin-top: 10px; padding: 7px; border: 1px solid var(--aulora-border); border-radius: 10px; background: #fff; }
+
+.admin-teacher-details-v24 { overflow: hidden; }
+.admin-teacher-details-v24 > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 13px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.admin-teacher-details-v24 > summary::-webkit-details-marker { display: none; }
+.admin-teacher-details-v24 > summary::before { content: "›"; grid-column: 1; grid-row: 1; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--aulora-terracotta-soft); color: var(--aulora-terracotta-dark); font-size: 19px; transition: transform .2s ease; }
+.admin-teacher-details-v24[open] > summary::before { transform: rotate(90deg); }
+.admin-teacher-details-v24 > summary > span:first-of-type { grid-column: 1; grid-row: 1; padding-left: 34px; display: grid; gap: 2px; }
+.admin-teacher-details-v24 > summary small { color: #736d67; font-weight: 400; }
+.admin-teacher-summary-plan-v24,
+.admin-teacher-summary-status-v24 { padding: 6px 9px; border-radius: 999px; background: #f3eee7; font-size: 11px; font-weight: 700; }
+.admin-teacher-summary-status-v24.status-active { background: #e7f3e9; color: #28653a; }
+.admin-teacher-summary-status-v24.status-paused { background: #fff4d6; color: #775d13; }
+.admin-teacher-details-body-v24 { padding: 0 16px 16px; border-top: 1px solid var(--aulora-border); }
+.admin-teacher-students-block-v24 { margin-top: 16px; padding: 14px; border: 1px solid var(--aulora-border); border-radius: 10px; background: #fffaf3; }
+.admin-teacher-students-block-v24 > div:first-child p { margin: 4px 0 10px; color: #6e675f; font-size: 12px; }
+.admin-teacher-students-list-v24 { display: grid; gap: 8px; margin-top: 11px; }
+.admin-teacher-students-list-v24 article { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; border-radius: 9px; background: #fff; }
+.admin-teacher-students-list-v24 article > div { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.admin-teacher-students-list-v24 article > div:first-child { display: grid; }
+.admin-teacher-students-list-v24 span,
+.admin-teacher-students-list-v24 small { color: #6f6962; font-size: 12px; }
+.admin-delete-student-v24 { border-color: #bd3d32 !important; color: #a82f26 !important; }
+.admin-support-plan-v24 { display: inline-block; margin: 6px 0; padding: 5px 8px; border-radius: 999px; background: #f7e9e1; font-size: 12px; }
+.teacher-system-pix-qr-v24 { display: inline-grid; gap: 7px; margin-top: 10px; padding: 11px; border: 1px solid var(--aulora-border); border-radius: 10px; background: #fff; font-size: 12px; font-weight: 700; }
+.teacher-system-pix-qr-v24 img { width: 140px; height: 140px; object-fit: contain; }
+.experience-calendar-real-v24 { overflow: hidden; }
+.experience-calendar-real-v24 img { display: block; width: 100%; height: 100%; max-height: 340px; object-fit: cover; object-position: top left; border-radius: 10px; }
+
+@media (max-width: 820px) {
+  .admin-summary-columns-v24 { grid-template-columns: 1fr; }
+  .admin-teacher-details-v24 > summary { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-teacher-summary-status-v24 { display: none; }
+  .admin-teacher-students-list-v24 article { align-items: flex-start; flex-direction: column; }
 }
 
 .admin-announcements-v18 > label {
