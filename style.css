@@ -3852,4 +3852,3 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .toggle-teacher-financial-v19[aria-expanded="true"] .financial-arrow-v19 {
   transform: rotate(90deg);
 }
-
