@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: navegacao-perfil-financeiro-v19-20260828"
+  "Aularium build: pix-agenda-financeiro-v20-20260828"
 );
 
 // =====================================================
@@ -9417,6 +9417,13 @@ async function loadStudentRules() {
 
   `;
 
+  const rulesImage = container.querySelector(".student-rules-image-v11");
+  if (rulesImage) {
+    const trim = () => trimRulesImageWhitespaceV20(rulesImage);
+    if (rulesImage.complete) trim();
+    else rulesImage.addEventListener("load", trim, { once: true });
+  }
+
 }
 
 
@@ -9442,13 +9449,15 @@ async function loadStudentFinancialHistory() {
   `;
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.rpc(
-      "get_my_financial_history"
-    );
+  const [financialResult, paymentResult] = await Promise.all([
+    supabaseClient.rpc("get_my_financial_history"),
+    supabaseClient.rpc("get_my_teacher_payment_info_v20")
+  ]);
+
+  const { data, error } = financialResult;
+  const paymentInfo = Array.isArray(paymentResult.data)
+    ? paymentResult.data[0]
+    : paymentResult.data;
 
 
   if (error) {
@@ -9473,10 +9482,31 @@ async function loadStudentFinancialHistory() {
   const financial =
     data || [];
 
+  const paymentBlock = paymentInfo?.pix
+    ? `
+      <section class="student-payment-highlight-v20">
+        <div>
+          <span class="student-payment-eyebrow-v20">Forma de pagamento do professor</span>
+          <strong>PIX</strong>
+          <div class="student-payment-pix-v20">${escapeHtml(paymentInfo.pix)}</div>
+          <button type="button" class="secondary-button" id="copyStudentTeacherPixV20">Copiar PIX</button>
+        </div>
+        ${paymentInfo.pix_qr_code_url ? `
+          <figure class="student-payment-qr-v20">
+            <img src="${escapeHtml(paymentInfo.pix_qr_code_url)}" alt="QR Code PIX do professor">
+            <figcaption>Escaneie para pagar</figcaption>
+          </figure>
+        ` : ""}
+      </section>
+    `
+    : "";
+
 
   if (financial.length === 0) {
 
     container.innerHTML = `
+
+      ${paymentBlock}
 
       <div
         style="
@@ -9500,6 +9530,7 @@ async function loadStudentFinancialHistory() {
 
     `;
 
+    bindStudentPixCopyV20(paymentInfo?.pix);
     return;
   }
 
@@ -9522,6 +9553,12 @@ async function loadStudentFinancialHistory() {
 
 
   container.innerHTML = `
+
+    ${paymentBlock}
+
+    <p class="student-financial-history-note-v20">
+      Seu histórico mensal fica preservado para consulta, inclusive depois do pagamento.
+    </p>
 
     <div
       style="
@@ -9549,6 +9586,9 @@ async function loadStudentFinancialHistory() {
     ></div>
 
   `;
+
+
+  bindStudentPixCopyV20(paymentInfo?.pix);
 
 
   document
@@ -10358,7 +10398,6 @@ async function loadStudentHistory() {
     </div>
 
   `;
-
 
   document
     .querySelectorAll(
@@ -12179,6 +12218,9 @@ async function loadStudentWeeklySchedule() {
     (data || [])
       .filter(
         slot =>
+          getTeacherWorkDays(currentStudentTeacherSettings)
+            .includes(Number(slot.day_of_week))
+          &&
           isTimeInsideTeacherWorkHours(
             slot.start_time,
             slot.end_time,
@@ -12260,6 +12302,9 @@ async function loadStudentWeeklySchedule() {
     releasedSlots
       .filter(
         releasedSlot =>
+          getTeacherWorkDays(currentStudentTeacherSettings)
+            .includes(Number(releasedSlot.day_of_week))
+          &&
           isTimeInsideTeacherWorkHours(
             releasedSlot.start_time,
             releasedSlot.end_time,
@@ -21804,6 +21849,40 @@ function renderTeacherStudentOverviewCard(
 
 }
 
+function trimRulesImageWhitespaceV20(image) {
+  if (!image || image.dataset.trimmedV20 === "true") return;
+  image.dataset.trimmedV20 = "true";
+  try {
+    const source = document.createElement("canvas");
+    source.width = image.naturalWidth;
+    source.height = image.naturalHeight;
+    const context = source.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, source.width, source.height).data;
+    let left = source.width, right = -1, top = source.height, bottom = -1;
+    for (let y = 0; y < source.height; y += 2) {
+      for (let x = 0; x < source.width; x += 2) {
+        const offset = (y * source.width + x) * 4;
+        const visible = pixels[offset + 3] > 12 &&
+          (pixels[offset] < 246 || pixels[offset + 1] < 246 || pixels[offset + 2] < 246);
+        if (!visible) continue;
+        left = Math.min(left, x); right = Math.max(right, x);
+        top = Math.min(top, y); bottom = Math.max(bottom, y);
+      }
+    }
+    if (right < left || bottom < top) return;
+    const padding = Math.max(8, Math.round(Math.min(source.width, source.height) * 0.015));
+    left = Math.max(0, left - padding); top = Math.max(0, top - padding);
+    right = Math.min(source.width - 1, right + padding); bottom = Math.min(source.height - 1, bottom + padding);
+    const cropped = document.createElement("canvas");
+    cropped.width = right - left + 1; cropped.height = bottom - top + 1;
+    cropped.getContext("2d").drawImage(source, left, top, cropped.width, cropped.height, 0, 0, cropped.width, cropped.height);
+    image.src = cropped.toDataURL("image/png");
+  } catch (error) {
+    console.warn("Nao foi possivel ajustar automaticamente a imagem das regras:", error);
+  }
+}
+
 
 // =====================================================
 // ATIVAR AULAS MANTENDO O HORARIO QUE FICOU RESERVADO
@@ -22688,7 +22767,7 @@ async function deleteTeacherStudent(
   }
 
 
-  const {
+  let {
     data,
     error
   } =
@@ -22701,6 +22780,20 @@ async function deleteTeacherStudent(
         }
       }
     );
+
+
+  if (error) {
+
+    const fallback = await supabaseClient.rpc(
+      "teacher_hard_delete_shared_student_v20",
+      { p_student_id: studentId }
+    );
+
+    if (!fallback.error) {
+      data = { account_released: false, shared_profile: true };
+      error = null;
+    }
+  }
 
 
   if (error) {
@@ -24427,7 +24520,6 @@ async function openTeacherStudentDetail(
     </div>
 
   `;
-
 
   const contractIndefiniteInput =
     document.getElementById(
@@ -28623,26 +28715,6 @@ function renderTeacherFinancialRecords() {
     });
 
 
-  document
-    .querySelectorAll(
-      ".delete-teacher-financial-button"
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          deleteTeacherFinancialRecord(
-            button.dataset.financialId,
-            button.dataset.studentName
-          );
-
-        }
-      );
-
-    });
-
 }
 
 
@@ -28890,21 +28962,6 @@ function renderTeacherFinancialRecordCard(
           Ver relatorio
         </button>
 
-
-        <button
-          type="button"
-          class="secondary-button delete-teacher-financial-button"
-          data-financial-id="${item.financial_id}"
-          data-student-name="${escapeHtml(
-            item.student_name
-          )}"
-          style="
-            border-color:#c0392b;
-            color:#c0392b;
-          "
-        >
-          Excluir
-        </button>
 
       </div>
 
@@ -37103,6 +37160,19 @@ function getTeacherOccurrenceAnchorSlotV16(
   ) || selectedSlot;
 }
 
+function bindStudentPixCopyV20(pix) {
+  const button = document.getElementById("copyStudentTeacherPixV20");
+  if (!button || !pix) return;
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(String(pix));
+      button.textContent = "PIX copiado";
+    } catch (_) {
+      window.prompt("Copie o PIX:", String(pix));
+    }
+  });
+}
+
 async function openTeacherScheduleEditor(
   date,
   slot
@@ -41130,6 +41200,26 @@ async function loadTeacherProfilePage() {
 
 
       <div>
+        <label for="teacherProfilePixQrV20" style="display:block;font-weight:bold;margin-bottom:7px;">
+          QR Code PIX (opcional)
+        </label>
+        <input
+          type="url"
+          id="teacherProfilePixQrV20"
+          placeholder="Cole o link da imagem do seu QR Code"
+          style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccc;border-radius:8px;"
+        >
+        <input
+          type="file"
+          id="teacherProfilePixQrFileV20"
+          accept="image/png,image/jpeg,image/webp"
+          style="width:100%;margin-top:8px;"
+        >
+        <small>Cole um link ou escolha a imagem do QR Code. Ela aparecerá em destaque no financeiro do aluno.</small>
+      </div>
+
+
+      <div>
         <label for="teacherProfilePhone" style="display:block;font-weight:bold;margin-bottom:7px;">
           Telefone
         </label>
@@ -42040,6 +42130,7 @@ async function loadTeacherProfilePage() {
   }
 
   await loadTeacherDefaultClassLinkV19();
+  await loadTeacherPixQrV20();
 
 }
 
@@ -42072,6 +42163,8 @@ async function saveTeacherProfilePage() {
     );
 
   const defaultClassLinkInput = document.getElementById("teacherProfileDefaultClassLinkV19");
+  const pixQrInput = document.getElementById("teacherProfilePixQrV20");
+  const pixQrFileInput = document.getElementById("teacherProfilePixQrFileV20");
 
 
   const cnpjInput =
@@ -42453,6 +42546,46 @@ async function saveTeacherProfilePage() {
     if (message) {
       message.textContent = defaultLinkError.message ||
         "Os demais dados foram salvos, mas o link padrão da aula falhou.";
+      message.style.color = "red";
+    }
+    return;
+  }
+
+  let pixQrUrl = pixQrInput?.value.trim() || null;
+  const pixQrFile = pixQrFileInput?.files?.[0] || null;
+
+  if (pixQrFile) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(pixQrFile.type) || pixQrFile.size > 5 * 1024 * 1024) {
+      if (message) {
+        message.textContent = "O QR Code deve ser uma imagem PNG, JPG ou WEBP de até 5 MB.";
+        message.style.color = "red";
+      }
+      return;
+    }
+    const extension = (pixQrFile.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${currentUser.id}/pix-${Date.now()}.${extension}`;
+    const upload = await supabaseClient.storage.from("rules-images").upload(path, pixQrFile, {
+      cacheControl: "3600", upsert: false, contentType: pixQrFile.type
+    });
+    if (upload.error) {
+      if (message) {
+        message.textContent = upload.error.message || "Não foi possível enviar o QR Code PIX.";
+        message.style.color = "red";
+      }
+      return;
+    }
+    pixQrUrl = supabaseClient.storage.from("rules-images").getPublicUrl(path).data?.publicUrl || null;
+  }
+
+  const { error: pixQrError } = await supabaseClient.rpc(
+    "save_my_teacher_pix_qr_v20",
+    { p_url: pixQrUrl }
+  );
+
+  if (pixQrError) {
+    if (message) {
+      message.textContent = pixQrError.message ||
+        "Os demais dados foram salvos, mas o QR Code PIX falhou.";
       message.style.color = "red";
     }
     return;
@@ -47949,6 +48082,13 @@ async function loadTeacherDefaultClassLinkV19() {
   if (!error) input.value = data || "";
 }
 
+async function loadTeacherPixQrV20() {
+  const input = document.getElementById("teacherProfilePixQrV20");
+  if (!input) return;
+  const { data, error } = await supabaseClient.rpc("get_my_teacher_pix_qr_v20");
+  if (!error) input.value = data || "";
+}
+
 async function useTeacherDefaultClassLinkV19() {
   const target = document.getElementById("newStudentClassLink");
   if (!target) return;
@@ -47991,3 +48131,4 @@ document.addEventListener("DOMContentLoaded", () => {
     if (input.dataset.currencyV19 !== undefined) input.value = formatCurrencyInputV19(input.value);
   });
 });
+
