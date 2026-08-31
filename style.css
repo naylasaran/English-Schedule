@@ -3093,6 +3093,52 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .experience-student h3 { margin-bottom: 25px; }
 .experience-student div { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; padding: 15px; border: 1px solid #ece3d9; border-radius: 10px; background: #fcfaf6; font-size: 11px; }
 .experience-student span { color: #78807b; }
+.experience-student-real { overflow: hidden; padding: 0 !important; }
+.experience-student-real > small { margin: 0; border-radius: 16px 16px 0 0; }
+.experience-student-real img { display: block; width: 100%; height: 330px; object-fit: cover; object-position: top left; background: #f7f2ea; }
+
+.student-history-filters-v23 { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; padding: 14px; border: 1px solid #e7dfd5; border-radius: 12px; background: #fffaf3; }
+.student-history-filters-v23 label { display: grid; gap: 6px; font-weight: 700; }
+.student-history-filters-v23 input { min-height: 42px; padding: 8px 10px; border: 1px solid #d8cbbc; border-radius: 8px; font: inherit; }
+.student-history-order-v23 { margin: 0 0 14px; color: #6f6a63; font-size: 13px; }
+.teacher-monthly-report-v23 { padding: 20px; border: 1px solid #dfd2c3; border-radius: 14px; background: #fff; }
+.teacher-monthly-report-head-v23 { display: flex; justify-content: space-between; gap: 15px; align-items: start; flex-wrap: wrap; }
+.teacher-monthly-report-head-v23 span { color: #c96843; font-weight: 800; letter-spacing: .14em; }
+.teacher-monthly-report-head-v23 h3 { margin: 5px 0; }
+.teacher-monthly-report-stats-v23 { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 10px; margin: 18px 0; }
+.teacher-monthly-report-stats-v23 div { display: grid; gap: 5px; padding: 13px; border-radius: 10px; background: #fff6ee; }
+.teacher-monthly-report-stats-v23 strong { font-size: 20px; }
+.teacher-monthly-report-table-wrap-v23 { overflow-x: auto; }
+.teacher-monthly-report-table-wrap-v23 table { width: 100%; border-collapse: collapse; }
+.teacher-monthly-report-table-wrap-v23 th, .teacher-monthly-report-table-wrap-v23 td { padding: 10px; border-bottom: 1px solid #eadfd4; text-align: left; white-space: nowrap; }
+
+@media print {
+  body.printing-teacher-monthly-v23 * { visibility: hidden !important; }
+  body.printing-teacher-monthly-v23 #teacherMonthlyReportPrintableV23,
+  body.printing-teacher-monthly-v23 #teacherMonthlyReportPrintableV23 * { visibility: visible !important; }
+  body.printing-teacher-monthly-v23 #teacherMonthlyReportPrintableV23 { position: absolute; inset: 0; width: 100%; border: 0; }
+  body.printing-teacher-monthly-v23 #printTeacherMonthlyReportV23 { display: none !important; }
+}
+
+@media (max-width: 650px) {
+  .teacher-monthly-report-stats-v23 { grid-template-columns: 1fr; }
+}
+
+[data-teacher-page="makeups"]::before { content: "↻" !important; }
+.teacher-makeup-form-v23 { display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)); gap: 12px; align-items: end; margin: 18px 0; padding: 16px; border: 1px solid #e7dfd5; border-radius: 12px; background: #fffaf3; }
+.teacher-makeup-form-v23 label { display: grid; gap: 7px; font-weight: 700; }
+.teacher-makeup-form-v23 input, .teacher-makeup-form-v23 select, .teacher-makeup-actions-v23 select { min-height: 42px; padding: 8px 10px; border: 1px solid #d8cbbc; border-radius: 8px; background: #fff; font: inherit; }
+.teacher-makeup-reason-v23 { grid-column: span 2; }
+.teacher-makeup-list-v23 { display: grid; gap: 10px; }
+.teacher-makeup-item-v23 { display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; padding: 14px; border: 1px solid #e7dfd5; border-radius: 11px; background: #fff; }
+.teacher-makeup-item-v23 > div:first-child { display: grid; gap: 5px; }
+.teacher-makeup-item-v23 span { color: #6f6a63; font-size: 13px; }
+.teacher-makeup-actions-v23 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.delete-teacher-makeup-v23 { border-color: #b42318 !important; color: #b42318 !important; }
+@media (max-width: 720px) {
+  .teacher-makeup-form-v23 { grid-template-columns: 1fr; }
+  .teacher-makeup-reason-v23 { grid-column: auto; }
+}
 
 .public-founded-trust { display: grid; grid-template-columns: .78fr 1.22fr; align-items: center; gap: 60px; width: 100%; max-width: none; padding-right: max(48px, calc((100% - 1380px) / 2)); padding-left: max(48px, calc((100% - 1380px) / 2)); background: #eef3e8; border-top: 1px solid #dfe7d8; border-bottom: 1px solid #dfe7d8; }
 .public-founded-trust > div:first-child > p { color: #647169; line-height: 1.65; }

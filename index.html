@@ -22,7 +22,7 @@
 
   <link
     rel="stylesheet"
-    href="style.css?v=20260831-aularium-20"
+    href="style.css?v=20260831-aularium-23"
   >
 
   <script
@@ -163,6 +163,7 @@
             <article><small class="public-plan-moment">PARA UMA AGENDA CONSOLIDADA</small><span class="public-plan-name">🌅 Pro</span><small class="public-plan-limit">Até 20 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 59,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Resposta do suporte em até 6 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="pro">Assine o Pro</button></article>
             <article><small class="public-plan-moment">PARA UMA ROTINA MAIOR</small><span class="public-plan-name">🌞 Premium</span><small class="public-plan-limit">Até 30 alunos cadastrados <span class="public-limit-info" aria-label="O limite inclui alunos pausados ou inativos" title="O limite inclui alunos pausados ou inativos">ⓘ</span></small><strong><small>R$</small> 89,90 <em>/mês</em></strong><ul class="public-plan-includes"><li>Todos os recursos</li><li>Espaço individual dos alunos</li><li class="support-time">Suporte prioritário em até 2 horas</li></ul><button type="button" data-public-action="trial" data-public-plan="premium">Assine o Premium</button></article>
           </div>
+          <p class="public-limit-explanation"><strong>Atendimento do suporte:</strong> os prazos de resposta indicados nos planos são contados somente dentro do horário comercial, de segunda a sexta-feira, exceto feriados.</p>
           <p class="public-limit-explanation">O limite considera alunos cadastrados, inclusive alunos pausados ou inativos. Se você atingir o limite do seu plano, será necessário remover alunos cadastrados ou mudar para um plano com capacidade maior para adicionar novos.</p>
           <div class="public-enterprise-card">
             <div><span>UMA SOLUÇÃO SOB MEDIDA</span><h3>Tem mais de 30 alunos?</h3><p>O Aularium também pode acompanhar uma rotina maior. Entre em contato e encontre um plano adequado para a quantidade de alunos que você administra.</p></div>
@@ -216,7 +217,10 @@
           </div>
           <div class="public-experience-cards">
             <article class="experience-calendar"><header><b>Agenda semanal</b><span>20 — 26 de maio</span></header><div class="calendar-grid"><span></span><span class="lesson lesson-a">Ana<br>09:00</span><span></span><span class="lesson lesson-b">João<br>10:30</span><span></span><span></span><span class="lesson lesson-c">Maria<br>14:00</span><span></span><span class="lesson lesson-d">Carlos<br>15:30</span><span></span></div></article>
-            <article class="experience-student"><small>Área do aluno</small><h3>Olá, Ana! 👋</h3><div><b>Próxima aula</b><span>Terça, 14:00 — Conversação</span></div><div><b>Reposições disponíveis</b><span>1 reposição para agendar</span></div><div><b>Financeiro</b><span>Mensalidade em dia</span></div></article>
+            <article class="experience-student experience-student-real">
+              <small>Área real do aluno</small>
+              <img src="assets/aularium-area-aluno-real.png" alt="Tela real da área do aluno no Aularium" loading="lazy">
+            </article>
           </div>
         </section>
 
@@ -235,7 +239,7 @@
         </section>
 
         <section id="perguntas" class="public-section public-faq">
-          <div><span class="public-eyebrow">PERGUNTAS FREQUENTES</span><h2>Ficou com alguma dúvida?</h2><p>O suporte do Aularium está disponível para ajudar antes e depois do seu cadastro.</p><button type="button" class="public-button public-button-ghost" data-public-action="support">Falar com o suporte</button></div>
+          <div><span class="public-eyebrow">PERGUNTAS FREQUENTES</span><h2>Ficou com alguma dúvida?</h2><p>O suporte do Aularium está disponível para ajudar antes e depois do seu cadastro. As solicitações são respondidas em horário comercial, de segunda a sexta-feira, exceto feriados.</p><button type="button" class="public-button public-button-ghost" data-public-action="support">Falar com o suporte</button></div>
           <div class="public-faq-list">
             <details><summary>Preciso instalar algum programa?</summary><p>Não. O Aularium funciona diretamente no navegador do computador ou celular.</p></details>
             <details><summary>Os alunos podem acessar o sistema?</summary><p>Sim. Cada aluno possui um espaço próprio com agenda, reposições, materiais e informações permitidas pelo professor.</p></details>
@@ -318,7 +322,7 @@
           id="resendConfirmationButton"
           class="link-button"
         >
-          Reenviar confirmacao de e-mail
+          Reenviar confirmação de e-mail
         </button>
 
         <div class="public-entry-actions">
@@ -484,6 +488,14 @@
         <button
           type="button"
           class="nav-button"
+          data-teacher-page="makeups"
+        >
+          Reposições
+        </button>
+
+        <button
+          type="button"
+          class="nav-button"
           data-teacher-page="subjects"
         >
           Matérias
@@ -543,7 +555,7 @@
       </div>
       <a href="terms.html" target="_blank" rel="noopener">Termos de Uso</a>
       &nbsp;|&nbsp;
-      <a href="privacy.html" target="_blank" rel="noopener">Politica de Privacidade</a>
+      <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
     </div>
 
     <button
@@ -562,7 +574,7 @@
        ===================================================== -->
 
   <script
-    src="app.js?v=20260831-aularium-25"
+    src="app.js?v=20260831-aularium-26"
   ></script>
 
 </body>

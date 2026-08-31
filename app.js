@@ -1706,7 +1706,11 @@ async function openGuardianMonthlyFinancialReport(
 
 
   const lessons =
-    data || [];
+    (data || []).slice().sort((a, b) => {
+      const aKey = `${a.lesson_date || ""}T${normalizeTime(a.start_time || "00:00")}`;
+      const bKey = `${b.lesson_date || ""}T${normalizeTime(b.start_time || "00:00")}`;
+      return aKey.localeCompare(bKey);
+    });
 
 
   area.innerHTML = `
@@ -1859,6 +1863,10 @@ function renderGuardianFinancialRow(
   item
 ) {
 
+  const grossAmount = Number(item.amount || 0);
+  const discountAmount = Number(item.discount || 0);
+  const netAmount = Math.max(0, grossAmount - discountAmount);
+
   const dueDate =
     item.due_date
       ? formatDate(
@@ -1900,11 +1908,17 @@ function renderGuardianFinancialRow(
 
         <strong>
           ${formatCurrency(
-            item.amount
+            netAmount
           )}
         </strong>
 
       </div>
+
+      ${discountAmount > 0 ? `
+        <div style="margin-top:5px;color:#555;">
+          Subtotal ${formatCurrency(grossAmount)} − desconto ${formatCurrency(discountAmount)}
+        </div>
+      ` : ""}
 
 
       <div
@@ -9971,6 +9985,10 @@ async function openStudentMonthlyFinancialReport(
 
 function renderFinancialCard(item) {
 
+  const grossAmount = Number(item.amount || 0);
+  const discountAmount = Number(item.discount || 0);
+  const netAmount = Math.max(0, grossAmount - discountAmount);
+
   const month =
     formatMonth(
       item.month
@@ -10103,7 +10121,7 @@ function renderFinancialCard(item) {
               "
             >
               ${formatCurrency(
-                item.amount
+                netAmount
               )}
             </p>
 
@@ -10134,6 +10152,12 @@ function renderFinancialCard(item) {
                     ${formatCurrency(
                       item.lesson_unit_value || 0
                     )}
+
+                    ${discountAmount > 0 ? `
+                      <br>Subtotal: ${formatCurrency(grossAmount)}<br>
+                      Desconto: ${formatCurrency(discountAmount)}<br>
+                      <strong>Total: ${formatCurrency(netAmount)}</strong>
+                    ` : ""}
                   </p>
 
                 `
@@ -10490,46 +10514,57 @@ async function loadStudentHistory() {
 
 
   container.innerHTML = `
-
-    <div
-      style="
-        display:grid;
-        gap:18px;
-      "
-    >
-
-      ${lessons
-        .map(
-          lesson =>
-            renderHistoryLesson(
-              lesson,
-              commentList
-            )
-        )
-        .join("")}
-
+    <div class="student-history-filters-v23">
+      <label>Mês <input type="month" id="studentHistoryMonthV23"></label>
+      <span>ou</span>
+      <label>De <input type="date" id="studentHistoryFromV23"></label>
+      <label>Até <input type="date" id="studentHistoryToV23"></label>
+      <button type="button" class="secondary-button" id="clearStudentHistoryFiltersV23">Mostrar tudo</button>
     </div>
-
+    <p class="student-history-order-v23">Aulas exibidas da mais antiga para a mais recente.</p>
+    <div id="studentHistoryResultsV23" style="display:grid;gap:18px;"></div>
   `;
 
-  document
-    .querySelectorAll(
-      ".add-lesson-comment-button"
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          addLessonComment(
-            button.dataset.lessonId
-          );
-
-        }
-      );
-
+  const renderFilteredHistoryV23 = () => {
+    const month = document.getElementById("studentHistoryMonthV23")?.value || "";
+    const from = document.getElementById("studentHistoryFromV23")?.value || "";
+    const to = document.getElementById("studentHistoryToV23")?.value || "";
+    const filtered = lessons.filter(lesson => {
+      const date = String(lesson.lesson_date || "");
+      if (month && !date.startsWith(month)) return false;
+      if (!month && from && date < from) return false;
+      if (!month && to && date > to) return false;
+      return true;
     });
+    const results = document.getElementById("studentHistoryResultsV23");
+    if (!results) return;
+    results.innerHTML = filtered.length
+      ? filtered.map(lesson => renderHistoryLesson(lesson, commentList)).join("")
+      : `<div class="card"><strong>Nenhuma aula encontrada no período selecionado.</strong></div>`;
+    results.querySelectorAll(".add-lesson-comment-button").forEach(button => {
+      button.addEventListener("click", () => addLessonComment(button.dataset.lessonId));
+    });
+  };
+
+  ["studentHistoryMonthV23", "studentHistoryFromV23", "studentHistoryToV23"].forEach(id => {
+    document.getElementById(id)?.addEventListener("change", event => {
+      if (id === "studentHistoryMonthV23" && event.target.value) {
+        document.getElementById("studentHistoryFromV23").value = "";
+        document.getElementById("studentHistoryToV23").value = "";
+      }
+      if (id !== "studentHistoryMonthV23" && event.target.value) {
+        document.getElementById("studentHistoryMonthV23").value = "";
+      }
+      renderFilteredHistoryV23();
+    });
+  });
+  document.getElementById("clearStudentHistoryFiltersV23")?.addEventListener("click", () => {
+    document.getElementById("studentHistoryMonthV23").value = "";
+    document.getElementById("studentHistoryFromV23").value = "";
+    document.getElementById("studentHistoryToV23").value = "";
+    renderFilteredHistoryV23();
+  });
+  renderFilteredHistoryV23();
 }
 
 
@@ -11153,6 +11188,10 @@ async function loadStudentMakeups() {
       }
     );
 
+  document.querySelectorAll(".schedule-makeup-now-v23").forEach(button => {
+    button.addEventListener("click", () => setStudentPage("agenda"));
+  });
+
 }
 
 
@@ -11210,6 +11249,10 @@ function renderMakeupCard(makeup) {
       makeup.reserved_now &&
       makeup.reservation_id
     );
+
+  const canScheduleNow =
+    !isReserved &&
+    String(makeup.display_status || makeup.status || "").toLowerCase() === "available";
 
 
   // ===================================================
@@ -11503,6 +11546,12 @@ function renderMakeupCard(makeup) {
         ${reservationInfo}
 
         ${cancelButton}
+
+        ${canScheduleNow ? `
+          <button type="button" class="action-button schedule-makeup-now-v23" style="margin-top:15px;">
+            Reagende agora
+          </button>
+        ` : ""}
 
       </div>
 
@@ -16398,6 +16447,99 @@ function bindStudentProgressReportV5() {
 
 
 // =====================================================
+// REPOSIÇÕES DO PROFESSOR
+// =====================================================
+
+async function loadTeacherMakeupsPageV23() {
+  const list = document.getElementById("teacherMakeupsListV23");
+  const select = document.getElementById("teacherMakeupStudentV23");
+  if (!list || !select) return;
+
+  if (!currentTeacherStudents.length) await loadTeacherStudents();
+  const students = currentTeacherStudents.filter(student => student.active !== false);
+  select.innerHTML = students.length
+    ? students.map(student => `<option value="${student.student_id || student.id}">${escapeHtml(student.student_name || student.name)}</option>`).join("")
+    : `<option value="">Nenhum aluno ativo</option>`;
+
+  const results = await Promise.all(students.map(async student => {
+    const result = await supabaseClient.rpc("get_teacher_student_makeups", {
+      p_student_id: student.student_id || student.id
+    });
+    return (result.data || []).map(makeup => ({
+      ...makeup,
+      student_id: student.student_id || student.id,
+      student_name: student.student_name || student.name
+    }));
+  }));
+  const makeups = results.flat().sort((a, b) => String(a.student_name).localeCompare(String(b.student_name), "pt-BR"));
+  list.innerHTML = makeups.length ? `
+    <div class="teacher-makeup-list-v23">${makeups.map(makeup => {
+      const makeupId = makeup.makeup_id || makeup.id;
+      const editable = String(makeup.status || "").toLowerCase() === "available";
+      return `<article class="teacher-makeup-item-v23">
+        <div><strong>${escapeHtml(makeup.student_name)}</strong><span>${escapeHtml(formatMakeupStatus(makeup.status).label)}${makeup.expires_at ? ` · validade ${formatDateTime(makeup.expires_at)}` : ""}</span></div>
+        <div class="teacher-makeup-actions-v23">
+          <select class="teacher-makeup-duration-v23" data-makeup-id="${makeupId}" ${editable ? "" : "disabled"}>
+            ${[30, 60, 90, 120].map(duration => `<option value="${duration}" ${Number(makeup.duration_minutes) === duration ? "selected" : ""}>${duration} min</option>`).join("")}
+          </select>
+          ${editable ? `<button type="button" class="secondary-button save-teacher-makeup-v23" data-makeup-id="${makeupId}">Salvar duração</button><button type="button" class="secondary-button delete-teacher-makeup-v23" data-makeup-id="${makeupId}" data-student-name="${escapeHtml(makeup.student_name)}">Excluir</button>` : ""}
+        </div>
+      </article>`;
+    }).join("")}</div>
+  ` : `<div class="card"><strong>Nenhuma reposição registrada.</strong></div>`;
+
+  document.querySelectorAll(".save-teacher-makeup-v23").forEach(button => {
+    button.addEventListener("click", () => updateTeacherMakeupDurationV23(button.dataset.makeupId));
+  });
+  document.querySelectorAll(".delete-teacher-makeup-v23").forEach(button => {
+    button.addEventListener("click", () => deleteTeacherMakeupV23(button.dataset.makeupId, button.dataset.studentName));
+  });
+  const grantButton = document.getElementById("grantTeacherMakeupV23");
+  if (grantButton && grantButton.dataset.boundV23 !== "true") {
+    grantButton.dataset.boundV23 = "true";
+    grantButton.addEventListener("click", grantTeacherMakeupV23);
+  }
+}
+
+async function grantTeacherMakeupV23() {
+  const studentId = document.getElementById("teacherMakeupStudentV23")?.value;
+  const duration = Number(document.getElementById("teacherMakeupDurationV23")?.value || 0);
+  const reason = document.getElementById("teacherMakeupReasonV23")?.value.trim() || null;
+  const expiry = document.getElementById("teacherMakeupExpiryV23")?.value;
+  const message = document.getElementById("teacherMakeupMessageV23");
+  if (!studentId) return;
+  const result = await supabaseClient.rpc("teacher_grant_makeup_v16", {
+    p_student_id: studentId,
+    p_duration_minutes: duration,
+    p_reason: reason,
+    p_expires_at: expiry ? `${expiry}T23:59:59-03:00` : null
+  });
+  if (result.error) {
+    if (message) message.textContent = result.error.message || "Não foi possível adicionar a reposição.";
+    return;
+  }
+  if (message) message.textContent = "Reposição adicionada com sucesso.";
+  await loadTeacherMakeupsPageV23();
+}
+
+async function updateTeacherMakeupDurationV23(makeupId) {
+  const input = document.querySelector(`.teacher-makeup-duration-v23[data-makeup-id="${CSS.escape(String(makeupId))}"]`);
+  const result = await supabaseClient.rpc("teacher_update_makeup_duration_v23", {
+    p_makeup_id: makeupId,
+    p_duration_minutes: Number(input?.value || 0)
+  });
+  if (result.error) return alert(result.error.message || "Não foi possível alterar a duração.");
+  await loadTeacherMakeupsPageV23();
+}
+
+async function deleteTeacherMakeupV23(makeupId, studentName) {
+  if (!window.confirm(`Excluir esta reposição de ${studentName}? Essa ação não poderá ser desfeita.`)) return;
+  const result = await supabaseClient.rpc("teacher_delete_makeup_v23", { p_makeup_id: makeupId });
+  if (result.error) return alert(result.error.message || "Não foi possível excluir a reposição.");
+  await loadTeacherMakeupsPageV23();
+}
+
+// =====================================================
 // NAVEGA\xc7\xc3O DO PROFESSOR
 // =====================================================
 
@@ -16438,12 +16580,32 @@ function setTeacherPage(page) {
     content.innerHTML = `
       <div class="card">
         <h3>Suporte</h3>
-        <p>Envie uma duvida aos administradores e acompanhe as respostas.</p>
+        <p>Envie uma dúvida aos administradores e acompanhe as respostas. As solicitações são respondidas em horário comercial, de segunda a sexta-feira, exceto feriados.</p>
         <div id="teacherSupportArea">Carregando suporte...</div>
       </div>
     `;
 
     loadTeacherSupportArea();
+    return;
+  }
+
+  if (page === "makeups") {
+    content.innerHTML = `
+      <div class="card">
+        <h3>Reposições dos alunos</h3>
+        <p>Conceda uma reposição mesmo sem uma aula de origem e gerencie duração ou exclusão dos créditos existentes.</p>
+        <div class="teacher-makeup-form-v23">
+          <label>Aluno<select id="teacherMakeupStudentV23"></select></label>
+          <label>Duração<select id="teacherMakeupDurationV23"><option value="30">30 minutos</option><option value="60">60 minutos</option><option value="90">90 minutos</option><option value="120">120 minutos</option></select></label>
+          <label>Validade<input type="date" id="teacherMakeupExpiryV23"></label>
+          <label class="teacher-makeup-reason-v23">Motivo / observação<input type="text" id="teacherMakeupReasonV23" placeholder="Opcional"></label>
+          <button type="button" class="action-button" id="grantTeacherMakeupV23">Adicionar reposição</button>
+        </div>
+        <p id="teacherMakeupMessageV23"></p>
+        <div id="teacherMakeupsListV23">Carregando reposições...</div>
+      </div>
+    `;
+    loadTeacherMakeupsPageV23();
     return;
   }
 
@@ -18119,7 +18281,15 @@ function setTeacherPage(page) {
               class="secondary-button"
               id="generateTeacherFinancialButton"
             >
-              Gerar mensalidades do mes
+              Gerar mensalidades do mês
+            </button>
+
+            <button
+              type="button"
+              class="secondary-button"
+              id="teacherMonthlyFinancialReportV23"
+            >
+              Relatório do mês
             </button>
 
 
@@ -18225,6 +18395,8 @@ function setTeacherPage(page) {
           "
         ></div>
 
+        <div id="teacherMonthlyFinancialReportAreaV23" style="display:none;margin-top:14px;"></div>
+
 
         <div
           id="teacherFinancialFormArea"
@@ -18272,6 +18444,11 @@ function setTeacherPage(page) {
       );
 
     }
+
+    document.getElementById("teacherMonthlyFinancialReportV23")?.addEventListener(
+      "click",
+      renderTeacherMonthlyFinancialReportV23
+    );
 
 
     const newButton =
@@ -22055,6 +22232,7 @@ function trimRulesImageWhitespaceV20(image) {
         top = Math.min(top, y); bottom = Math.max(bottom, y);
       }
     }
+
     if (right < left || bottom < top) return;
     const padding = Math.max(8, Math.round(Math.min(source.width, source.height) * 0.015));
     left = Math.max(0, left - padding); top = Math.max(0, top - padding);
@@ -28597,6 +28775,49 @@ async function loadTeacherFinancialGenerationStatus() {
 // RESUMO DO MES
 // =====================================================
 
+function renderTeacherMonthlyFinancialReportV23() {
+  const area = document.getElementById("teacherMonthlyFinancialReportAreaV23");
+  const monthValue = document.getElementById("teacherFinancialMonthFilter")?.value || "";
+  if (!area) return;
+
+  const rows = currentTeacherFinancialRecords.map(item => {
+    const gross = Number(item.amount || 0);
+    const discount = Number(item.discount || 0);
+    const total = Math.max(0, gross - discount);
+    return { ...item, gross, discount, total };
+  });
+  const grossTotal = rows.reduce((sum, item) => sum + item.gross, 0);
+  const discountTotal = rows.reduce((sum, item) => sum + item.discount, 0);
+  const netTotal = rows.reduce((sum, item) => sum + item.total, 0);
+
+  area.style.display = "block";
+  area.innerHTML = `
+    <section class="teacher-monthly-report-v23" id="teacherMonthlyReportPrintableV23">
+      <div class="teacher-monthly-report-head-v23">
+        <div><span>AULARIUM</span><h3>Relatório financeiro mensal</h3><p>${escapeHtml(monthValue || "Período atual")}</p></div>
+        <button type="button" class="secondary-button" id="printTeacherMonthlyReportV23">Imprimir</button>
+      </div>
+      <div class="teacher-monthly-report-stats-v23">
+        <div><small>Subtotal</small><strong>${formatCurrency(grossTotal)}</strong></div>
+        <div><small>Descontos</small><strong>${formatCurrency(discountTotal)}</strong></div>
+        <div><small>Total líquido</small><strong>${formatCurrency(netTotal)}</strong></div>
+      </div>
+      <div class="teacher-monthly-report-table-wrap-v23">
+        <table><thead><tr><th>Aluno</th><th>Status</th><th>Aulas</th><th>Subtotal</th><th>Desconto</th><th>Total</th></tr></thead>
+        <tbody>${rows.length ? rows.map(item => `
+          <tr><td>${escapeHtml(item.student_name)}</td><td>${escapeHtml(formatPaymentStatus(item.payment_status).replace(/<[^>]+>/g, ""))}</td><td>${Number(item.lesson_count || 0)}</td><td>${formatCurrency(item.gross)}</td><td>${formatCurrency(item.discount)}</td><td><strong>${formatCurrency(item.total)}</strong></td></tr>
+        `).join("") : `<tr><td colspan="6">Nenhum lançamento neste mês.</td></tr>`}</tbody></table>
+      </div>
+    </section>
+  `;
+  document.getElementById("printTeacherMonthlyReportV23")?.addEventListener("click", () => {
+    document.body.classList.add("printing-teacher-monthly-v23");
+    window.print();
+    window.setTimeout(() => document.body.classList.remove("printing-teacher-monthly-v23"), 500);
+  });
+  area.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function renderTeacherFinancialSummary() {
 
   const container =
@@ -28622,18 +28843,30 @@ function renderTeacherFinancialSummary() {
   let overdue =
     0;
 
+  let discounts =
+    0;
+
 
   currentTeacherFinancialRecords.forEach(
     item => {
 
-      const amount =
+      const grossAmount =
         Number(
           item.amount || 0
         );
 
+      const discount =
+        Number(item.discount || 0);
+
+      const amount =
+        Math.max(0, grossAmount - discount);
+
 
       total +=
         amount;
+
+      discounts +=
+        discount;
 
 
       const status =
@@ -28699,6 +28932,11 @@ function renderTeacherFinancialSummary() {
       ${renderTeacherFinancialStat(
         "Atrasado",
         overdue
+      )}
+
+      ${renderTeacherFinancialStat(
+        "Descontos",
+        discounts
       )}
 
     </div>
@@ -28840,6 +29078,12 @@ function renderTeacherFinancialRecords() {
 
           if (item) {
 
+            const card = button.closest(".teacher-financial-card-v19");
+            const reportArea = document.getElementById("teacherFinancialReportArea");
+            if (card && reportArea) {
+              card.appendChild(reportArea);
+            }
+
             openTeacherMonthlyFinancialReport(
               item
             );
@@ -28879,6 +29123,12 @@ function renderTeacherFinancialRecords() {
           const details = card?.querySelector(".teacher-financial-details-v19");
           const actions = card?.querySelector(".teacher-financial-actions-v19");
           const opening = details?.hidden !== false;
+          closeTeacherFinancialForm();
+          const reportArea = document.getElementById("teacherFinancialReportArea");
+          if (reportArea) {
+            reportArea.style.display = "none";
+            reportArea.innerHTML = "";
+          }
           document.querySelectorAll(".teacher-financial-details-v19").forEach(area => area.hidden = true);
           document.querySelectorAll(".teacher-financial-actions-v19").forEach(area => area.hidden = true);
           document.querySelectorAll(".toggle-teacher-financial-v19").forEach(toggle => {
@@ -28910,6 +29160,10 @@ function renderTeacherFinancialRecords() {
 function renderTeacherFinancialRecordCard(
   item
 ) {
+
+  const grossAmount = Number(item.amount || 0);
+  const discountAmount = Number(item.discount || 0);
+  const netAmount = Math.max(0, grossAmount - discountAmount);
 
   const dueDate =
     item.due_date
@@ -28978,9 +29232,15 @@ function renderTeacherFinancialRecordCard(
             "
           >
             ${formatCurrency(
-              item.amount
+              netAmount
             )}
           </div>
+
+          ${discountAmount > 0 ? `
+            <div style="margin-top:5px;color:#555;font-size:13px;">
+              Subtotal ${formatCurrency(grossAmount)} − desconto ${formatCurrency(discountAmount)}
+            </div>
+          ` : ""}
 
 
           ${
@@ -29253,7 +29513,11 @@ async function openTeacherMonthlyFinancialReport(
 
 
   const lessons =
-    data || [];
+    (data || []).slice().sort((a, b) => {
+      const aKey = `${a.lesson_date || ""}T${normalizeTime(a.start_time || "00:00")}`;
+      const bKey = `${b.lesson_date || ""}T${normalizeTime(b.start_time || "00:00")}`;
+      return aKey.localeCompare(bKey);
+    });
 
 
   const lessonUnitValue =
@@ -34725,10 +34989,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#f5e8c8";
+              "#ede9fe";
 
             cell.style.color =
-              "#a9573a";
+              "#6d28d9";
 
           }
 
@@ -34782,10 +35046,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#f7e9e1";
+              "#dbeafe";
 
             cell.style.color =
-              "#a9573a";
+              "#1d4ed8";
 
           }
 
@@ -34818,10 +35082,10 @@ function renderTeacherWeeklySchedule(days) {
 
 
             cell.style.backgroundColor =
-              "#f5e8c8";
+              "#ede9fe";
 
             cell.style.color =
-              "#a9573a";
+              "#6d28d9";
 
           }
 
@@ -42945,7 +43209,15 @@ async function loadTeacherClassLinksForAgenda() {
 
 
   const links =
-    data || [];
+    (data || []).slice().sort((a, b) => {
+      const aDay = Number(a.day_of_week ?? a.weekday ?? 99);
+      const bDay = Number(b.day_of_week ?? b.weekday ?? 99);
+      if (aDay !== bDay) return aDay - bDay;
+      const aTime = timeToMinutes(a.start_time || a.class_start_time || "23:59");
+      const bTime = timeToMinutes(b.start_time || b.class_start_time || "23:59");
+      if (aTime !== bTime) return aTime - bTime;
+      return String(a.student_name || "").localeCompare(String(b.student_name || ""), "pt-BR");
+    });
 
 
   if (
@@ -43003,6 +43275,7 @@ async function loadTeacherClassLinksForAgenda() {
                   item.student_name
                 )}"
               >
+                ${item.start_time ? `${normalizeTime(item.start_time)} — ` : ""}
                 ${escapeHtml(
                   formatAgendaStudentName(
                     item.student_name
