@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: admin-workspace-v24-20260831"
+  "Aularium build: requested-improvements-v25-20260901"
 );
 
 // =====================================================
@@ -49,6 +49,7 @@ let currentAdminTeacherSystemFinancial = [];
 let adminTeacherStudentsV24 = new Map();
 let currentAdminPlatformFinanceV9 = [];
 let currentAdminPlatformFinanceRangeV9 = "";
+let currentAdminSystemPixQrUrlV25 = "";
 let currentTeacherHolidayWeek = [];
 let currentStudentHolidayWeek = [];
 let currentTeacherRulesImagePath = null;
@@ -3039,7 +3040,8 @@ function renderAdminSummaryV24(panel) {
           <h4>Pagamento do Aularium</h4>
           <p>Definição única exibida para todos os professores.</p>
           <label>Chave PIX<input type="text" id="adminSystemPixKey" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></label>
-          <label>Link HTTPS da imagem do QR Code<input type="url" id="adminSystemPixQrV24" placeholder="https://..."></label>
+          <label>Imagem do QR Code PIX<input type="file" id="adminSystemPixQrFileV25" accept="image/png,image/jpeg,image/webp"></label>
+          <small class="admin-system-pix-help-v25">Envie a imagem do QR Code em PNG, JPG ou WEBP, com até 5 MB.</small>
           <div id="adminSystemPixQrPreviewV24" class="admin-system-pix-qr-preview-v24"></div>
           <button type="button" class="action-button" id="saveAdminSystemPixButton">Salvar dados de pagamento</button>
           <p id="adminSystemPixMessage" class="admin-summary-message-v24"></p>
@@ -3054,18 +3056,24 @@ function renderAdminSummaryV24(panel) {
     await loadAdminSystemPix();
   });
   document.getElementById("saveAdminSystemPixButton")?.addEventListener("click", saveAdminSystemPix);
-  document.getElementById("adminSystemPixQrV24")?.addEventListener("input", renderAdminSystemPixQrPreviewV24);
+  document.getElementById("adminSystemPixQrFileV25")?.addEventListener("change", renderAdminSystemPixQrPreviewV24);
   loadAdminSystemPix();
 }
 
 
 function renderAdminSystemPixQrPreviewV24() {
   const area = document.getElementById("adminSystemPixQrPreviewV24");
-  const value = document.getElementById("adminSystemPixQrV24")?.value.trim() || "";
   if (!area) return;
-  area.innerHTML = /^https:\/\//i.test(value)
-    ? `<img src="${escapeHtml(value)}" alt="Prévia do QR Code PIX do Aularium">`
-    : "";
+  const file = document.getElementById("adminSystemPixQrFileV25")?.files?.[0] || null;
+  if (file) {
+    const previewUrl = URL.createObjectURL(file);
+    area.innerHTML = `<img src="${escapeHtml(previewUrl)}" alt="Prévia do QR Code PIX do Aularium"><small>Nova imagem selecionada</small>`;
+    area.querySelector("img")?.addEventListener("load", () => URL.revokeObjectURL(previewUrl), { once: true });
+    return;
+  }
+  area.innerHTML = currentAdminSystemPixQrUrlV25
+    ? `<img src="${escapeHtml(currentAdminSystemPixQrUrlV25)}" alt="QR Code PIX atual do Aularium"><small>Imagem atualmente salva</small>`
+    : `<small>Nenhuma imagem de QR Code cadastrada.</small>`;
 }
 
 
@@ -6826,8 +6834,7 @@ async function loadAdminSystemPix() {
   input.value =
     settings.pix_key || "";
 
-  const qrInput = document.getElementById("adminSystemPixQrV24");
-  if (qrInput) qrInput.value = settings.pix_qr_code_url || "";
+  currentAdminSystemPixQrUrlV25 = settings.pix_qr_code_url || "";
   renderAdminSystemPixQrPreviewV24();
 
 }
@@ -6873,12 +6880,51 @@ async function saveAdminSystemPix() {
   }
 
 
-  const qrInput = document.getElementById("adminSystemPixQrV24");
+  const qrFileInput = document.getElementById("adminSystemPixQrFileV25");
+  const qrFile = qrFileInput?.files?.[0] || null;
+  let qrUrl = currentAdminSystemPixQrUrlV25 || null;
+
+  if (qrFile) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(qrFile.type) || qrFile.size > 5 * 1024 * 1024) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Salvar dados de pagamento";
+      }
+      if (message) {
+        message.textContent = "O QR Code deve ser uma imagem PNG, JPG ou WEBP de até 5 MB.";
+        message.style.color = "red";
+      }
+      return;
+    }
+
+    const extension = (qrFile.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${currentUser.id}/system-pix-${Date.now()}.${extension}`;
+    const upload = await supabaseClient.storage.from("rules-images").upload(path, qrFile, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: qrFile.type
+    });
+
+    if (upload.error) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Salvar dados de pagamento";
+      }
+      if (message) {
+        message.textContent = upload.error.message || "Não foi possível enviar a imagem do QR Code.";
+        message.style.color = "red";
+      }
+      return;
+    }
+
+    qrUrl = supabaseClient.storage.from("rules-images").getPublicUrl(path).data?.publicUrl || null;
+  }
+
   const { error } = await supabaseClient.rpc(
     "save_admin_system_billing_settings_v24",
     {
       p_pix_key: input.value.trim() || null,
-      p_pix_qr_code_url: qrInput?.value.trim() || null
+      p_pix_qr_code_url: qrUrl
     }
   );
 
@@ -7327,6 +7373,10 @@ async function loadAdminTeacherStudentsV24(teacherId) {
     return;
   }
 
+  currentAdminSystemPixQrUrlV25 = qrUrl || "";
+  if (qrFileInput) qrFileInput.value = "";
+  renderAdminSystemPixQrPreviewV24();
+
   const students = data || [];
   adminTeacherStudentsV24.set(String(teacherId), students);
   area.innerHTML = students.length ? students.map(student => `
@@ -7334,6 +7384,7 @@ async function loadAdminTeacherStudentsV24(teacherId) {
       <div><strong>${escapeHtml(student.student_name)}</strong><span>${escapeHtml(student.student_email)}</span><small>${student.active === false ? "Inativo" : (student.classes_paused ? "Aulas pausadas" : "Ativo")}</small></div>
       <div>
         <button type="button" class="secondary-button admin-reset-student-v24" data-student-email="${escapeHtml(student.student_email)}">Redefinir senha</button>
+        <button type="button" class="secondary-button admin-toggle-student-v25" data-teacher-id="${teacherId}" data-student-id="${student.student_id}" data-student-name="${escapeHtml(student.student_name)}" data-active="${student.active === false ? "false" : "true"}">${student.active === false ? "Reativar aluno" : "Desativar aluno"}</button>
         <button type="button" class="secondary-button admin-delete-student-v24" data-teacher-id="${teacherId}" data-student-id="${student.student_id}" data-student-name="${escapeHtml(student.student_name)}">Excluir definitivamente</button>
       </div>
     </article>
@@ -7342,6 +7393,14 @@ async function loadAdminTeacherStudentsV24(teacherId) {
   area.querySelectorAll(".admin-reset-student-v24").forEach(button => {
     button.addEventListener("click", () => sendPasswordResetV24(button.dataset.studentEmail));
   });
+  area.querySelectorAll(".admin-toggle-student-v25").forEach(button => {
+    button.addEventListener("click", () => setAdminTeacherStudentActiveV25(
+      button.dataset.teacherId,
+      button.dataset.studentId,
+      button.dataset.studentName,
+      button.dataset.active !== "true"
+    ));
+  });
   area.querySelectorAll(".admin-delete-student-v24").forEach(button => {
     button.addEventListener("click", () => deleteAdminTeacherStudentV24(
       button.dataset.teacherId,
@@ -7349,6 +7408,25 @@ async function loadAdminTeacherStudentsV24(teacherId) {
       button.dataset.studentName
     ));
   });
+}
+
+
+async function setAdminTeacherStudentActiveV25(teacherId, studentId, studentName, nextActive) {
+  const action = nextActive ? "reativar" : "desativar";
+  const warning = nextActive
+    ? `Reativar o acesso de ${studentName}?`
+    : `Desativar ${studentName}?\n\nO histórico será preservado, mas o aluno não poderá usar normalmente o portal até ser reativado.`;
+  if (!window.confirm(warning)) return;
+
+  const { error } = await supabaseClient.rpc("admin_set_student_active_v25", {
+    p_student_id: studentId,
+    p_active: nextActive
+  });
+  if (error) {
+    alert(error.message || `Não foi possível ${action} o aluno.`);
+    return;
+  }
+  await Promise.all([loadAdminTeacherStudentsV24(teacherId), loadAdminTeachers()]);
 }
 
 
@@ -9567,6 +9645,37 @@ async function markStudentNoticeAsRead(
 // REGRAS DO ALUNO
 // =====================================================
 
+function formatTeacherRulesForStudentV25(value) {
+  const lines = String(value || "").split(/\r?\n/).map(line => line.trim());
+  const parts = [];
+  let listItems = [];
+  const flushList = () => {
+    if (!listItems.length) return;
+    parts.push(`<ul>${listItems.join("")}</ul>`);
+    listItems = [];
+  };
+
+  lines.forEach(line => {
+    if (!line) {
+      flushList();
+      return;
+    }
+    const bullet = line.match(/^(?:[-*•]|\d+[.)])\s*(.+)$/);
+    if (bullet) {
+      listItems.push(`<li>${escapeHtml(bullet[1])}</li>`);
+      return;
+    }
+    flushList();
+    if (/^.{2,80}:$/.test(line)) {
+      parts.push(`<h4>${escapeHtml(line.replace(/:$/, ""))}</h4>`);
+    } else {
+      parts.push(`<p>${escapeHtml(line)}</p>`);
+    }
+  });
+  flushList();
+  return parts.join("");
+}
+
 async function loadStudentRules() {
 
   const container =
@@ -9639,9 +9748,7 @@ async function loadStudentRules() {
     ).trim();
 
 
-  const imageUrl = rules
-    ? getRulesImagePublicUrl(content.rules_image_path)
-    : "";
+  const imageUrl = getRulesImagePublicUrl(content.rules_image_path);
 
 
   if (
@@ -9669,40 +9776,21 @@ async function loadStudentRules() {
 
     <div class="student-rules-card-v11 ${rules ? "has-text" : "image-only"}">
 
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="Imagem das regras" class="student-rules-image-v11">` : ""}
+
       ${
         rules
 
           ? `
 
-            <div class="student-rules-text-v11">
-              ${escapeHtml(
-                rules
-              )}
-            </div>
+            <span class="student-rules-label-v25">REGRAS DAS AULAS</span>
+            <div class="student-rules-text-v11">${formatTeacherRulesForStudentV25(rules)}</div>
 
           `
 
           : ""
       }
 
-
-      ${
-        imageUrl
-
-          ? `
-
-            <img
-              src="${escapeHtml(
-                imageUrl
-              )}"
-              alt="Imagem das regras"
-              class="student-rules-image-v11"
-            >
-
-          `
-
-          : ""
-      }
 
     </div>
 
@@ -17050,6 +17138,8 @@ function setTeacherPage(page) {
           visualizadas pelos seus alunos.
         </p>
 
+        <p class="teacher-rules-format-help-v25">Digite normalmente. Linhas terminadas em dois-pontos viram títulos; linhas iniciadas por “-”, “•” ou números viram listas no padrão visual do Aularium.</p>
+
         <textarea
           id="teacherRulesInput"
           rows="12"
@@ -17192,6 +17282,11 @@ function setTeacherPage(page) {
               id="openOrphanGuardiansButton"
             >
               Responsaveis sem aluno ativo
+            </button>
+
+
+            <button type="button" class="secondary-button" id="openRegenerateLessonsButtonV25">
+              Regenerar aulas
             </button>
 
 
@@ -17960,6 +18055,8 @@ function setTeacherPage(page) {
           Carregando alunos...
         </div>
 
+        <div id="teacherRegenerateLessonsAreaV25" style="display:none;margin-top:20px;"></div>
+
 
         <div
           id="teacherStudentDetailArea"
@@ -17989,6 +18086,11 @@ function setTeacherPage(page) {
       );
 
     }
+
+    document.getElementById("openRegenerateLessonsButtonV25")?.addEventListener(
+      "click",
+      openTeacherRegenerateLessonsV25
+    );
 
 
     const openRegisterButton =
@@ -18451,6 +18553,10 @@ function setTeacherPage(page) {
               Gerar mensalidades do mês
             </button>
 
+            <button type="button" class="secondary-button" id="recalculateTeacherFinancialButtonV25">
+              Recalcular mensalidades
+            </button>
+
             <button
               type="button"
               class="secondary-button"
@@ -18611,6 +18717,11 @@ function setTeacherPage(page) {
       );
 
     }
+
+    document.getElementById("recalculateTeacherFinancialButtonV25")?.addEventListener(
+      "click",
+      recalculateTeacherFinancialMonthV25
+    );
 
     document.getElementById("teacherMonthlyFinancialReportV23")?.addEventListener(
       "click",
@@ -20069,6 +20180,96 @@ function collectStudentFixedSchedule(
 // =====================================================
 // CADASTRAR ALUNO + ACESSO
 // =====================================================
+
+async function openTeacherRegenerateLessonsV25() {
+  const area = document.getElementById("teacherRegenerateLessonsAreaV25");
+  if (!area) return;
+  if (!currentTeacherStudents.length) await loadTeacherStudents();
+
+  const activeStudents = currentTeacherStudents.filter(student => student.active !== false);
+  const start = formatDateForDatabase(new Date());
+  const end = formatDateForDatabase(addDays(new Date(), 180));
+
+  area.style.display = "block";
+  area.innerHTML = `
+    <section class="teacher-regenerate-lessons-v25">
+      <div><h4>Regenerar aulas futuras</h4><p>Cria somente aulas que estiverem faltando. Presenças, comentários, planejamentos e aulas já existentes serão preservados.</p></div>
+      <label class="teacher-regenerate-all-v25"><input type="checkbox" id="regenerateAllStudentsV25" checked> Todos os alunos ativos</label>
+      <div class="teacher-regenerate-students-v25">
+        ${activeStudents.map(student => `<label><input type="checkbox" class="regenerate-student-v25" value="${student.student_id || student.id}" disabled> ${escapeHtml(student.student_name || student.name)}</label>`).join("") || "<p>Nenhum aluno ativo.</p>"}
+      </div>
+      <div class="teacher-regenerate-period-v25">
+        <label>De<input type="date" id="regenerateLessonsFromV25" value="${start}"></label>
+        <label>Até<input type="date" id="regenerateLessonsToV25" value="${end}"></label>
+      </div>
+      <div class="teacher-regenerate-actions-v25">
+        <button type="button" class="action-button" id="confirmRegenerateLessonsV25">Regenerar aulas</button>
+        <button type="button" class="secondary-button" id="cancelRegenerateLessonsV25">Cancelar</button>
+      </div>
+      <p id="regenerateLessonsMessageV25"></p>
+    </section>`;
+
+  document.getElementById("regenerateAllStudentsV25")?.addEventListener("change", event => {
+    area.querySelectorAll(".regenerate-student-v25").forEach(input => {
+      input.disabled = event.target.checked;
+      if (event.target.checked) input.checked = false;
+    });
+  });
+  document.getElementById("cancelRegenerateLessonsV25")?.addEventListener("click", () => {
+    area.style.display = "none";
+    area.innerHTML = "";
+  });
+  document.getElementById("confirmRegenerateLessonsV25")?.addEventListener("click", runTeacherRegenerateLessonsV25);
+}
+
+
+async function runTeacherRegenerateLessonsV25() {
+  const area = document.getElementById("teacherRegenerateLessonsAreaV25");
+  const all = document.getElementById("regenerateAllStudentsV25")?.checked === true;
+  const selected = Array.from(area?.querySelectorAll(".regenerate-student-v25:checked") || []).map(input => input.value);
+  const fromDate = document.getElementById("regenerateLessonsFromV25")?.value || "";
+  const toDate = document.getElementById("regenerateLessonsToV25")?.value || "";
+  const message = document.getElementById("regenerateLessonsMessageV25");
+  const button = document.getElementById("confirmRegenerateLessonsV25");
+
+  if ((!all && !selected.length) || !fromDate || !toDate || toDate < fromDate) {
+    if (message) {
+      message.textContent = "Selecione os alunos e um período válido.";
+      message.style.color = "red";
+    }
+    return;
+  }
+  if (!window.confirm("Regenerar as aulas futuras que estiverem faltando no período selecionado?")) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Regenerando...";
+  }
+  const { data, error } = await supabaseClient.rpc("teacher_regenerate_future_lessons_v25", {
+    p_student_ids: all ? null : selected,
+    p_from_date: fromDate,
+    p_to_date: toDate
+  });
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Regenerar aulas";
+  }
+  if (error) {
+    if (message) {
+      message.textContent = error.message || "Não foi possível regenerar as aulas.";
+      message.style.color = "red";
+    }
+    return;
+  }
+
+  const result = (Array.isArray(data) ? data[0] : data) || {};
+  if (message) {
+    message.textContent = `${Number(result.inserted_count || 0)} aula(s) criada(s) para ${Number(result.student_count || 0)} aluno(s).`;
+    message.style.color = "green";
+  }
+  await loadTeacherWeeklySchedule();
+}
+
 
 function openRegisterStudentForm() {
 
@@ -29324,6 +29525,13 @@ function renderTeacherFinancialRecords() {
 
     });
 
+  document.querySelectorAll(".teacher-financial-delete-button-v25").forEach(button => {
+    button.addEventListener("click", () => deleteTeacherFinancialRecord(
+      button.dataset.financialId,
+      button.dataset.studentName
+    ));
+  });
+
 
 }
 
@@ -29580,6 +29788,10 @@ function renderTeacherFinancialRecordCard(
           data-financial-id="${item.financial_id}"
         >
           Ver relatorio
+        </button>
+
+        <button type="button" class="secondary-button teacher-financial-delete-button-v25" data-financial-id="${item.financial_id}" data-student-name="${escapeHtml(item.student_name)}" style="border-color:#c0392b;color:#c0392b;">
+          Excluir mensalidade
         </button>
 
 
@@ -31488,7 +31700,7 @@ async function deleteTeacherFinancialRecord(
     error
   } =
     await supabaseClient.rpc(
-      "delete_teacher_monthly_financial",
+      "delete_teacher_monthly_financial_v25",
       {
         p_financial_id:
           financialId
@@ -39111,6 +39323,39 @@ async function confirmTeacherManualMakeupV16(
       ? "Reposicao concedida e agendada com sucesso."
       : "Credito de reposicao concedido ao aluno."
   );
+}
+
+
+async function recalculateTeacherFinancialMonthV25() {
+  const { year, month } = getTeacherFinancialMonthParts();
+  const confirmed = window.confirm(
+    `Recalcular todas as mensalidades por aula de ${formatMonth(month)}/${year}?\n\n` +
+    "Serão consideradas as alterações atuais da agenda. Mensalidades já pagas não serão modificadas."
+  );
+  if (!confirmed) return;
+
+  const button = document.getElementById("recalculateTeacherFinancialButtonV25");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Recalculando...";
+  }
+
+  const { data, error } = await supabaseClient.rpc(
+    "recalculate_teacher_monthly_financial_v25",
+    { p_year: year, p_month: month }
+  );
+
+  if (button) {
+    button.disabled = false;
+    button.textContent = "Recalcular mensalidades";
+  }
+  if (error) {
+    alert(error.message || "Não foi possível recalcular as mensalidades.");
+    return;
+  }
+
+  await loadTeacherFinancialRecords();
+  alert(`${Number(data || 0)} mensalidade(s) recalculada(s).`);
 }
 
 
