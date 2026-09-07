@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
       email,
       password: String(row.password ?? ""),
       email_confirm: false,
-      user_metadata: { name, role: "student" },
+      user_metadata: { name, role: "student", preferred_name: text(row.preferred_name).slice(0,120) || null },
     });
     if (created.error || !created.data.user) {
       results.push({ index, email, ok: false, error: "Este e-mail ja possui um acesso. Nenhuma conta existente foi vinculada." });
