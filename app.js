@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: requested-improvements-v25-20260901"
+  "Aularium build: mudancas-v26-20260907"
 );
 
 // =====================================================
@@ -229,7 +229,11 @@ function startSingleLoginHeartbeatV15() {
     );
 
     singleLoginHeartbeatBusyV15 = false;
-    if (error || data !== true) {
+    if (error) {
+      console.warn("Não foi possível renovar a sessão agora; tentaremos novamente.");
+      return;
+    }
+    if (data !== true) {
       await blockConcurrentSingleLoginV15(
         error ? "service_error" : "active_elsewhere"
       );
@@ -364,7 +368,53 @@ async function loadProfile(userId) {
 // MOSTRAR USU\xc1RIO LOGADO
 // =====================================================
 
+let loggedUserLoadingV26 = null;
+let accessRefreshTimerV26 = null;
 async function showLoggedUser(user) {
+  if (loggedUserLoadingV26) return loggedUserLoadingV26;
+  if (currentUser?.id === user?.id && currentProfile &&
+      (!teacherScreen.classList.contains("hidden") || !studentScreen.classList.contains("hidden"))) return;
+  loggedUserLoadingV26 = showLoggedUserContentV26(user);
+  try {
+    await loggedUserLoadingV26;
+    clearInterval(accessRefreshTimerV26);
+    accessRefreshTimerV26 = setInterval(refreshAccessQuietlyV26, 10 * 60 * 1000);
+  } finally { loggedUserLoadingV26 = null; }
+}
+
+async function refreshAccessQuietlyV26() {
+  if (!currentUser || document.visibilityState === "hidden") return;
+  const role = currentProfile?.role;
+  if (!["teacher", "student"].includes(role)) return;
+  const result = await supabaseClient.rpc(role === "teacher" ? "get_my_teacher_access_v2" : "get_my_student_access_v2");
+  if (result.error) return;
+  const access = Array.isArray(result.data) ? result.data[0] : result.data;
+  if (role === "teacher" && access?.access_mode === "support_only") {
+    if (currentTeacherAccess?.access_mode !== "support_only") {
+      currentTeacherAccess = access;
+      await showTeacherSupportOnlyArea();
+    }
+  } else if (!access || access.access_mode === "blocked") {
+    await supabaseClient.auth.signOut();
+    teacherScreen.classList.add("hidden"); studentScreen.classList.add("hidden");
+    showPublicAuthV6();
+    loginMessage.textContent = "Este acesso está indisponível. Entre em contato com a administração.";
+  } else if (role === "teacher") {
+    const restored = currentTeacherAccess?.access_mode === "support_only" && access.access_mode === "full";
+    currentTeacherAccess = access;
+    if (restored) await showTeacherArea();
+  }
+}
+
+async function showLoggedUserContentV26(user) {
+
+  if (!user?.email_confirmed_at) {
+    await supabaseClient.auth.signOut();
+    teacherScreen.classList.add("hidden"); studentScreen.classList.add("hidden");
+    showPublicAuthV6();
+    loginMessage.textContent = "Confirme seu e-mail antes de entrar. Use Reenviar confirmação de e-mail se necessário.";
+    return;
+  }
 
   currentUser = user;
 
@@ -446,7 +496,7 @@ async function showLoggedUser(user) {
       );
 
       loginMessage.textContent =
-        "Este acesso esta pausado ou desativado e nao possui reposicoes disponiveis.";
+        "Este acesso está indisponível. Entre em contato com seu professor para verificar a liberação.";
 
       showPublicAuthV6();
 
@@ -766,6 +816,8 @@ async function showStudentArea() {
           : "Area do aluno."
       }</p>
       ${renderStudentContextSwitcherV16()}
+      <button type="button" class="secondary-button student-change-password-v26" id="studentChangePasswordV26">Trocar senha</button>
+      ${currentUser?.user_metadata?.password_changed_at ? "" : '<p class="student-first-login-v26">Bem-vindo! Troque a senha inicial por uma senha que somente você conhece.</p>'}
       ${
         hasGuardianAccessV22
           ? `
@@ -781,6 +833,8 @@ async function showStudentArea() {
           : ""
       }
     `;
+
+    document.getElementById("studentChangePasswordV26")?.addEventListener("click", openStudentPasswordFormV26);
 
     const contextSelect =
       document.getElementById(
@@ -2990,15 +3044,18 @@ function setupAdminSideMenuV8(content) {
 }
 
 
-function getTeacherPlanLabelV24(planCode) {
+function getTeacherPlanLabelV24(planCode, accessType) {
+  if (accessType === "free") return "Gratuito ilimitado";
   return ({
     trial: "Teste gratuito (15 dias)",
     starter: "Starter",
     plus: "Plus",
     pro: "Pro",
     premium: "Premium",
-    custom: "Personalizado"
-  })[String(planCode || "").toLowerCase()] || "Personalizado";
+    custom: "VIP",
+    vip: "VIP",
+    free: "Gratuito ilimitado"
+  })[String(planCode || "").toLowerCase()] || "Plano não informado";
 }
 
 
@@ -3033,7 +3090,7 @@ function renderAdminSummaryV24(panel) {
       <div class="admin-summary-columns-v24">
         <section>
           <h4>Quem precisa de atenção</h4>
-          ${pendingPayments.length ? `<ul>${pendingPayments.map(teacher => `<li><strong>${escapeHtml(teacher.teacher_name)}</strong><span>${getTeacherPlanLabelV24(teacher.subscription_plan)} · pagamento ${escapeHtml(teacher.payment_status || "pendente")}</span></li>`).join("")}</ul>` : `<p class="admin-summary-empty-v24">Nenhum pagamento pendente no período selecionado.</p>`}
+          ${pendingPayments.length ? `<ul>${pendingPayments.map(teacher => `<li><strong>${escapeHtml(teacher.teacher_name)}</strong><span>${getTeacherPlanLabelV24(teacher.subscription_plan, teacher.access_type)} · pagamento ${escapeHtml(teacher.payment_status || "pendente")}</span></li>`).join("")}</ul>` : `<p class="admin-summary-empty-v24">Nenhum pagamento pendente no período selecionado.</p>`}
           ${activeTickets.length ? `<ul>${activeTickets.slice(0, 8).map(ticket => `<li><strong>${escapeHtml(ticket.contact_name || ticket.contact_email || "Contato")}</strong><span>${escapeHtml(ticket.subject || "Solicitação de suporte")}</span></li>`).join("")}</ul>` : `<p class="admin-summary-empty-v24">Nenhum chamado aberto carregado.</p>`}
         </section>
         <section>
@@ -7373,10 +7430,6 @@ async function loadAdminTeacherStudentsV24(teacherId) {
     return;
   }
 
-  currentAdminSystemPixQrUrlV25 = qrUrl || "";
-  if (qrFileInput) qrFileInput.value = "";
-  renderAdminSystemPixQrPreviewV24();
-
   const students = data || [];
   adminTeacherStudentsV24.set(String(teacherId), students);
   area.innerHTML = students.length ? students.map(student => `
@@ -7384,6 +7437,7 @@ async function loadAdminTeacherStudentsV24(teacherId) {
       <div><strong>${escapeHtml(student.student_name)}</strong><span>${escapeHtml(student.student_email)}</span><small>${student.active === false ? "Inativo" : (student.classes_paused ? "Aulas pausadas" : "Ativo")}</small></div>
       <div>
         <button type="button" class="secondary-button admin-reset-student-v24" data-student-email="${escapeHtml(student.student_email)}">Redefinir senha</button>
+        <button type="button" class="secondary-button admin-edit-student-v26" data-student-id="${student.student_id}">Editar aluno</button>
         <button type="button" class="secondary-button admin-toggle-student-v25" data-teacher-id="${teacherId}" data-student-id="${student.student_id}" data-student-name="${escapeHtml(student.student_name)}" data-active="${student.active === false ? "false" : "true"}">${student.active === false ? "Reativar aluno" : "Desativar aluno"}</button>
         <button type="button" class="secondary-button admin-delete-student-v24" data-teacher-id="${teacherId}" data-student-id="${student.student_id}" data-student-name="${escapeHtml(student.student_name)}">Excluir definitivamente</button>
       </div>
@@ -7392,6 +7446,9 @@ async function loadAdminTeacherStudentsV24(teacherId) {
 
   area.querySelectorAll(".admin-reset-student-v24").forEach(button => {
     button.addEventListener("click", () => sendPasswordResetV24(button.dataset.studentEmail));
+  });
+  area.querySelectorAll(".admin-edit-student-v26").forEach(button => {
+    button.addEventListener("click", () => editAdminStudentV26(teacherId, button.dataset.studentId));
   });
   area.querySelectorAll(".admin-toggle-student-v25").forEach(button => {
     button.addEventListener("click", () => setAdminTeacherStudentActiveV25(
@@ -7410,6 +7467,48 @@ async function loadAdminTeacherStudentsV24(teacherId) {
   });
 }
 
+
+async function editAdminStudentV26(teacherId, studentId) {
+  const { data, error } = await supabaseClient.rpc("admin_get_student_personal_v26", { p_student_id: studentId });
+  if (error || !data) return alert(error?.message || "Não foi possível carregar o aluno.");
+  const dialog = document.createElement("dialog");
+  dialog.className = "student-edit-dialog-v26";
+  dialog.innerHTML = `<form><h3>Editar aluno</h3>
+    <label>Nome completo<input name="name" required minlength="3" maxlength="200" value="${escapeHtml(data.name || "")}"></label>
+    <label>Nome social / apelido (opcional)<input name="preferred_name" maxlength="120" value="${escapeHtml(data.preferred_name || "")}"></label>
+    <label>E-mail de acesso<input name="email" type="email" required value="${escapeHtml(data.email || "")}"></label>
+    <label>Telefone<input name="phone" required value="${escapeHtml(data.phone || "")}"></label>
+    <label>CPF<input name="cpf" required value="${escapeHtml(data.cpf || "")}"></label>
+    <p role="status"></p><button type="submit" class="primary-button">Salvar</button>
+    <button type="button" class="secondary-button" data-close>Cancelar</button></form>`;
+  document.body.appendChild(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.querySelector("[data-close]").onclick = () => dialog.close();
+  dialog.querySelector("form").onsubmit = async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const button = form.querySelector('[type="submit"]');
+    const message = form.querySelector('[role="status"]');
+    button.disabled = true;
+    try {
+      const email = String(values.get("email")).trim().toLowerCase();
+      if (email !== String(data.email).toLowerCase()) {
+        const changed = await updateUserEmailV2(data.profile_id, email);
+        if (changed.error) throw new Error(changed.error);
+      }
+      const saved = await supabaseClient.rpc("admin_save_student_personal_v26", {
+        p_student_id: studentId, p_name: values.get("name"), p_phone: values.get("phone"),
+        p_cpf: values.get("cpf"), p_preferred_name: values.get("preferred_name") || null
+      });
+      if (saved.error) throw saved.error;
+      dialog.close();
+      await loadAdminTeacherStudentsV24(teacherId);
+    } catch (error) { message.textContent = error.message || "Não foi possível salvar."; }
+    finally { button.disabled = false; }
+  };
+  dialog.showModal();
+}
 
 async function setAdminTeacherStudentActiveV25(teacherId, studentId, studentName, nextActive) {
   const action = nextActive ? "reativar" : "desativar";
@@ -7710,7 +7809,7 @@ function renderAdminTeacherCard(
     <details class="admin-teacher-details-v24">
       <summary>
         <span><strong>${escapeHtml(teacher.teacher_name)}</strong><small>${escapeHtml(teacher.teacher_email)}</small></span>
-        <span class="admin-teacher-summary-plan-v24">${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan))}</span>
+        <span class="admin-teacher-summary-plan-v24">${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan, teacher.access_type))}</span>
         <span class="admin-teacher-summary-status-v24 status-${escapeHtml(status)}">${statusLabel}</span>
       </summary>
       <div class="admin-teacher-details-body-v24">
@@ -7770,14 +7869,7 @@ function renderAdminTeacherCard(
 
         <div>
           <strong>Plano:</strong>
-          ${escapeHtml({
-            trial: "Teste gratuito (15 dias)",
-            starter: "Starter",
-            plus: "Plus",
-            pro: "Pro",
-            premium: "Premium",
-            custom: "Personalizado"
-          }[teacher.subscription_plan] || "Personalizado")}
+          ${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan, teacher.access_type))}
         </div>
 
         <div>
@@ -7882,9 +7974,7 @@ function renderAdminTeacherCard(
             data-teacher-id="${teacher.teacher_id}"
             style="padding:9px;border:1px solid #ccc;border-radius:8px;"
           >
-            <option value="paid" ${teacher.access_type === "paid" ? "selected" : ""}>Assinante / pago</option>
-            <option value="trial" ${teacher.access_type === "trial" ? "selected" : ""}>Teste gratis por 15 dias</option>
-            <option value="free" ${teacher.access_type === "free" ? "selected" : ""}>Gratis por tempo ilimitado</option>
+            ${["trial","free","starter","plus","pro","premium","vip"].map(plan => `<option value="${plan}" ${plan === (teacher.access_type === "free" ? "free" : teacher.access_type === "trial" ? "trial" : teacher.subscription_plan === "custom" ? "vip" : teacher.subscription_plan) ? "selected" : ""}>${getTeacherPlanLabelV24(plan)}</option>`).join("")}
           </select>
 
           <button type="button" class="secondary-button save-admin-teacher-access-button" data-teacher-id="${teacher.teacher_id}">
@@ -8903,13 +8993,11 @@ function setStudentPage(page) {
           style="margin-top:20px;"
         ></div>
 
-        <div class="schedule-legend">
-          <span>\uD83D\uDFE2 Livre</span>
-          <span>\uD83D\uDD34 Ocupado</span>
-          <span>\u26AB Indispon\u00EDvel</span>
-          <span>\uD83D\uDD35 Minha aula</span>
-          <span>\u23F8 Aulas pausadas</span>
-          <span>\uD83D\uDFE3 Minha reposi\u00E7\u00E3o</span>
+        <div class="schedule-legend student-legend-v26">
+          <span data-agenda-color="available">Livre</span><span data-agenda-color="occupied">Ocupado</span>
+          <span data-agenda-color="unavailable">Indisponível</span><span data-agenda-color="own">Minha aula</span>
+          <span data-agenda-color="paused-own">Aulas pausadas</span><span data-agenda-color="own-makeup">Minha reposição</span>
+          <span data-agenda-color="cancelled">Aula cancelada</span><span data-agenda-color="expired">Prazo encerrado</span>
         </div>
 
       </div>
@@ -13722,6 +13810,8 @@ function renderStudentWeeklySchedule(
       }
 
 
+      applyStudentAgendaColorV26(cell);
+
       row.appendChild(
         cell
       );
@@ -16665,7 +16755,7 @@ function renderStudentProgressReportV5() {
   }).join("");
 
   return `
-    <div class="v3-tools-grid student-progress-report-v5">
+    <details class="student-progress-collapse-v26"><summary class="secondary-button">Relatório de evolução do aluno</summary><div class="v3-tools-grid student-progress-report-v5">
       <section class="card v3-tool-card v3-wide">
         <h3>Relatorio de evolucao do aluno</h3>
         <p>Registre o desenvolvimento e prepare um resumo para compartilhar com o aluno.</p>
@@ -16688,7 +16778,7 @@ function renderStudentProgressReportV5() {
         </div>
         <div id="progressReportResultV3" class="v3-result"></div>
       </section>
-    </div>
+    </div></details>
   `;
 }
 
@@ -16717,7 +16807,7 @@ async function loadTeacherMakeupsPageV23() {
     : `<option value="">Nenhum aluno ativo</option>`;
 
   const results = await Promise.all(students.map(async student => {
-    const result = await supabaseClient.rpc("get_teacher_student_makeups", {
+    const result = await supabaseClient.rpc("get_teacher_student_makeups_v26", {
       p_student_id: student.student_id || student.id
     });
     return (result.data || []).map(makeup => ({
@@ -16732,7 +16822,7 @@ async function loadTeacherMakeupsPageV23() {
       const makeupId = makeup.makeup_id || makeup.id;
       const editable = String(makeup.status || "").toLowerCase() === "available";
       return `<article class="teacher-makeup-item-v23">
-        <div><strong>${escapeHtml(makeup.student_name)}</strong><span>${escapeHtml(formatMakeupStatus(makeup.status).label)}${makeup.expires_at ? ` · validade ${formatDateTime(makeup.expires_at)}` : ""}</span></div>
+        <div><strong>${escapeHtml(makeup.student_name)}</strong><span>${escapeHtml(formatMakeupStatus(makeup.status).label)}${makeup.expires_at ? ` · validade ${formatDateTime(makeup.expires_at)}` : ""}</span><small>${makeup.source_lesson_date ? `Aula de origem: ${escapeHtml(makeup.source_lesson_date.split("-").reverse().join("/"))}` : "Concessão sem data de aula vinculada"}</small>${makeup.notes ? `<p class="makeup-notes-v26">${escapeHtml(makeup.notes)}</p>` : ""}</div>
         <div class="teacher-makeup-actions-v23">
           <select class="teacher-makeup-duration-v23" data-makeup-id="${makeupId}" ${editable ? "" : "disabled"}>
             ${[30, 60, 90, 120].map(duration => `<option value="${duration}" ${Number(makeup.duration_minutes) === duration ? "selected" : ""}>${duration} min</option>`).join("")}
@@ -16763,11 +16853,12 @@ async function grantTeacherMakeupV23() {
   const expiry = document.getElementById("teacherMakeupExpiryV23")?.value;
   const message = document.getElementById("teacherMakeupMessageV23");
   if (!studentId) return;
-  const result = await supabaseClient.rpc("teacher_grant_makeup_v16", {
+  const result = await supabaseClient.rpc("teacher_grant_makeup_v26", {
     p_student_id: studentId,
     p_duration_minutes: duration,
     p_reason: reason,
-    p_expires_at: expiry ? `${expiry}T23:59:59-03:00` : null
+    p_expires_at: expiry ? `${expiry}T23:59:59-03:00` : null,
+    p_origin_lesson_date: document.getElementById("teacherMakeupOriginV26")?.value || null
   });
   if (result.error) {
     if (message) message.textContent = result.error.message || "Não foi possível adicionar a reposição.";
@@ -16853,6 +16944,7 @@ function setTeacherPage(page) {
           <label>Aluno<select id="teacherMakeupStudentV23"></select></label>
           <label>Duração<select id="teacherMakeupDurationV23"><option value="30">30 minutos</option><option value="60">60 minutos</option><option value="90">90 minutos</option><option value="120">120 minutos</option></select></label>
           <label>Validade<input type="date" id="teacherMakeupExpiryV23"></label>
+          <label>Data da aula de origem (opcional)<input type="date" id="teacherMakeupOriginV26"></label>
           <label class="teacher-makeup-reason-v23">Motivo / observação<input type="text" id="teacherMakeupReasonV23" placeholder="Opcional"></label>
           <button type="button" class="action-button" id="grantTeacherMakeupV23">Adicionar reposição</button>
         </div>
@@ -17381,7 +17473,7 @@ function setTeacherPage(page) {
                   border:1px solid #ccc;
                   border-radius:8px;
                 "
-              >
+              ><label for="newStudentPreferredNameV26" style="display:block;margin-top:12px;">Nome social ou apelido (opcional)</label><input type="text" id="newStudentPreferredNameV26" maxlength="120" style="width:100%;box-sizing:border-box;">
 
             </div>
 
@@ -22320,263 +22412,21 @@ function renderTeacherStudentOverview(
 // CARD DO ALUNO
 // =====================================================
 
-function renderTeacherStudentOverviewCard(
-  student
-) {
-
-  return `
-
-    <div
-      style="
-        border:1px solid #ddd;
-        border-radius:12px;
-        padding:18px;
-        background:#ffffff;
-      "
-    >
-
-      <div
-        style="
-          display:flex;
-          justify-content:space-between;
-          align-items:flex-start;
-          gap:12px;
-        "
-      >
-
-        <div>
-
-          <strong
-            style="
-              font-size:19px;
-            "
-          >
-            ${escapeHtml(
-              student.student_name
-            )}
-          </strong>
-
-
-          <div
-            style="
-              margin-top:5px;
-              color:#666;
-            "
-          >
-            Aula de
-            ${Number(
-              student.class_duration_minutes || 0
-            )}
-            min
-          </div>
-
-        </div>
-
-
-        <span
-          style="
-            font-weight:bold;
-            color:${
-              student.classes_paused
-                ? "#856404"
-                : "#246b37"
-            };
-          "
-        >
-          ${
-            student.classes_paused
-              ? "Aulas pausadas"
-              : "Ativo"
-          }
-        </span>
-
-      </div>
-
-
-      ${
-        Number(
-          student.unread_comments || 0
-        ) > 0
-
-          ? `
-
-            <div
-              style="
-                margin-top:12px;
-                padding:9px 11px;
-                border-radius:8px;
-                background:#fff3cd;
-                color:#7a5d00;
-                font-weight:bold;
-              "
-            >
-              ${Number(
-                student.unread_comments || 0
-              )}
-              comentario(s) novo(s) do aluno
-            </div>
-
-          `
-
-          : ""
-      }
-
-
-      ${
-        student.student_is_minor ===
-          true
-        &&
-        Number(
-          student.guardian_count || 0
-        ) === 0
-
-          ? `
-
-            <div
-              style="
-                margin-top:12px;
-                padding:10px 12px;
-                border-radius:8px;
-                background:#fdecea;
-                color:#8a1f17;
-                font-weight:bold;
-              "
-            >
-              Menor de 18 anos sem responsavel vinculado.
-
-              <div
-                style="
-                  margin-top:4px;
-                  font-size:12px;
-                  font-weight:normal;
-                "
-              >
-                O aluno nao ve os valores financeiros.
-                Cadastre um responsavel em "Ver aluno".
-              </div>
-            </div>
-
-          `
-
-          : ""
-      }
-
-
-      <div
-        style="
-          display:grid;
-          grid-template-columns:repeat(2,1fr);
-          gap:8px;
-          margin-top:15px;
-        "
-      >
-
-        <div>
-          <strong>
-            ${Number(
-              student.present_count || 0
-            )}
-          </strong>
-          presentes
-        </div>
-
-        <div>
-          <strong>
-            ${Number(
-              student.absent_count || 0
-            )}
-          </strong>
-          faltas sem justificativa
-        </div>
-
-        <div>
-          <strong>
-            ${Number(
-              student.justified_absence_count || 0
-            )}
-          </strong>
-          faltas justificadas
-        </div>
-
-        <div>
-          <strong>
-            ${Number(
-              student.available_makeups || 0
-            )}
-          </strong>
-          reposicoes disponiveis
-        </div>
-
-      </div>
-
-
-      <div
-        style="
-          display:flex;
-          gap:8px;
-          flex-wrap:wrap;
-          margin-top:16px;
-        "
-      >
-
-        <button
-          type="button"
-          class="action-button open-teacher-student-button"
-          data-student-id="${student.student_id}"
-        >
-          Ver aluno
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary-button toggle-teacher-student-pause-button"
-          data-student-id="${student.student_id}"
-          data-student-name="${escapeHtml(
-            student.student_name
-          )}"
-          data-paused="${student.classes_paused
-            ? "true"
-            : "false"}"
-          data-keep-reserved="${
-            student.pause_keep_slot_reserved !== false
-              ? "true"
-              : "false"
-          }"
-          style="
-            border-color:#856404;
-            color:#856404;
-          "
-        >
-          ${
-            student.classes_paused
-              ? "Ativar aulas"
-              : "Desativar aulas"
-          }
-        </button>
-
-
-        <button
-          type="button"
-          class="secondary-button delete-teacher-student-button"
-          data-student-id="${student.student_id}"
-          data-student-name="${escapeHtml(
-            student.student_name
-          )}"
-          style="
-            border-color:#c0392b;
-            color:#c0392b;
-          "
-        >
-          Excluir aluno
-        </button>
-
-      </div>
-
+function renderTeacherStudentOverviewCard(student) {
+  const id = escapeHtml(student.student_id);
+  const name = escapeHtml(student.student_name);
+  return `<article class="student-row-v26">
+    <div class="student-row-identity-v26"><strong>${name}</strong><small>${Number(student.class_duration_minutes || 0)} min · ${student.classes_paused ? "Aulas pausadas" : "Ativo"}</small>
+      ${Number(student.unread_comments || 0) > 0 ? `<span>${Number(student.unread_comments)} comentário(s) novo(s)</span>` : ""}
+      ${student.student_is_minor && !Number(student.guardian_count) ? '<span>Responsável ainda não vinculado</span>' : ''}
     </div>
-
-  `;
-
+    <div class="student-row-counts-v26">${Number(student.present_count || 0)} presenças · ${Number(student.available_makeups || 0)} reposições</div>
+    <div class="student-row-actions-v26">
+      <button type="button" class="action-button open-teacher-student-button" data-student-id="${id}">Ver aluno ▾</button>
+      <button type="button" class="secondary-button toggle-teacher-student-pause-button" data-student-id="${id}" data-student-name="${name}" data-paused="${student.classes_paused ? "true" : "false"}" data-keep-reserved="${student.pause_keep_slot_reserved !== false ? "true" : "false"}">${student.classes_paused ? "Ativar aulas" : "Desativar aulas"}</button>
+      <button type="button" class="secondary-button delete-teacher-student-button" data-student-id="${id}" data-student-name="${name}">Excluir aluno</button>
+    </div>
+  </article>`;
 }
 
 function trimRulesImageWhitespaceV20(image) {
@@ -23819,7 +23669,7 @@ async function openTeacherStudentDetail(
       ),
 
       supabaseClient.rpc(
-        "get_teacher_student_makeups",
+        "get_teacher_student_makeups_v26",
         {
           p_student_id:
             studentId
@@ -23851,7 +23701,7 @@ async function openTeacherStudentDetail(
       ),
 
       supabaseClient.rpc(
-        "get_teacher_student_personal_data_v2",
+        "get_teacher_student_personal_data_v26",
         {
           p_student_id:
             studentId
@@ -24038,6 +23888,7 @@ async function openTeacherStudentDetail(
         <h4 style="margin-top:0;">Dados pessoais</h4>
         <div class="erp-form-grid">
           <div><label>Nome</label><input id="teacherStudentPersonalName" value="${escapeHtml(personalData.student_name || "")}"></div>
+          <div><label>Nome social ou apelido (opcional)</label><input id="teacherStudentPreferredNameV26" maxlength="120" value="${escapeHtml(personalData.preferred_name || "")}"></div>
           <div><label>E-mail</label><input id="teacherStudentPersonalEmail" type="email" value="${escapeHtml(personalData.student_email || "")}" data-original-email="${escapeHtml(personalData.student_email || "")}" data-profile-id="${personalData.profile_id || ""}"></div>
           <div><label>Telefone</label><input id="teacherStudentPersonalPhone" value="${escapeHtml(personalData.phone || "")}"></div>
           <div><label>CPF</label><input id="teacherStudentPersonalCpf" value="${escapeHtml(personalData.cpf || "")}"></div>
@@ -25192,68 +25043,36 @@ async function openTeacherStudentDetail(
       >
         Historico de aulas
       </h4>
+      <div class="history-filter-v26">
+        <label>De<input type="date" id="detailHistoryFromV26"></label>
+        <label>Até<input type="date" id="detailHistoryToV26"></label>
+        <button type="button" class="secondary-button" id="detailHistoryApplyV26">Filtrar histórico</button>
+      </div>
+      <div id="detailHistoryResultsV26"></div>
+      <!-- History is rendered below using a bounded date range. -->
 
 
-      ${
-        history.length === 0
-
-          ? `
-
-            <p>
-              Nenhuma aula registrada.
-            </p>
-
-          `
-
-          : `
-
-            <div
-              style="
-                display:grid;
-                gap:10px;
-              "
-            >
-
-              ${history
-                .map(
-                  record => {
-
-                    const comments =
-                      studentComments.filter(
-                        comment =>
-                          String(
-                            comment.lesson_date
-                          ) ===
-                          String(
-                            record.lesson_date
-                          )
-                          &&
-                          normalizeTime(
-                            comment.start_time
-                          ) ===
-                          normalizeTime(
-                            record.start_time
-                          )
-                      );
-
-
-                    return renderTeacherStudentHistoryRow(
-                      record,
-                      comments
-                    );
-
-                  }
-                )
-                .join("")}
-
-            </div>
-
-          `
-      }
 
     </div>
 
   `;
+
+  const historyTodayV26 = new Date();
+  document.getElementById("detailHistoryFromV26").value = formatDateForDatabase(new Date(historyTodayV26.getFullYear(), historyTodayV26.getMonth(), 1));
+  document.getElementById("detailHistoryToV26").value = formatDateForDatabase(historyTodayV26);
+  const renderDetailHistoryV26 = () => {
+    const from = document.getElementById("detailHistoryFromV26").value;
+    const to = document.getElementById("detailHistoryToV26").value;
+    const target = document.getElementById("detailHistoryResultsV26");
+    if (!from || !to || from > to) { target.textContent = "Informe um período válido."; return; }
+    const filtered = history.filter(record => record.lesson_date >= from && record.lesson_date <= to)
+      .sort((a,b) => (b.lesson_date + b.start_time).localeCompare(a.lesson_date + a.start_time));
+    target.innerHTML = filtered.length ? filtered.map(record => renderTeacherStudentHistoryRow(record,
+      studentComments.filter(comment => comment.lesson_date === record.lesson_date && normalizeTime(comment.start_time) === normalizeTime(record.start_time))
+    )).join("") : "<p>Nenhuma aula neste período.</p>";
+  };
+  document.getElementById("detailHistoryApplyV26").addEventListener("click", renderDetailHistoryV26);
+  renderDetailHistoryV26();
 
   const contractIndefiniteInput =
     document.getElementById(
@@ -29170,7 +28989,7 @@ function renderTeacherMonthlyFinancialReportV23() {
   area.innerHTML = `
     <section class="teacher-monthly-report-v23" id="teacherMonthlyReportPrintableV23">
       <div class="teacher-monthly-report-head-v23">
-        <div><span>AULARIUM</span><h3>Relatório financeiro mensal</h3><p>${escapeHtml(monthValue || "Período atual")}</p></div>
+        <div class="report-brand-v26"><img src="assets/aularium-sun.svg" width="72" height="52" alt="Sol do Aularium"><div><span>AULARIUM</span><h3>Relatório financeiro mensal</h3><p>${escapeHtml(currentProfile?.name || "")} · ${escapeHtml(monthValue || "Período atual")}</p></div></div>
         <button type="button" class="secondary-button" id="printTeacherMonthlyReportV23">Imprimir</button>
       </div>
       <div class="teacher-monthly-report-stats-v23">
@@ -29184,6 +29003,7 @@ function renderTeacherMonthlyFinancialReportV23() {
           <tr><td>${escapeHtml(item.student_name)}</td><td>${escapeHtml(formatPaymentStatus(item.payment_status).replace(/<[^>]+>/g, ""))}</td><td>${Number(item.lesson_count || 0)}</td><td>${formatCurrency(item.gross)}</td><td>${formatCurrency(item.discount)}</td><td><strong>${formatCurrency(item.total)}</strong></td></tr>
         `).join("") : `<tr><td colspan="6">Nenhum lançamento neste mês.</td></tr>`}</tbody></table>
       </div>
+      <footer class="report-footer-v26">Aularium · Gestão para professores particulares · Emitido em ${escapeHtml(new Date().toLocaleDateString("pt-BR"))}</footer>
     </section>
   `;
   document.getElementById("printTeacherMonthlyReportV23")?.addEventListener("click", () => {
@@ -38819,407 +38639,48 @@ async function openTeacherScheduleEditor(
 // PROFESSOR - AGENDAR REPOSICAO
 // =====================================================
 
-async function openTeacherMakeupBooking(
-  date,
-  slot
-) {
-
-  const area =
-    document.getElementById(
-      "teacherScheduleEditArea"
-    );
-
-
-  if (!area) {
-    return;
-  }
-
-  if (currentTeacherStudents.length === 0) {
-    await loadTeacherStudents();
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.rpc(
-      "get_teacher_available_makeups"
-    );
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao carregar reposi\u00E7\u00F5es dispon\u00EDveis:",
-      error
-    );
-
-    area.innerHTML = `
-
-      <div class="card">
-
-        <h3>
-          Agendar reposi\u00E7\u00E3o
-        </h3>
-
-        <p>
-          N\u00E3o foi poss\u00EDvel carregar as reposi\u00E7\u00F5es dispon\u00EDveis.
-        </p>
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="closeTeacherMakeupBookingButton"
-        >
-          Voltar
-        </button>
-
-      </div>
-
-    `;
-
-
-    const back =
-      document.getElementById(
-        "closeTeacherMakeupBookingButton"
-      );
-
-
-    if (back) {
-
-      back.addEventListener(
-        "click",
-        () => {
-
-          openTeacherScheduleEditor(
-            date,
-            slot
-          );
-
-        }
-      );
-
-    }
-
-
-    return;
-  }
-
-
-  const makeups =
-    data || [];
-
-
-  area.innerHTML = `
-
-    <div
-      class="card"
-      style="
-        border-left:5px solid #a9573a;
-      "
-    >
-
-      <h3>
-        Agendar reposi\u00E7\u00E3o
-      </h3>
-
-
-      <p>
-        <strong>Data:</strong>
-        ${formatDate(date)}
-      </p>
-
-
-      <p>
-        <strong>Hor\u00E1rio:</strong>
-        ${normalizeTime(
-          slot.start_time
-        )}
-      </p>
-
-
-      ${
-        makeups.length === 0
-
-          ? `
-
-            <div
-              style="
-                padding:15px;
-                background:#f7f7f7;
-                border-radius:8px;
-                margin-top:15px;
-              "
-            >
-              Nenhuma reposi\u00E7\u00E3o dispon\u00EDvel para os alunos.
-            </div>
-
-          `
-
-          : `
-
-            <div
-              style="
-                margin-top:18px;
-              "
-            >
-
-              <label
-                for="teacherMakeupSelect"
-                style="
-                  display:block;
-                  font-weight:bold;
-                  margin-bottom:8px;
-                "
-              >
-                Reposi\u00E7\u00E3o
-              </label>
-
-
-              <select
-                id="teacherMakeupSelect"
-                style="
-                  width:100%;
-                  padding:10px;
-                  border:1px solid #ccc;
-                  border-radius:8px;
-                "
-              >
-
-                <option value="">
-                  Selecione
-                </option>
-
-
-                ${makeups
-                  .map(
-                    makeup => `
-
-                      <option
-                        value="${makeup.makeup_id}"
-                      >
-                        ${escapeHtml(
-                          makeup.student_name ||
-                          "Aluno"
-                        )}
-                        \u2014 ${makeup.duration_minutes} min
-                        \u2014 ${escapeHtml(
-                          formatMakeupSource(
-                            makeup.source
-                          )
-                        )}
-                      </option>
-
-                    `
-                  )
-                  .join("")}
-
-              </select>
-
-
-              <p
-                style="
-                  margin-top:8px;
-                  font-size:13px;
-                  color:#666;
-                "
-              >
-                Todos os blocos de 30 minutos correspondentes
-                \u00E0 dura\u00E7\u00E3o precisam estar livres.
-              </p>
-
-            </div>
-
-          `
-      }
-
-      <div class="teacher-manual-makeup-v16">
-        <h4>Conceder uma nova reposi\u00E7\u00E3o</h4>
-        <p>
-          Use esta op\u00E7\u00E3o mesmo quando o aluno n\u00E3o possui
-          um cr\u00E9dito gerado por falta ou cancelamento.
-        </p>
-
-        <div class="teacher-manual-makeup-grid-v16">
-          <label>
-            Aluno
-            <select id="teacherManualMakeupStudentV16">
-              <option value="">Selecione</option>
-              ${(currentTeacherStudents || []).map(student => `
-                <option
-                  value="${escapeSelectValue(student.student_id || student.id)}"
-                  data-duration="${Number(student.class_duration_minutes || 60)}"
-                >
-                  ${escapeHtml(student.student_name || student.name || "Aluno")}
-                </option>
-              `).join("")}
-            </select>
-          </label>
-
-          <label>
-            Dura\u00E7\u00E3o
-            <select id="teacherManualMakeupDurationV16">
-              <option value="30">30 minutos</option>
-              <option value="60" selected>60 minutos</option>
-              <option value="90">90 minutos</option>
-              <option value="120">120 minutos</option>
-            </select>
-          </label>
-        </div>
-
-        <label>
-          Motivo ou observa\u00E7\u00E3o (opcional)
-          <input
-            id="teacherManualMakeupReasonV16"
-            type="text"
-            maxlength="500"
-            placeholder="Ex.: reposi\u00E7\u00E3o concedida pelo professor"
-          >
-        </label>
-
-        <div class="teacher-manual-makeup-actions-v16">
-          <button
-            type="button"
-            class="secondary-button"
-            id="grantTeacherManualMakeupV16"
-          >
-            Conceder cr\u00E9dito
-          </button>
-          <button
-            type="button"
-            class="action-button"
-            id="grantAndBookTeacherManualMakeupV16"
-          >
-            Conceder e agendar aqui
-          </button>
-        </div>
-      </div>
-
-
-      <div
-        style="
-          display:flex;
-          gap:10px;
-          flex-wrap:wrap;
-          margin-top:20px;
-        "
-      >
-
-        ${
-          makeups.length > 0
-
-            ? `
-
-              <button
-                type="button"
-                class="action-button"
-                id="confirmTeacherMakeupBookingButton"
-              >
-                Agendar reposi\u00E7\u00E3o
-              </button>
-
-            `
-
-            : ""
-        }
-
-
-        <button
-          type="button"
-          class="secondary-button"
-          id="backTeacherMakeupBookingButton"
-        >
-          Voltar
-        </button>
-
-      </div>
-
-
-      <p
-        id="teacherMakeupBookingMessage"
-        style="
-          margin-top:12px;
-        "
-      ></p>
-
-    </div>
-
-  `;
-
-
-  const confirmButton =
-    document.getElementById(
-      "confirmTeacherMakeupBookingButton"
-    );
-
-
-  if (confirmButton) {
-
-    confirmButton.addEventListener(
-      "click",
-      () => {
-
-        confirmTeacherMakeupBooking(
-          date,
-          slot
-        );
-
-      }
-    );
-
-  }
-
-  const manualStudent = document.getElementById(
-    "teacherManualMakeupStudentV16"
-  );
-  const manualDuration = document.getElementById(
-    "teacherManualMakeupDurationV16"
-  );
-
-  if (manualStudent && manualDuration) {
-    manualStudent.addEventListener("change", () => {
-      const option = manualStudent.selectedOptions[0];
-      const duration = Number(option?.dataset.duration || 60);
-      if ([30, 60, 90, 120].includes(duration)) {
-        manualDuration.value = String(duration);
-      }
-    });
-  }
-
-  document.getElementById("grantTeacherManualMakeupV16")
-    ?.addEventListener("click", () =>
-      confirmTeacherManualMakeupV16(date, slot, false)
-    );
-
-  document.getElementById("grantAndBookTeacherManualMakeupV16")
-    ?.addEventListener("click", () =>
-      confirmTeacherManualMakeupV16(date, slot, true)
-    );
-
-
-  const backButton =
-    document.getElementById(
-      "backTeacherMakeupBookingButton"
-    );
-
-
-  if (backButton) {
-
-    backButton.addEventListener(
-      "click",
-      () => {
-
-        openTeacherScheduleEditor(
-          date,
-          slot
-        );
-
-      }
-    );
-
-  }
-
+async function openTeacherMakeupBooking(date,slot) {
+  const area=document.getElementById("teacherScheduleEditArea");
+  if (!area) return;
+  area.innerHTML="<p>Carregando créditos disponíveis...</p>";
+  const {data,error}=await supabaseClient.rpc("get_teacher_available_makeups");
+  if(error){area.textContent=error.message || "Não foi possível carregar os créditos.";return;}
+  const credits=data || [];
+  const students=Array.from(new Map(credits.map(item=>[item.student_id,item.student_name])).entries());
+  area.innerHTML=`<section class="card"><h3>Agendar reposição em partes</h3><p>${formatDate(date)} · ${normalizeTime(slot.start_time)}</p>
+    <div class="erp-form-grid"><label>Aluno<select id="bookingStudentV26"><option value="">Selecione o aluno</option>${students.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join("")}</select></label>
+    <label>Tempo de aula<select id="bookingDurationV26" disabled><option value="">Selecione o aluno primeiro</option></select></label></div>
+    <p id="bookingBalanceV26"></p><p id="bookingMessageV26" role="status"></p>
+    <button type="button" class="action-button" id="bookingSaveV26" disabled>Agendar reposição</button>
+    <button type="button" class="secondary-button" id="bookingCancelV26">Voltar</button></section>`;
+  const studentSelect=document.getElementById("bookingStudentV26");
+  const durationSelect=document.getElementById("bookingDurationV26");
+  const save=document.getElementById("bookingSaveV26");
+  studentSelect.addEventListener("change",()=>{
+    const available=credits.filter(item=>item.student_id===studentSelect.value);
+    const maximum=Math.max(0,...available.map(item=>Number(item.duration_minutes)));
+    durationSelect.innerHTML=[30,60,90,120].filter(value=>value<=maximum).map(value=>`<option value="${value}">${value} minutos</option>`).join("");
+    durationSelect.disabled=!available.length;save.disabled=!available.length;
+    document.getElementById("bookingBalanceV26").textContent=available.length
+      ? `Saldo total: ${available.reduce((sum,item)=>sum+Number(item.duration_minutes),0)} minutos. Escolha até ${maximum} minutos de um crédito; o restante continuará disponível.`
+      : "Nenhum crédito disponível.";
+  });
+  document.getElementById("bookingCancelV26").addEventListener("click",()=>openTeacherScheduleEditor(date,slot));
+  save.addEventListener("click",async()=>{
+    const duration=Number(durationSelect.value);
+    const credit=credits.filter(item=>item.student_id===studentSelect.value && Number(item.duration_minutes)>=duration)
+      .sort((a,b)=>String(a.expires_at).localeCompare(String(b.expires_at)))[0];
+    if(!credit || ![30,60,90,120].includes(duration))return;
+    save.disabled=true;
+    const message=document.getElementById("bookingMessageV26");
+    try {
+      const result=await supabaseClient.rpc("teacher_reserve_makeup_part_v26",{p_makeup_id:credit.makeup_id,p_duration_minutes:duration,p_reservation_date:formatDateForDatabase(date),p_start_time:normalizeTime(slot.start_time)});
+      if(result.error){message.textContent=result.error.message;save.disabled=false;return;}
+      area.innerHTML="<p>Reposição agendada. O saldo restante foi preservado.</p>";
+      await loadTeacherWeeklySchedule();
+      await loadTeacherClassLinksForAgenda();
+    }catch{message.textContent="Falha de conexão. Confira a agenda antes de tentar novamente.";save.disabled=false;}
+  });
 }
 
 
@@ -39266,7 +38727,7 @@ async function confirmTeacherManualMakeupV16(
 
   const { data: makeupId, error: grantError } =
     await supabaseClient.rpc(
-      "teacher_grant_makeup_v16",
+      "teacher_grant_makeup_v26",
       {
         p_student_id: studentId,
         p_duration_minutes: duration,
@@ -47111,17 +46572,19 @@ supabaseClient.auth.onAuthStateChange(
 
     if (
       event === "SIGNED_IN" &&
-      session?.user
+      session?.user &&
+      session.user.id !== currentUser?.id
     ) {
 
-      await showLoggedUser(
-        session.user
-      );
+      window.setTimeout(() => showLoggedUser(session.user), 0);
 
     }
 
     if (event === "SIGNED_OUT") {
       stopSingleLoginHeartbeatV15();
+      clearInterval(accessRefreshTimerV26);
+      currentUser = null;
+      currentProfile = null;
     }
 
   }
@@ -47269,7 +46732,7 @@ function closePublicCardsV6() {
 
 
 const PUBLIC_PLANS_V13 = {
-  trial: { name: "Teste gratuito", price: "15 dias grátis", limit: 30, paid: false, trial: true },
+  trial: { name: "Teste gratuito", price: "15 dias grátis", limit: 5, paid: false, trial: true },
   starter: { name: "Starter", price: "R$ 14,90/mês", limit: 5, paid: true },
   plus: { name: "Plus", price: "R$ 29,90/mês", limit: 10, paid: true },
   pro: { name: "Pro", price: "R$ 59,90/mês", limit: 20, paid: true },
@@ -47554,7 +47017,25 @@ async function showTeacherSupportOnlyArea() {
     header.innerHTML = `
       <h2>Ola, ${escapeHtml(currentProfile.name)}</h2>
       <p>Seu periodo gratuito terminou. O acesso normal volta quando o pagamento for confirmado.</p>
+      <div class="expired-plans-v26">
+        ${Object.entries(PUBLIC_PLANS_V13).filter(([code]) => ["starter","plus","pro","premium"].includes(code)).map(([code,plan]) => `<article><strong>${escapeHtml(plan.name)}</strong><p>${escapeHtml(plan.price)}</p><p>Até ${plan.limit} alunos</p><button type="button" class="primary-button" data-expired-plan-v26="${code}">Escolher ${escapeHtml(plan.name)}</button></article>`).join("")}
+      </div>
+      <p>Caso precise de mais de 30 alunos, entre em contato conosco pelo suporte abaixo.</p>
+      <p role="status" id="expiredPlanMessageV26"></p>
+      <button type="button" class="secondary-button" id="checkPlanPaymentV26">Verificar liberação do pagamento</button>
     `;
+    document.getElementById("checkPlanPaymentV26")?.addEventListener("click", async () => {
+      await refreshAccessQuietlyV26();
+      const message = document.getElementById("expiredPlanMessageV26");
+      if (message) message.textContent = "O pagamento ainda aguarda confirmação.";
+    });
+    header.querySelectorAll("[data-expired-plan-v26]").forEach(button => button.addEventListener("click", async () => {
+      const buttons = header.querySelectorAll("[data-expired-plan-v26]");
+      buttons.forEach(item => item.disabled = true);
+      const result = await supabaseClient.rpc("teacher_request_plan_v26", { p_plan: button.dataset.expiredPlanV26 });
+      document.getElementById("expiredPlanMessageV26").textContent = result.error?.message || "Plano selecionado. A cobrança está registrada; o acesso e o limite de alunos serão liberados após a confirmação do pagamento. Consulte o suporte abaixo para os dados de pagamento.";
+      buttons.forEach(item => item.disabled = false);
+    }));
   }
 
   setTeacherPage("support");
@@ -47676,6 +47157,7 @@ async function replyTeacherSupportTicketV2(ticketId) {
 async function loadAdminSupportArea(append = false) {
   const area = document.getElementById("adminSupportArea");
   if (!area) return;
+  if (!currentAdminTeachers.length) await loadAdminTeachers();
 
   const { data, error } = await supabaseClient.rpc(
     "get_admin_support_tickets_page_v4",
@@ -47708,7 +47190,7 @@ async function loadAdminSupportArea(append = false) {
             const teacher = currentAdminTeachers.find(item =>
               String(item.teacher_email || "").toLowerCase() === String(ticket.contact_email || "").toLowerCase()
             );
-            return teacher ? `<div class="admin-support-plan-v24">Plano: <strong>${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan))}</strong> · ${escapeHtml(teacher.access_type || "pago")}</div>` : "";
+            return teacher ? `<div class="admin-support-plan-v24">Plano: <strong>${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan, teacher.access_type))}</strong> · ${escapeHtml(teacher.access_type || "pago")}</div>` : "";
           })()}
           <small>${escapeHtml(ticket.source)} | ${escapeHtml(ticket.status)}</small>
           <div class="support-thread">${renderSupportMessagesV2(ticket.messages)}</div>
@@ -47928,6 +47410,7 @@ async function saveNewStudentWithAccessV2() {
 
   const params = {
     name,
+    preferred_name: value("newStudentPreferredNameV26").trim() || null,
     email,
     phone,
     cpf,
@@ -48109,8 +47592,8 @@ async function saveAdminTeacherAccessV2(teacherId) {
   if (!select) return;
 
   const { error } = await supabaseClient.rpc(
-    "admin_set_teacher_access_v2",
-    { p_teacher_id: teacherId, p_access_type: select.value }
+    "admin_set_teacher_plan_v26",
+    { p_teacher_id: teacherId, p_plan: select.value }
   );
 
   if (error) {
@@ -48261,13 +47744,14 @@ async function saveTeacherStudentPersonalDataV2(studentId) {
   }
 
   const { error } = await supabaseClient.rpc(
-    "save_teacher_student_personal_data_v2",
+    "save_teacher_student_personal_data_v26",
     {
       p_student_id: studentId,
       p_name: name,
       p_email: email,
       p_phone: phone,
-      p_cpf: cpf
+      p_cpf: cpf,
+      p_preferred_name: value("teacherStudentPreferredNameV26") || null
     }
   );
 
@@ -48304,6 +47788,9 @@ async function updateUserEmailV2(userId, email) {
     };
   }
 
+  if (data?.confirmation_sent !== undefined) {
+    alert(data.warning || "E-mail corrigido. O titular da conta precisa confirmar o novo endereço pelo link recebido antes de entrar.");
+  }
   return { error: null };
 }
 
@@ -49121,3 +48608,52 @@ document.addEventListener("DOMContentLoaded", () => {
     if (input.dataset.currencyV19 !== undefined) input.value = formatCurrencyInputV19(input.value);
   });
 });
+
+function applyStudentAgendaColorV26(cell) {
+  if (!cell.classList.contains("schedule-cell")) return;
+  let state = ["available","occupied","unavailable","own","paused-own","own-makeup"].find(name => cell.classList.contains(name));
+  if (cell.textContent.includes("Prazo encerrado")) state = "expired";
+  if (cell.classList.contains("student-history")) {
+    state = cell.textContent.includes("cancelada") ? "cancelled" : cell.textContent.includes("Reposicao realizada") ? "own-makeup" : "own";
+  }
+  if (!state) return;
+  cell.dataset.agendaColor = state;
+  cell.style.removeProperty("background-color");
+  cell.style.removeProperty("color");
+  cell.style.removeProperty("opacity");
+}
+
+function openStudentPasswordFormV26() {
+  document.getElementById("studentPasswordDialogV26")?.remove();
+  const dialog = document.createElement("dialog");
+  dialog.id = "studentPasswordDialogV26";
+  dialog.innerHTML = `<form id="studentPasswordFormV26"><h3>Trocar minha senha</h3>
+    <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label>Confirmar nova senha<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required></label>
+    <p role="status"></p><button type="submit" class="action-button">Salvar senha</button>
+    <button type="button" class="secondary-button" data-close>Cancelar</button></form>`;
+  document.body.appendChild(dialog);
+  dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.querySelector("form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const password = form.elements.password.value;
+    const confirmation = form.elements.confirmation.value;
+    const message = form.querySelector('[role="status"]');
+    if (password.length < 8 || password !== confirmation) { message.textContent = "Use pelo menos 8 caracteres e repita a mesma senha."; return; }
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const changedAt = new Date().toISOString();
+      const { data, error } = await supabaseClient.auth.updateUser({password, data:{password_changed_at:changedAt}});
+      if (error) { message.textContent = error.message || "Não foi possível alterar a senha."; return; }
+      currentUser = data.user;
+      form.reset();
+      document.querySelector(".student-first-login-v26")?.remove();
+      message.textContent = "Senha alterada com sucesso.";
+    } catch { message.textContent = "Falha de conexão. Tente novamente."; }
+    finally { submit.disabled = false; }
+  });
+  dialog.showModal();
+}
