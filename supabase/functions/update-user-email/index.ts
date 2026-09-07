@@ -27,19 +27,29 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const isServiceAdmin = authorization === `Bearer ${serviceKey}` || req.headers.get("apikey") === serviceKey;
-  if (!isServiceAdmin) {
-    const { data: callerData, error: callerError } = await caller.auth.getUser();
-    if (callerError || !callerData.user) return json({ error: "Sessao invalida." }, 401);
-  }
-
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "Dados invalidos." }, 400); }
   const userId = String(body?.userId ?? "").trim();
   const email = String(body?.email ?? "").trim().toLowerCase();
   if (!userId || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return json({ error: "Usuario ou e-mail invalido." }, 400);
 
+  let isServiceAdmin = authorization === `Bearer ${serviceKey}` || req.headers.get("apikey") === serviceKey;
   if (!isServiceAdmin) {
+    const token = authorization.replace(/^Bearer\s+/i, "");
+    let claims: any = null;
+    try { claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { /* A normal invalid token is rejected below. */ }
+    if (claims?.role === "service_role") {
+      // The claim is only a routing hint. Auth must verify this credential's admin access.
+      const serviceCaller = createClient(supabaseUrl, token, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const verified = await serviceCaller.auth.admin.getUserById(userId);
+      isServiceAdmin = !verified.error && Boolean(verified.data?.user);
+    }
+  }
+  if (!isServiceAdmin) {
+    const { data: callerData, error: callerError } = await caller.auth.getUser();
+    if (callerError || !callerData.user) return json({ error: "Sessao invalida." }, 401);
     const authorizationResult = await caller.rpc("can_manage_user_identity_v3", {
       p_target_profile_id: userId,
     });
