@@ -22292,8 +22292,8 @@ function renderTeacherStudentOverview(
     <div
       style="
         display:grid;
-        grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-        gap:14px;
+        grid-template-columns:minmax(0,1fr);
+        gap:8px;
       "
     >
 
@@ -43211,8 +43211,13 @@ function renderTeacherHolidayDecisionArea() {
   }
 
 
+  const today = formatDateForDatabase(new Date());
+  const upcomingHolidays = currentTeacherHolidayWeek.filter(
+    holiday => String(holiday.holiday_date).slice(0, 10) >= today
+  );
+
   if (
-    currentTeacherHolidayWeek.length ===
+    upcomingHolidays.length ===
       0
   ) {
 
@@ -43247,7 +43252,7 @@ function renderTeacherHolidayDecisionArea() {
         "
       >
 
-        ${currentTeacherHolidayWeek
+        ${upcomingHolidays
           .map(
             holiday => `
 
@@ -43378,6 +43383,12 @@ function renderTeacherHolidayDecisionArea() {
           const holidayDate =
             button.dataset.holidayDate;
 
+
+          // A page left open overnight must not submit a past decision.
+          if (String(holidayDate).slice(0, 10) < formatDateForDatabase(new Date())) {
+            renderTeacherHolidayDecisionArea();
+            return;
+          }
 
           const hasClasses =
             button.dataset.hasClasses ===
@@ -47915,7 +47926,7 @@ function renderTeacherToolsPageV3(content) {
       </section>
 
       <section class="card v3-tool-card v3-wide" id="teacherProfileProgressReportV3">
-        <h3>Relatorio de evolucao do aluno</h3>
+        <details class="student-progress-collapse-v26"><summary class="secondary-button">Relatório de evolução do aluno</summary>
         <div class="v3-form-grid">
           <label>Aluno<select id="progressStudentV3"><option value="">Selecione</option>${options}</select></label>
           <label>Inicio<input type="date" id="progressStartV3"></label>
@@ -47934,6 +47945,7 @@ function renderTeacherToolsPageV3(content) {
           <button type="button" class="secondary-button" id="printProgressReportV3">Imprimir</button>
         </div>
         <div id="progressReportResultV3" class="v3-result"></div>
+      </details>
       </section>
 
       <section class="card v3-tool-card v3-wide">
