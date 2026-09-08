@@ -23576,7 +23576,7 @@ function closeTeacherStudentDetailV28() {
     area.dataset.request = String(Number(area.dataset.request || 0) + 1);
     delete area.dataset.studentId;
     area.innerHTML = "";
-    area.hidden = true;
+    area.hidden = false;
   }
   document.querySelectorAll(".open-teacher-student-button").forEach(button => {
     button.setAttribute("aria-expanded", "false");
