@@ -22236,6 +22236,12 @@ function renderTeacherStudentOverview(
   }
 
 
+  const detailArea = document.getElementById("teacherStudentDetailArea");
+  if (detailArea && container.contains(detailArea)) {
+    closeTeacherStudentDetailV28();
+    container.after(detailArea);
+  }
+
   const normalizedSearch =
     String(
       searchText || ""
@@ -22318,9 +22324,12 @@ function renderTeacherStudentOverview(
         "click",
         () => {
 
-          openTeacherStudentDetail(
-            button.dataset.studentId
-          );
+          const detail = document.getElementById("teacherStudentDetailArea");
+          if (detail?.dataset.studentId === button.dataset.studentId) {
+            closeTeacherStudentDetailV28();
+          } else {
+            openTeacherStudentDetail(button.dataset.studentId);
+          }
 
         }
       );
@@ -23561,6 +23570,20 @@ async function saveTeacherStudentClassLink(
 // DETALHE DO ALUNO
 // =====================================================
 
+function closeTeacherStudentDetailV28() {
+  const area = document.getElementById("teacherStudentDetailArea");
+  if (area) {
+    area.dataset.request = String(Number(area.dataset.request || 0) + 1);
+    delete area.dataset.studentId;
+    area.innerHTML = "";
+    area.hidden = true;
+  }
+  document.querySelectorAll(".open-teacher-student-button").forEach(button => {
+    button.setAttribute("aria-expanded", "false");
+    button.textContent = "Ver aluno ▾";
+  });
+}
+
 async function openTeacherStudentDetail(
   studentId
 ) {
@@ -23575,6 +23598,18 @@ async function openTeacherStudentDetail(
     return;
   }
 
+
+  const request = String(Number(area.dataset.request || 0) + 1);
+  area.dataset.request = request;
+  area.dataset.studentId = String(studentId);
+  area.hidden = false;
+  document.querySelectorAll(".open-teacher-student-button").forEach(button => {
+    const selected = button.dataset.studentId === String(studentId);
+    button.setAttribute("aria-expanded", String(selected));
+    button.setAttribute("aria-controls", "teacherStudentDetailArea");
+    button.textContent = selected ? "Fechar aluno ▴" : "Ver aluno ▾";
+    if (selected) button.closest(".student-row-v26")?.after(area);
+  });
 
   const student =
     teacherStudentOverviewData.find(
@@ -23709,6 +23744,8 @@ async function openTeacherStudentDetail(
       )
 
     ]);
+
+  if (!area.isConnected || area.dataset.request !== request) return;
 
 
   if (
@@ -25326,8 +25363,7 @@ async function openTeacherStudentDetail(
       "click",
       () => {
 
-        area.innerHTML =
-          "";
+        closeTeacherStudentDetailV28();
 
       }
     );
