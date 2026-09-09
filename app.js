@@ -28,6 +28,8 @@ let currentTeacherAccess = null;
 let currentAdminTeacherFilter = "all";
 let publicTeacherFinalizationPromiseV4 = null;
 let adminSupportTicketsV3 = [];
+let currentAdminPlanFilterV31 = "all";
+let adminSupportBadgeTimerV31 = null;
 let adminSupportBeforeV3 = null;
 let adminSupportViewV4 = "active";
 let currentAccessViewV5 = "teacher";
@@ -2805,6 +2807,10 @@ function setupAdminSideMenuV8(content) {
   });
 
   selectWorkspace("summary");
+  refreshAdminSupportBadgeV31();
+  if (!adminSupportBadgeTimerV31) adminSupportBadgeTimerV31 = setInterval(() => {
+    if (document.visibilityState !== 'hidden' && document.querySelector('[data-admin-workspace-v8="support"]')) refreshAdminSupportBadgeV31();
+  }, 60000);
 }
 
 
@@ -7064,17 +7070,24 @@ function renderAdminTeacherListV2() {
     return;
   }
 
-  const filtered =
-    currentAdminTeachers.filter(
-      teacher =>
-        currentAdminTeacherFilter === "all" ||
-        String(
-          teacher.access_category ||
-          teacher.access_type ||
-          "paid"
-        ) === currentAdminTeacherFilter
-    );
-
+  let filterArea = document.getElementById('adminPlanFilterAreaV31');
+  if (!filterArea) {
+    filterArea = document.createElement('div');
+    filterArea.id = 'adminPlanFilterAreaV31';
+    filterArea.className = 'aul-filter-v31';
+    filterArea.innerHTML = `<label for="adminPlanFilterV31">Tipo de assinatura</label>
+      <select id="adminPlanFilterV31"><option value="all">Todas as assinaturas</option>
+      <option value="starter">Starter</option><option value="plus">Plus</option><option value="pro">Pro</option>
+      <option value="premium">Premium</option><option value="vip">VIP</option></select>`;
+    container.before(filterArea);
+    filterArea.querySelector('select').value = currentAdminPlanFilterV31;
+    filterArea.querySelector('select').addEventListener('change', event => {
+      currentAdminPlanFilterV31 = event.target.value;
+      renderAdminTeacherListV2();
+    });
+  }
+  filterArea.hidden = currentAdminTeacherFilter !== 'paid';
+  const filtered = filterAdminTeachersV31(currentAdminTeachers, currentAdminTeacherFilter, currentAdminPlanFilterV31);
   container.innerHTML =
     filtered.length === 0
       ? `
@@ -16503,6 +16516,7 @@ function setTeacherPage(page) {
         <h3>
           Perfil do professor
         </h3>
+        <button type="button" class="secondary-button" id="teacherChangePasswordV31">Trocar minha senha</button>
 
 
         <p>
@@ -16528,6 +16542,7 @@ function setTeacherPage(page) {
     `;
 
 
+    document.getElementById('teacherChangePasswordV31')?.addEventListener('click', openStudentPasswordFormV26);
     loadTeacherProfilePage();
 
     renderTeacherToolsPageV3(
@@ -18278,6 +18293,9 @@ function setTeacherPage(page) {
         </div>
 
 
+        <div class="aul-filter-v31"><label for="teacherFinancialStatusFilterV31">Situação do pagamento</label>
+          <select id="teacherFinancialStatusFilterV31"><option value="all">Todas</option><option value="paid">Pago</option>
+          <option value="pending">Pendente</option><option value="overdue">Em atraso</option></select></div>
         <div
           id="teacherFinancialSummary"
           style="
@@ -18406,6 +18424,10 @@ function setTeacherPage(page) {
     }
 
 
+    document.getElementById('teacherFinancialStatusFilterV31').addEventListener('change', () => {
+      preserveFinancialPanelsV31();
+      renderTeacherFinancialRecords();
+    });
     loadTeacherFinancialPage();
 
     return;
@@ -28780,9 +28802,8 @@ function renderTeacherFinancialRecords() {
   }
 
 
-  if (
-    currentTeacherFinancialRecords.length === 0
-  ) {
+  const visibleRecords = filterFinancialRecordsV31(currentTeacherFinancialRecords, document.getElementById('teacherFinancialStatusFilterV31')?.value || 'all');
+  if (visibleRecords.length === 0) {
 
     container.innerHTML = `
 
@@ -28794,7 +28815,7 @@ function renderTeacherFinancialRecords() {
           border-radius:10px;
         "
       >
-        Nenhuma mensalidade cadastrada neste mes.
+        Nenhuma mensalidade encontrada com os filtros selecionados.
       </div>
 
     `;
@@ -28813,7 +28834,7 @@ function renderTeacherFinancialRecords() {
       "
     >
 
-      ${currentTeacherFinancialRecords
+      ${visibleRecords
         .map(
           renderTeacherFinancialRecordCard
         )
@@ -29064,11 +29085,8 @@ function renderTeacherFinancialRecordCard(
         </div>
 
 
-        <strong>
-          ${formatPaymentStatus(
-            item.payment_status
-          )}
-        </strong>
+        <div class="financial-status-nf-v31"><strong>${formatPaymentStatus(effectiveFinancialStatusV31(item))}</strong>
+          <small>${item.invoice_required ? (item.invoice_issued ? 'NF: emitida' : 'NF: necessária · pendente') : 'NF: não necessária'}</small></div>
 
       </div>
 
@@ -46244,6 +46262,7 @@ async function replyTeacherSupportTicketV2(ticketId) {
 
 
 async function loadAdminSupportArea(append = false) {
+  refreshAdminSupportBadgeV31();
   const area = document.getElementById("adminSupportArea");
   if (!area) return;
   if (!currentAdminTeachers.length) await loadAdminTeachers();
@@ -47717,6 +47736,7 @@ function openStudentPasswordFormV26() {
   document.getElementById("studentPasswordDialogV26")?.remove();
   const dialog = document.createElement("dialog");
   dialog.id = "studentPasswordDialogV26";
+  dialog.className = "aul-password-dialog-v31";
   dialog.innerHTML = `<form id="studentPasswordFormV26"><h3>Trocar minha senha</h3>
     <label>Nova senha<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
     <label>Confirmar nova senha<input name="confirmation" type="password" autocomplete="new-password" minlength="8" required></label>
@@ -47873,4 +47893,45 @@ async function openFinancialLessonReportV30(areaId, studentId, year, month, stud
     });
   }));
   area.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+
+function filterAdminTeachersV31(teachers, category, plan) {
+  return teachers.filter(teacher => {
+    const access = String(teacher.access_category || teacher.access_type || 'paid');
+    const code = String(teacher.subscription_plan || '').toLowerCase();
+    return (category === 'all' || access === category) &&
+      (category !== 'paid' || plan === 'all' || (plan === 'vip' ? ['vip','custom'].includes(code) : code === plan));
+  });
+}
+function effectiveFinancialStatusV31(item, today = formatDateForDatabase(new Date())) {
+  const status = String(item.payment_status || 'pending').toLowerCase();
+  return status === 'pending' && item.due_date && String(item.due_date).slice(0,10) < today ? 'overdue' : status;
+}
+function filterFinancialRecordsV31(records, status) {
+  return records.filter(item => status === 'all' || effectiveFinancialStatusV31(item) === status);
+}
+function preserveFinancialPanelsV31() {
+  const list = document.getElementById('teacherFinancialList');
+  if (!list) return;
+  for (const id of ['teacherFinancialReportArea','teacherFinancialFormArea']) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    panel.dataset.requestV30 = String(Number(panel.dataset.requestV30 || 0)+1);
+    panel.style.display = 'none'; panel.innerHTML = '';
+    if (list.contains(panel)) list.after(panel);
+  }
+}
+async function refreshAdminSupportBadgeV31() {
+  const button = document.querySelector('[data-admin-workspace-v8="support"]');
+  if (!button) return;
+  const {data, error} = await supabaseClient.rpc('get_admin_support_pending_count_v31');
+  if (error || !button.isConnected) return;
+  let badge = button.querySelector('.admin-support-badge-v31');
+  if (!badge) { badge=document.createElement('span');badge.className='admin-support-badge-v31';badge.setAttribute('role','status');button.appendChild(badge); }
+  const count = Number(data || 0);
+  badge.hidden = count === 0;
+  badge.textContent = String(count);
+  badge.title = `${count} chamado(s) aguardando resposta`;
+  button.setAttribute('aria-label',count ? `Suporte: ${count} chamado(s) aguardando resposta` : 'Suporte');
 }
