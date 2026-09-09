@@ -20,7 +20,7 @@ begin
     day:=(item->>'day_of_week')::integer; starts:=(item->>'start_time')::time;
     if day is null or day not between 0 and 6 or starts is null then raise exception 'Dia ou horário inválido.'; end if;
     minutes:=extract(hour from starts)::integer*60+extract(minute from starts)::integer;
-    if extract(minute from starts)::integer not in (0,30) or extract(second from starts)<>0 or minutes+duration>=1440 then raise exception 'Horário ou duração inválidos.'; end if;
+    if extract(minute from starts)::integer not in (0,30) or extract(second from starts)<>0 or minutes+duration>1440 then raise exception 'Horário ou duração inválidos.'; end if;
     for block_index in 0..(duration/30-1) loop
       block_start:=(starts+make_interval(mins=>block_index*30))::time;
       slot_key:=day::text||'|'||block_start::text;
