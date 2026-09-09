@@ -4040,3 +4040,19 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .financial-adjustment-v30 label { display:grid; gap:6px; }
 .financial-adjustment-v30 textarea { width:100%; box-sizing:border-box; }
 .financial-report-v30 p, .financial-report-v30 small { overflow-wrap:anywhere; }
+
+/* Mudanças 6: match existing forms and expose actionable status. */
+#newStudentPreferredNameV26, #teacherStudentPreferredNameV26,
+.aul-password-dialog-v31 input, .aul-filter-v31 select {
+  width:100%; box-sizing:border-box; min-height:40px; padding:10px 12px;
+  border:1px solid #e3d4c5; border-radius:12px; background:#fff;
+  color:inherit; font:inherit; box-shadow:none;
+}
+.aul-password-dialog-v31 { width:min(480px,calc(100vw - 32px)); box-sizing:border-box; padding:24px; border:1px solid #e3d4c5; border-radius:18px; }
+.aul-password-dialog-v31 label { display:grid; gap:8px; margin:16px 0; }
+.aul-password-dialog-v31::backdrop { background:rgba(30,25,20,.4); }
+.aul-filter-v31 { display:grid; gap:8px; margin:16px 0; max-width:360px; }
+.aul-filter-v31[hidden], .admin-support-badge-v31[hidden] { display:none !important; }
+.financial-status-nf-v31 { display:grid; gap:6px; text-align:right; }
+.financial-status-nf-v31 small { color:#66564b; }
+.admin-side-button-v8 .admin-support-badge-v31 { margin-left:auto; background:#b42318; color:white; border-radius:999px; min-width:22px; padding:3px 6px; text-align:center; font-size:12px; }
