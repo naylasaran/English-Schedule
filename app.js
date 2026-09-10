@@ -16341,56 +16341,7 @@ function bindStudentProgressReportV5() {
 // REPOSIÇÕES DO PROFESSOR
 // =====================================================
 
-async function loadTeacherMakeupsPageV23() {
-  const list = document.getElementById("teacherMakeupsListV23");
-  const select = document.getElementById("teacherMakeupStudentV23");
-  if (!list || !select) return;
 
-  if (!currentTeacherStudents.length) await loadTeacherStudents();
-  const students = currentTeacherStudents.filter(student => student.active !== false);
-  select.innerHTML = students.length
-    ? students.map(student => `<option value="${student.student_id || student.id}">${escapeHtml(student.student_name || student.name)}</option>`).join("")
-    : `<option value="">Nenhum aluno ativo</option>`;
-
-  const results = await Promise.all(students.map(async student => {
-    const result = await supabaseClient.rpc("get_teacher_student_makeups_v26", {
-      p_student_id: student.student_id || student.id
-    });
-    return (result.data || []).map(makeup => ({
-      ...makeup,
-      student_id: student.student_id || student.id,
-      student_name: student.student_name || student.name
-    }));
-  }));
-  const makeups = results.flat().sort((a, b) => String(a.student_name).localeCompare(String(b.student_name), "pt-BR"));
-  list.innerHTML = makeups.length ? `
-    <div class="teacher-makeup-list-v23">${makeups.map(makeup => {
-      const makeupId = makeup.makeup_id || makeup.id;
-      const editable = String(makeup.status || "").toLowerCase() === "available";
-      return `<article class="teacher-makeup-item-v23">
-        <div><strong>${escapeHtml(makeup.student_name)}</strong><span>${escapeHtml(formatMakeupStatus(makeup.status).label)}${makeup.expires_at ? ` · validade ${formatDateTime(makeup.expires_at)}` : ""}</span><small>${makeup.source_lesson_date ? `Aula de origem: ${escapeHtml(makeup.source_lesson_date.split("-").reverse().join("/"))}` : "Concessão sem data de aula vinculada"}</small>${makeup.notes ? `<p class="makeup-notes-v26">${escapeHtml(makeup.notes)}</p>` : ""}</div>
-        <div class="teacher-makeup-actions-v23">
-          <select class="teacher-makeup-duration-v23" data-makeup-id="${makeupId}" ${editable ? "" : "disabled"}>
-            ${[30, 60, 90, 120].map(duration => `<option value="${duration}" ${Number(makeup.duration_minutes) === duration ? "selected" : ""}>${duration} min</option>`).join("")}
-          </select>
-          ${editable ? `<button type="button" class="secondary-button save-teacher-makeup-v23" data-makeup-id="${makeupId}">Salvar duração</button><button type="button" class="secondary-button delete-teacher-makeup-v23" data-makeup-id="${makeupId}" data-student-name="${escapeHtml(makeup.student_name)}">Excluir</button>` : ""}
-        </div>
-      </article>`;
-    }).join("")}</div>
-  ` : `<div class="card"><strong>Nenhuma reposição registrada.</strong></div>`;
-
-  document.querySelectorAll(".save-teacher-makeup-v23").forEach(button => {
-    button.addEventListener("click", () => updateTeacherMakeupDurationV23(button.dataset.makeupId));
-  });
-  document.querySelectorAll(".delete-teacher-makeup-v23").forEach(button => {
-    button.addEventListener("click", () => deleteTeacherMakeupV23(button.dataset.makeupId, button.dataset.studentName));
-  });
-  const grantButton = document.getElementById("grantTeacherMakeupV23");
-  if (grantButton && grantButton.dataset.boundV23 !== "true") {
-    grantButton.dataset.boundV23 = "true";
-    grantButton.addEventListener("click", grantTeacherMakeupV23);
-  }
-}
 
 async function grantTeacherMakeupV23() {
   const studentId = document.getElementById("teacherMakeupStudentV23")?.value;
@@ -16436,6 +16387,7 @@ async function deleteTeacherMakeupV23(makeupId, studentName) {
 // =====================================================
 
 function setTeacherPage(page) {
+  teacherAttendanceViewV32 = null;
 
   const content =
     document.getElementById(
@@ -30823,6 +30775,8 @@ async function loadTeacherAttendanceReport() {
   }
 
 
+  const request = String(Number(list.dataset.requestV32 || 0) + 1);
+  list.dataset.requestV32 = request;
   list.innerHTML =
     "Carregando registros...";
 
@@ -30861,6 +30815,7 @@ async function loadTeacherAttendanceReport() {
     );
 
 
+  if (!list.isConnected || list.dataset.requestV32 !== request) return;
   if (error) {
 
     console.error(
@@ -31122,7 +31077,7 @@ function renderTeacherAttendanceReport(
 
       ${records
         .map(
-          renderTeacherAttendanceReportCard
+          record => renderTeacherAttendanceReportCard(record)
         )
         .join("")}
 
@@ -31169,7 +31124,7 @@ function renderTeacherAttendanceReport(
 // =====================================================
 
 function renderTeacherAttendanceReportCard(
-  record
+  record, readOnly = false
 ) {
 
   const status =
@@ -31316,7 +31271,7 @@ function renderTeacherAttendanceReportCard(
 
 
       ${
-        record.lesson_status !==
+        !readOnly && record.lesson_status !==
         "cancelled"
 
           ? `
@@ -35402,7 +35357,7 @@ async function createTeacherContentFromRecord() {
 // COM MATERIA + CONTEUDO
 // =====================================================
 
-async function openTeacherAttendanceManager(
+async function renderTeacherAttendanceFormV32(
   date,
   slot
 ) {
@@ -35515,8 +35470,7 @@ async function openTeacherAttendanceManager(
       closeButton.onclick =
         () => {
 
-          area.innerHTML =
-            "";
+          closeTeacherAttendanceV32();
 
         };
 
@@ -35549,6 +35503,8 @@ async function openTeacherAttendanceManager(
   }
 
 
+  if (!area.isConnected) return;
+  setAttendanceStudentV32(occurrence);
   const isMakeup =
     occurrence.occurrence_type ===
     "makeup";
@@ -35648,6 +35604,7 @@ async function openTeacherAttendanceManager(
       : [];
 
 
+  if (!area.isConnected) return;
   const statusOptions =
     isMakeup
 
@@ -36575,8 +36532,7 @@ async function openTeacherAttendanceManager(
       "click",
       () => {
 
-        area.innerHTML =
-          "";
+        closeTeacherAttendanceV32();
 
       }
     );
@@ -36596,6 +36552,7 @@ async function saveTeacherAttendance(
   isMakeup
 ) {
 
+  const attendanceView = teacherAttendanceViewV32;
   const statusSelect =
     document.getElementById(
       "teacherAttendanceStatus"
@@ -36823,19 +36780,8 @@ async function saveTeacherAttendance(
   }
 
 
-  const area =
-    document.getElementById(
-      "teacherScheduleEditArea"
-    );
-
-
-  if (area) {
-
-    area.innerHTML =
-      "";
-
-  }
-
+  if (teacherAttendanceViewV32 !== attendanceView) return;
+  closeTeacherAttendanceV32();
 
   await loadTeacherWeeklySchedule();
 
@@ -47934,4 +47880,135 @@ async function refreshAdminSupportBadgeV31() {
   badge.textContent = String(count);
   badge.title = `${count} chamado(s) aguardando resposta`;
   button.setAttribute('aria-label',count ? `Suporte: ${count} chamado(s) aguardando resposta` : 'Suporte');
+}
+
+
+let teacherMakeupsV32 = [];
+let teacherMakeupTabV32 = 'available';
+let teacherMakeupSearchV32 = '';
+let teacherAttendanceViewV32 = null;
+
+function makeupCategoryV32(makeup, now = Date.now()) {
+  const status = String(makeup.status || '').toLowerCase();
+  if (['used','completed'].includes(status)) return 'completed';
+  if (status === 'reserved') return 'reserved';
+  if (['expired','lost','cancelled'].includes(status)) return 'expired';
+  if (makeup.expires_at && new Date(makeup.expires_at).getTime() < now) return 'expired';
+  return 'available';
+}
+
+async function loadTeacherMakeupsPageV23() {
+  const list = document.getElementById('teacherMakeupsListV23');
+  const select = document.getElementById('teacherMakeupStudentV23');
+  if (!list || !select) return;
+  if (!currentTeacherStudents.length) await loadTeacherStudents();
+  const active = currentTeacherStudents.filter(s => s.active !== false);
+  const selected = select.value;
+  select.innerHTML = active.length ? active.map(s => `<option value="${escapeHtml(s.student_id || s.id)}">${escapeHtml(s.student_name || s.name)}</option>`).join('') : '<option value="">Nenhum aluno ativo</option>';
+  if (active.some(s => String(s.student_id || s.id) === selected)) select.value = selected;
+  list.textContent = 'Carregando reposições...';
+  try {
+    const groups = await Promise.all(currentTeacherStudents.map(async student => {
+      const {data,error} = await supabaseClient.rpc('get_teacher_student_makeups_v26',{p_student_id:student.student_id || student.id});
+      if (error) throw error;
+      return (data || []).map(m => ({...m,student_id:student.student_id || student.id,student_name:student.student_name || student.name}));
+    }));
+    if (!list.isConnected) return;
+    teacherMakeupsV32 = groups.flat();
+    renderTeacherMakeupTabsV32();
+  } catch (error) {
+    if (list.isConnected) list.innerHTML = `<p role="alert">Não foi possível carregar as reposições. Tente abrir esta página novamente.</p>`;
+  }
+  const grant = document.getElementById('grantTeacherMakeupV23');
+  if (grant && grant.dataset.boundV23 !== 'true') {
+    grant.dataset.boundV23='true'; grant.addEventListener('click',grantTeacherMakeupV23);
+  }
+}
+
+function renderTeacherMakeupTabsV32() {
+  const list = document.getElementById('teacherMakeupsListV23');
+  if (!list) return;
+  const tabs = [['available','Disponíveis'],['reserved','Agendadas'],['completed','Realizadas'],['expired','Expiradas']];
+  list.innerHTML = `<div class="makeup-tabs-v32" role="tablist" aria-label="Situação das reposições">${tabs.map(([id,label]) => `<button type="button" role="tab" id="makeupTab-${id}-v32" aria-controls="teacherMakeupGroupsV32" aria-selected="${teacherMakeupTabV32===id}" data-makeup-tab-v32="${id}">${label} <span>${teacherMakeupsV32.filter(m=>makeupCategoryV32(m)===id).length}</span></button>`).join('')}</div><label class="makeup-search-v32">Buscar aluno<input type="search" id="teacherMakeupSearchV32" value="${escapeHtml(teacherMakeupSearchV32)}" placeholder="Nome do aluno"></label><div id="teacherMakeupGroupsV32" role="tabpanel" aria-labelledby="makeupTab-${teacherMakeupTabV32}-v32"></div>`;
+  list.querySelectorAll('[data-makeup-tab-v32]').forEach(button => button.addEventListener('click',()=>{
+    teacherMakeupTabV32=button.dataset.makeupTabV32;renderTeacherMakeupTabsV32();
+    document.getElementById(`makeupTab-${teacherMakeupTabV32}-v32`)?.focus();
+  }));
+  document.getElementById('teacherMakeupSearchV32').addEventListener('input',event=>{teacherMakeupSearchV32=event.target.value;renderTeacherMakeupGroupsV32();});
+  renderTeacherMakeupGroupsV32();
+}
+
+function renderTeacherMakeupGroupsV32() {
+  const list = document.getElementById('teacherMakeupGroupsV32');
+  if (!list) return;
+  const query = teacherMakeupSearchV32.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const groups = new Map();
+  teacherMakeupsV32.filter(m => makeupCategoryV32(m)===teacherMakeupTabV32 && String(m.student_name).toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query)).forEach(m=>{
+    if (!groups.has(m.student_id)) groups.set(m.student_id,{name:m.student_name,items:[]});
+    groups.get(m.student_id).items.push(m);
+  });
+  list.innerHTML = groups.size ? Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(group=>`<details class="makeup-student-v32"><summary><strong>${escapeHtml(group.name)}</strong><span>${group.items.length} reposição(ões)</span><span class="secondary-button">Ver reposições ▾</span></summary><div class="makeup-student-items-v32">${group.items.map(renderTeacherMakeupItemV32).join('')}</div></details>`).join('') : '<p class="card">Nenhuma reposição encontrada nesta situação.</p>';
+  list.querySelectorAll('.save-teacher-makeup-v23').forEach(b=>b.addEventListener('click',()=>updateTeacherMakeupDurationV23(b.dataset.makeupId)));
+  list.querySelectorAll('.delete-teacher-makeup-v23').forEach(b=>b.addEventListener('click',()=>deleteTeacherMakeupV23(b.dataset.makeupId,b.dataset.studentName)));
+}
+
+function renderTeacherMakeupItemV32(makeup) {
+  const id=makeup.makeup_id || makeup.id;
+  const category=makeupCategoryV32(makeup);
+  const editable=category==='available' && makeup.status==='available';
+  const label=category==='reserved'?'Agendada':category==='completed'?'Realizada':category==='expired' && makeup.status==='available'?'Expirada':formatMakeupStatus(makeup.status).label;
+  return `<article class="teacher-makeup-item-v23"><div><strong>${escapeHtml(label)}</strong><span>${makeup.expires_at?`Validade: ${escapeHtml(formatDateTime(makeup.expires_at))}`:'Sem validade informada'}</span><small>${makeup.source_lesson_date?`Aula de origem: ${escapeHtml(makeup.source_lesson_date.split('-').reverse().join('/'))}`:'Concessão sem data de aula vinculada'}</small>${makeup.notes?`<p class="makeup-notes-v26">${escapeHtml(makeup.notes)}</p>`:''}</div><div class="teacher-makeup-actions-v23"><select aria-label="Duração da reposição" class="teacher-makeup-duration-v23" data-makeup-id="${escapeHtml(id)}" ${editable?'':'disabled'}>${[30,60,90,120].map(d=>`<option value="${d}" ${Number(makeup.duration_minutes)===d?'selected':''}>${d} min</option>`).join('')}</select>${editable?`<button type="button" class="secondary-button save-teacher-makeup-v23" data-makeup-id="${escapeHtml(id)}">Salvar duração</button><button type="button" class="secondary-button delete-teacher-makeup-v23" data-makeup-id="${escapeHtml(id)}" data-student-name="${escapeHtml(makeup.student_name)}">Excluir</button>`:''}</div></article>`;
+}
+
+async function openTeacherAttendanceManager(date,slot) {
+  const content=document.getElementById('teacherContent');
+  if (!content) return;
+  if (teacherAttendanceViewV32 && content.querySelector('#attendanceScreenV32')) return;
+  const previous=document.createDocumentFragment();
+  const view={previous,scroll:window.scrollY,focus:document.activeElement,studentId:null,date};
+  while(content.firstChild) previous.appendChild(content.firstChild);
+  teacherAttendanceViewV32=view;
+  content.innerHTML=`<section id="attendanceScreenV32" class="attendance-screen-v32"><div class="attendance-heading-v32"><button type="button" class="secondary-button" id="attendanceBackV32">← Voltar</button><button type="button" class="secondary-button" id="attendanceHistoryButtonV32" disabled>Ver histórico do aluno</button></div><div id="teacherScheduleEditArea"></div><section id="attendanceHistoryV32" class="card" hidden><h3>Histórico do aluno</h3><label>Mês do histórico<input type="month" id="attendanceHistoryMonthV32" value="${formatDateForDatabase(date).slice(0,7)}"></label><div id="attendanceHistoryListV32"></div></section></section>`;
+  document.getElementById('attendanceBackV32').onclick=closeTeacherAttendanceV32;
+  document.getElementById('attendanceHistoryButtonV32').onclick=async()=>{
+    const area=document.getElementById('attendanceHistoryV32');area.hidden=!area.hidden;
+    document.getElementById('attendanceHistoryButtonV32').textContent=area.hidden?'Ver histórico do aluno':'Ocultar histórico';
+    if(!area.hidden) await loadAttendanceHistoryV32();
+  };
+  document.getElementById('attendanceHistoryMonthV32').onchange=loadAttendanceHistoryV32;
+  content.scrollIntoView({block:'start'});
+  try { await renderTeacherAttendanceFormV32(date,slot); }
+  catch(error) {
+    if(teacherAttendanceViewV32===view && document.getElementById('attendanceScreenV32')) document.getElementById('teacherScheduleEditArea').innerHTML='<p role="alert">Não foi possível abrir o registro. Volte e tente novamente.</p>';
+  }
+}
+
+function setAttendanceStudentV32(occurrence) {
+  if(!teacherAttendanceViewV32) return;
+  teacherAttendanceViewV32.studentId=occurrence.student_id;
+  const button=document.getElementById('attendanceHistoryButtonV32');if(button) button.disabled=false;
+}
+
+function closeTeacherAttendanceV32() {
+  const view=teacherAttendanceViewV32;
+  const content=document.getElementById('teacherContent');
+  teacherAttendanceViewV32=null;
+  if(!view || !content?.querySelector('#attendanceScreenV32')) return;
+  content.replaceChildren(view.previous);
+  if(view.focus?.isConnected) view.focus.focus({preventScroll:true});
+  window.scrollTo({top:view.scroll,behavior:'instant'});
+}
+
+async function loadAttendanceHistoryV32() {
+  const view=teacherAttendanceViewV32;
+  const list=document.getElementById('attendanceHistoryListV32');
+  const month=document.getElementById('attendanceHistoryMonthV32')?.value;
+  if(!view?.studentId || !list || !month) return;
+  const request=String(Number(list.dataset.request || 0)+1);list.dataset.request=request;
+  list.textContent='Carregando histórico...';
+  const range=getTeacherAttendanceMonthRange(month);
+  const {data,error}=await supabaseClient.rpc('get_teacher_attendance_report',{p_from_date:formatDateForDatabase(range.from),p_to_date:formatDateForDatabase(range.to),p_student_id:view.studentId});
+  if(!list.isConnected || list.dataset.request!==request) return;
+  if(error){list.innerHTML='<p role="alert">Não foi possível carregar o histórico.</p>';return;}
+  list.innerHTML=(data || []).length?(data || []).map(record=>renderTeacherAttendanceReportCard(record,true)).join(''):'<p>Nenhum registro neste mês. Selecione outro mês para consultar aulas anteriores.</p>';
 }
