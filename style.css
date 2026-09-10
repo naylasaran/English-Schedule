@@ -4056,3 +4056,21 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .financial-status-nf-v31 { display:grid; gap:6px; text-align:right; }
 .financial-status-nf-v31 small { color:#66564b; }
 .admin-side-button-v8 .admin-support-badge-v31 { margin-left:auto; background:#b42318; color:white; border-radius:999px; min-width:22px; padding:3px 6px; text-align:center; font-size:12px; }
+
+/* Makeup groups and in-platform attendance screen. */
+.makeup-tabs-v32,.attendance-heading-v32 { display:flex; gap:10px; flex-wrap:wrap; margin:18px 0; }
+.makeup-tabs-v32 button { padding:10px 14px; border:1px solid #e7dfd5; border-radius:10px; background:#fff; color:#7b412f; font:inherit; cursor:pointer; }
+.makeup-tabs-v32 button[aria-selected="true"] { background:#c96f4a; color:#fff; }
+.makeup-tabs-v32 button span { margin-left:6px; font-size:12px; }
+.makeup-search-v32 { display:grid; gap:6px; max-width:360px; margin:16px 0; }
+.makeup-search-v32 input,#attendanceHistoryV32 input { width:100%; min-height:40px; padding:10px 12px; border:1px solid #e7dfd5; border-radius:10px; box-sizing:border-box; }
+.makeup-student-v32 { border:1px solid #e7dfd5; border-radius:12px; margin:12px 0; background:#fffdf9; }
+.makeup-student-v32 > summary { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px; cursor:pointer; list-style:none; }
+.makeup-student-v32 > summary strong { margin-right:auto; }
+.makeup-student-v32 > summary::-webkit-details-marker { display:none; }
+.makeup-student-items-v32 { padding:0 16px 16px; display:grid; gap:10px; }
+.attendance-screen-v32 { width:100%; max-width:1000px; margin:auto; }
+#attendanceHistoryV32[hidden] { display:none; }
+#attendanceHistoryV32 > label { display:grid; gap:6px; max-width:260px; margin-bottom:16px; }
+#attendanceHistoryListV32 { display:grid; gap:12px; }
+@media(max-width:600px) { .makeup-tabs-v32 button { flex:1 1 42%; } .makeup-student-v32 > summary { gap:8px; } .makeup-student-v32 > summary strong { flex-basis:100%; } .teacher-makeup-actions-v23 { flex-wrap:wrap; } }
