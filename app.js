@@ -31127,18 +31127,7 @@ function renderTeacherAttendanceReportCard(
   record, readOnly = false
 ) {
 
-  const status =
-    record.attendance_status
-      ? formatTeacherAttendanceShort(
-          record.attendance_status
-        )
-      : (
-          record.lesson_status ===
-          "cancelled"
-            ? "Aula cancelada"
-            : "Sem registro de presenca"
-        );
-
+  const status = record.lesson_status === 'cancelled' ? 'Aula cancelada' : record.attendance_status ? formatTeacherAttendanceShort(record.attendance_status) : 'Sem registro de presença';
 
   return `
 
