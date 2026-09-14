@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: mudancas-v26-20260907"
+  "Aularium build: mudancas-v33-20260914"
 );
 
 // =====================================================
@@ -109,7 +109,7 @@ document.addEventListener(
   event => {
     const loginTrigger =
       event.target.closest(
-        '[data-public-action="login"]'
+        '[data-public-action="login"], [data-public-action="student-login"]'
       );
 
     if (!loginTrigger) {
@@ -117,7 +117,7 @@ document.addEventListener(
     }
 
     event.preventDefault();
-    showPublicAuthV6();
+    showPublicAuthV6(loginTrigger.dataset.publicAction === "student-login" ? "student" : "all");
   }
 );
 
@@ -1194,7 +1194,7 @@ async function loadGuardianDashboard() {
 // DETALHE DO ALUNO PARA O RESPONSAVEL
 // =====================================================
 
-async function loadGuardianStudentDetail(
+async function loadGuardianStudentDetailBeforeV33(
   studentId
 ) {
 
@@ -1681,7 +1681,7 @@ function renderGuardianHistoryRow(
 // FINANCEIRO PARA O RESPONSAVEL
 // =====================================================
 
-function renderGuardianFinancialRow(
+function renderGuardianFinancialRowBeforeV33(
   item
 ) {
 
@@ -1886,6 +1886,7 @@ async function showTeacherArea() {
   setTeacherPage("agenda");
 
   await loadAgendaOnboardingV5();
+  showWelcomeTourV33().catch(()=>{});
 }
 
 
@@ -7912,6 +7913,7 @@ function renderAdminTeacherCard(
       </div>
 
 
+      ${teacher.access_type === 'free' ? '' : `
       <div
         style="
           margin-top:16px;
@@ -8025,7 +8027,7 @@ function renderAdminTeacherCard(
                 margin-bottom:5px;
               "
             >
-              Valor mensal
+              Valor desta mensalidade
             </label>
 
 
@@ -8036,10 +8038,8 @@ function renderAdminTeacherCard(
               class="admin-teacher-system-fee"
               data-teacher-id="${teacher.teacher_id}"
               value="${
-                teacher.system_monthly_fee != null
-                  ? Number(
-                      teacher.system_monthly_fee
-                    ).toFixed(2)
+                (teacher.amount ?? teacher.system_monthly_fee) != null
+                  ? Number(teacher.amount ?? teacher.system_monthly_fee).toFixed(2)
                   : ""
               }"
               placeholder="0.00"
@@ -8233,6 +8233,7 @@ function renderAdminTeacherCard(
 
       </div>
 
+      `}
       <div class="admin-teacher-students-block-v24">
         <div><strong>Alunos deste professor</strong><p>Consulte os cadastros, envie redefinição de senha ou exclua definitivamente um vínculo.</p></div>
         <button type="button" class="secondary-button open-admin-teacher-students-v24" data-teacher-id="${teacher.teacher_id}">Mostrar alunos</button>
@@ -9223,7 +9224,7 @@ async function loadStudentClassLink() {
 // AVISOS DO ALUNO
 // =====================================================
 
-async function loadStudentNotices() {
+async function loadStudentNoticesBeforeV33() {
 
   const container =
     document.getElementById(
@@ -9872,7 +9873,7 @@ async function loadStudentFinancialHistory() {
 // CARD FINANCEIRO
 // =====================================================
 
-function renderFinancialCard(item) {
+function renderFinancialCardBeforeV33(item) {
 
   const grossAmount = Number(item.amount || 0);
   const discountAmount = Number(item.discount || 0);
@@ -16322,7 +16323,7 @@ function renderStudentProgressReportV5() {
           <button type="button" class="secondary-button" id="copyProgressReportV3">Copiar texto</button>
           <button type="button" class="secondary-button" id="printProgressReportV3">Imprimir</button>
         </div>
-        <div id="progressReportResultV3" class="v3-result"></div>
+        <div id="progressReportResultV3" class="v3-result"></div><section id="savedProgressReportsV33"></section>
       </section>
     </div></details>
   `;
@@ -16334,6 +16335,7 @@ function bindStudentProgressReportV5() {
   document.getElementById("copyProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(false));
   document.getElementById("printProgressReportV3")?.addEventListener("click", () => copyProgressReportV3(true));
   populateProgressStudentsV3();
+  document.getElementById("progressStudentV3")?.addEventListener("change", event => {const area=document.getElementById("savedProgressReportsV33");if(!event.target.value){if(area)area.innerHTML="";return;}loadProgressReportsV33(area,event.target.value,true);});
 }
 
 
@@ -28975,7 +28977,28 @@ function renderTeacherFinancialRecordCard(
           <button type="button" class="toggle-teacher-financial-v19" data-financial-id="${item.financial_id}" aria-expanded="false" aria-label="Abrir opções de ${escapeHtml(item.student_name)}">⌄</button>
 
 
-          <div
+
+        </div>
+
+
+        <div class="financial-status-nf-v31"><strong>${formatPaymentStatus(effectiveFinancialStatusV31(item))}</strong>
+          <small>${item.invoice_required ? (item.invoice_issued ? 'NF: emitida' : 'NF: necessária · pendente') : 'NF: não necessária'}</small></div>
+
+      </div>
+
+
+      <div
+        class="teacher-financial-details-v19"
+        hidden
+        style="
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+          gap:8px;
+          margin-top:13px;
+        "
+      >
+
+        <div class="financial-values-v33">          <div
             style="
               margin-top:5px;
               font-size:22px;
@@ -29033,26 +29056,7 @@ function renderTeacherFinancialRecordCard(
 
               `
           }
-
-        </div>
-
-
-        <div class="financial-status-nf-v31"><strong>${formatPaymentStatus(effectiveFinancialStatusV31(item))}</strong>
-          <small>${item.invoice_required ? (item.invoice_issued ? 'NF: emitida' : 'NF: necessária · pendente') : 'NF: não necessária'}</small></div>
-
-      </div>
-
-
-      <div
-        class="teacher-financial-details-v19"
-        hidden
-        style="
-          display:grid;
-          grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-          gap:8px;
-          margin-top:13px;
-        "
-      >
+</div>
 
         <div>
           <strong>Vencimento:</strong>
@@ -31066,24 +31070,15 @@ function renderTeacherAttendanceReport(
   }
 
 
-  container.innerHTML = `
-
-    <div
-      style="
-        display:grid;
-        gap:12px;
-      "
-    >
-
-      ${records
-        .map(
-          record => renderTeacherAttendanceReportCard(record)
-        )
-        .join("")}
-
-    </div>
-
-  `;
+  const groups = new Map();
+  for (const record of records) {
+    const key = record.student_id;
+    if (!groups.has(key)) groups.set(key, {name: record.student_name, records: []});
+    groups.get(key).records.push(record);
+  }
+  container.innerHTML = [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(group =>
+    `<details class="attendance-student-v33"><summary><strong>${escapeHtml(group.name)}</strong><span>${group.records.length} registro(s) · Ver registros</span></summary><div class="attendance-records-v33">${group.records.map(record=>renderTeacherAttendanceReportCard(record)).join('')}</div></details>`
+  ).join('');
 
 
   document
@@ -36234,6 +36229,7 @@ async function renderTeacherAttendanceFormV32(
     document.getElementById(
       "teacherAttendanceStatus"
     );
+  installAttendanceChoicesV33(statusSelect);
 
 
   const warning =
@@ -39903,7 +39899,7 @@ async function saveTeacherWeeklySlot(
 // CANCELAMENTOS / ADIAMENTOS DOS ALUNOS
 // =====================================================
 
-async function loadTeacherCancellationMessages() {
+async function loadTeacherCancellationMessagesBeforeV33() {
 
   const container =
     document.getElementById(
@@ -40434,7 +40430,7 @@ async function markTeacherCancellationAsRead(
 // PAGINA DE PERFIL DO PROFESSOR
 // =====================================================
 
-async function loadTeacherProfilePage() {
+async function loadTeacherProfileBeforeV33() {
 
   const area =
     document.getElementById(
@@ -41189,7 +41185,7 @@ async function loadTeacherProfilePage() {
     </div>
 
 
-    <div
+    <div id="systemSubscriptionV33"
       style="
         margin-top:18px;
         padding:15px;
@@ -45756,11 +45752,15 @@ function setPublicCardV2(cardId) {
 }
 
 
-function showPublicAuthV6() {
+function showPublicAuthV6(audience = "all") {
   setPublicCardV2("");
   const authCard = document.getElementById("publicAuthCard");
   if (!authCard) return;
   authCard.classList.remove("hidden");
+  const studentEntry = audience === 'student';
+  document.getElementById('publicAuthTitle').textContent = studentEntry ? 'Acesso do aluno e responsável' : 'Entrar no Aularium';
+  authCard.querySelector('.public-entry-actions').hidden = studentEntry;
+
   loginScreen?.classList.add("modal-open");
   window.setTimeout(() => document.getElementById("email")?.focus(), 0);
 }
@@ -46644,7 +46644,9 @@ async function saveAdminTeacherAccessV2(teacherId) {
     return;
   }
 
+  const paidPlan = ["starter","plus","pro","premium"].includes(select.value);
   await loadAdminTeachers();
+  if(paidPlan)alert("Mudança solicitada para o próximo mês. Para confirmar o pagamento, selecione esse mês na área de mensalidades.");
 }
 
 
@@ -46860,6 +46862,7 @@ document.querySelectorAll("[data-public-action]").forEach(button => {
   button.addEventListener("click", () => {
     const action = button.dataset.publicAction;
     if (action === "login") showPublicAuthV6();
+    if (action === "student-login") showPublicAuthV6("student");
     if (action === "trial") {
       openPublicTeacherRegistrationV2(button.dataset.publicPlan || "starter");
     }
@@ -46976,7 +46979,7 @@ function renderTeacherToolsPageV3(content) {
           <button type="button" class="secondary-button" id="copyProgressReportV3">Copiar texto</button>
           <button type="button" class="secondary-button" id="printProgressReportV3">Imprimir</button>
         </div>
-        <div id="progressReportResultV3" class="v3-result"></div>
+        <div id="progressReportResultV3" class="v3-result"></div><section id="savedProgressReportsV33"></section>
       </details>
       </section>
 
@@ -47007,6 +47010,7 @@ function renderTeacherToolsPageV3(content) {
   document.getElementById("requestCorrectionV3")?.addEventListener("click", () => requestPrivacyV3("correction"));
   document.getElementById("requestDeletionV3")?.addEventListener("click", () => requestPrivacyV3("deletion"));
   populateProgressStudentsV3();
+  document.getElementById("progressStudentV3")?.addEventListener("change", event => {const area=document.getElementById("savedProgressReportsV33");if(!event.target.value){if(area)area.innerHTML="";return;}loadProgressReportsV33(area,event.target.value,true);});
 }
 
 async function populateProgressStudentsV3() {
@@ -47352,7 +47356,8 @@ async function saveProgressReportV3() {
     p_notes: document.getElementById("progressNotesV3")?.value || null
   };
   const { error } = await supabaseClient.rpc("save_student_progress_report_v3", params);
-  const area = document.getElementById("progressReportResultV3"); area.textContent = error ? (error.message || "Nao foi possivel salvar.") : "Relatorio salvo.";
+  const area = document.getElementById("progressReportResultV3"); if(area)area.textContent = error ? (error.message || "Não foi possível salvar.") : "Relatório salvo e disponibilizado ao aluno e ao responsável.";
+  if(!error)await loadProgressReportsV33(document.getElementById("savedProgressReportsV33"),params.p_student_id,true);
 }
 
 async function copyProgressReportV3(print) {
@@ -48001,3 +48006,88 @@ async function loadAttendanceHistoryV32() {
   if(error){list.innerHTML='<p role="alert">Não foi possível carregar o histórico.</p>';return;}
   list.innerHTML=(data || []).length?(data || []).map(record=>renderTeacherAttendanceReportCard(record,true)).join(''):'<p>Nenhum registro neste mês. Selecione outro mês para consultar aulas anteriores.</p>';
 }
+
+
+// Mudanças 7: accessible attendance choices, preserving the existing save flow.
+function installAttendanceChoicesV33(select) {
+  if (!select) return;
+  const fieldset = document.createElement('fieldset');
+  fieldset.className = 'attendance-choices-v33';
+  fieldset.innerHTML = '<legend>Selecione a situação da aula</legend>' + [...select.options].filter(option=>option.value).map(option =>
+    `<label><input type="radio" name="attendanceChoiceV33" value="${escapeHtml(option.value)}" ${option.selected?'checked':''} ${select.disabled?'disabled':''}><span>${escapeHtml(option.textContent.trim())}</span></label>`
+  ).join('');
+  select.hidden = true;
+  select.after(fieldset);
+  fieldset.addEventListener('change', event => {
+    if (event.target.name !== 'attendanceChoiceV33') return;
+    select.value = event.target.value;
+    select.dispatchEvent(new Event('change', {bubbles:true}));
+  });
+}
+
+async function showWelcomeTourV33() {
+  const {data,error}=await supabaseClient.rpc('teacher_welcome_v33',{p_complete:false});
+  if(error || !data || currentAccessViewV5!=='teacher' || document.getElementById('welcomeTourV33')) return;
+  const dialog=document.createElement('dialog');dialog.id='welcomeTourV33';dialog.className='aularium-dialog-v33';
+  const steps=[['Boas-vindas! É um prazer ter você aqui!','Vamos conhecer os principais recursos do Aularium em poucos passos.'],['Alunos e agenda','Em Alunos, cadastre seus alunos e horários. Na Agenda, veja as aulas da semana e abra uma aula para registrar presença, conteúdo e observações.'],['Presenças e reposições','Consulte os registros agrupados por aluno. Em Reposições, acompanhe créditos disponíveis, horários agendados e aulas realizadas.'],['Financeiro e relatórios','Organize mensalidades, pagamentos e notas fiscais no Financeiro. Nos relatórios de evolução, salve o acompanhamento para disponibilizá-lo ao aluno e ao responsável.'],['Seu perfil','Configure seus horários, link de aula e regras. Consulte seu plano e peça mudanças no Perfil. Para ajuda, use o Suporte.']];
+  let step=0;
+  const close=async()=>{const result=await supabaseClient.rpc('teacher_welcome_v33',{p_complete:true});if(result.error){dialog.querySelector('[role=status]').textContent='Não foi possível salvar. Tente novamente.';return;}dialog.close();dialog.remove();};
+  const render=()=>{dialog.innerHTML=`<img class="notice-logo-v33" src="assets/aularium-sun.png" alt="Aularium"><small>${step+1} de ${steps.length}</small><h2>${steps[step][0]}</h2><p>${steps[step][1]}</p><div class="v33-actions"><button type="button" id="tourCloseV33" class="secondary-button">Fechar tour</button>${step?'<button type="button" id="tourBackV33" class="secondary-button">Anterior</button>':''}<button type="button" id="tourNextV33" class="action-button">${step===steps.length-1?'Começar':'Próximo'}</button></div><p role="status"></p>`;
+   dialog.querySelector('#tourCloseV33').onclick=close;dialog.querySelector('#tourBackV33')?.addEventListener('click',()=>{step--;render();});dialog.querySelector('#tourNextV33').onclick=()=>{if(step===steps.length-1)close();else{step++;render();}};
+  };
+  dialog.addEventListener('cancel',event=>{event.preventDefault();close();});document.body.append(dialog);render();dialog.showModal();
+}
+
+async function loadPlanPanelV33(area) {
+ const {data:plan,error}=await supabaseClient.rpc('get_my_plan_v33');
+ if(!area.isConnected)return;
+ const billing=area.querySelector('#systemSubscriptionV33');
+ if(error){if(billing)billing.insertAdjacentHTML('afterbegin','<p>Não foi possível consultar o plano. Atualize a página.</p>');return;}
+ if(plan.access_type==='free'){billing?.remove();return;}
+ if(!billing)return;
+ const panel=document.createElement('section');panel.className='plan-panel-v33';
+ const current=PUBLIC_PLANS_V13[plan.plan];
+ panel.innerHTML=`<h3>Meu plano</h3><p><strong>${escapeHtml(current?.name || 'Plano personalizado')}</strong> · ${plan.limit==null?'Quantidade de alunos definida com o suporte':`${Number(plan.limit)} alunos permitidos`}</p>${plan.pending?`<p class="v33-notice">Alteração solicitada: ${escapeHtml(PUBLIC_PLANS_V13[plan.pending.plan]?.name || plan.pending.plan)}, a partir de ${formatDate(new Date(plan.pending.effective_date+'T12:00:00'))}, por ${formatCurrency(plan.pending.amount)}/mês. ${plan.pending.payment_status==='paid'?'Pagamento confirmado.':'Aguardando confirmação de pagamento.'}</p>`:''}<label>Trocar de plano<select id="changePlanV33"><option value="">Selecione</option>${Object.entries(PUBLIC_PLANS_V13).filter(([key,p])=>p.paid).map(([key,p])=>`<option value="${key}">${p.name} · ${p.price} · ${p.limit} alunos</option>`).join('')}</select></label><p id="changePlanPreviewV33"></p><button type="button" class="action-button" id="requestPlanV33" disabled>Confirmar solicitação de mudança</button><p>Precisa de mais de 30 alunos? Entre em contato conosco pelo Suporte.</p><p role="status" id="planMessageV33"></p>`;
+ if(plan.access_type==='trial')billing.replaceChildren(panel);else billing.prepend(panel);
+ const select=panel.querySelector('select'),button=panel.querySelector('button'),msg=panel.querySelector('#planMessageV33');
+ select.onchange=()=>{const p=PUBLIC_PLANS_V13[select.value];button.disabled=!p;panel.querySelector('#changePlanPreviewV33').textContent=p?`A partir do próximo mês, o valor será ${p.price}, com limite de ${p.limit} alunos, após confirmação de pagamento. A mensalidade deste mês permanece igual.`:'';};
+ button.onclick=async()=>{button.disabled=true;const {data,error}=await supabaseClient.rpc('teacher_schedule_plan_v33',{p_plan:select.value});if(!panel.isConnected)return;msg.textContent=error?error.message:`Solicitação salva. Início em ${formatDate(new Date(data.effective_date+'T12:00:00'))}, por ${formatCurrency(data.amount)}/mês, para ${data.limit} alunos.`;button.disabled=!!data;};
+}
+
+function progressDocumentV33(report) {
+ const date=value=>/^\d{4}-\d{2}-\d{2}$/.test(value||'')?value.split('-').reverse().join('/'):'';
+ return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório de evolução · ${escapeHtml(report.student_name)}</title><style>*{box-sizing:border-box}body{margin:0;padding:25px;background:#f8f3eb;color:#263e35;font:16px/1.6 Arial,sans-serif}main{max-width:800px;margin:auto;padding:36px;background:#fffdf8;border-top:5px solid #c9704b}header{border-bottom:1px solid #dfcdbd;padding-bottom:20px}h1,h2{color:#a75135}h2{font-size:19px;margin-top:25px}p{white-space:pre-wrap;overflow-wrap:anywhere}small{color:#6c7066}@media(max-width:500px){body{padding:10px}main{padding:20px}}@media print{body{background:white;padding:0}main{padding:15px}button{display:none}}</style></head><body><main><header><strong style="color:#b65f3e;font:26px Georgia,serif"><img src="data:image/png;base64,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" alt="" style="width:54px;height:39px;vertical-align:middle;margin-right:10px">Aularium</strong><h1>Relatório de evolução</h1><p><strong>Aluno:</strong> ${escapeHtml(report.student_name)}<br><strong>Professor:</strong> ${escapeHtml(report.teacher_name)}<br><strong>Período:</strong> ${date(report.period_start)} a ${date(report.period_end)}</p></header><p>Participação: ${Number(report.ratings?.participation)||0}/5 · Evolução: ${Number(report.ratings?.evolution)||0}/5</p>${[['Pontos fortes',report.strengths],['Pontos a desenvolver',report.improvements],['Metas',report.goals],['Observações',report.notes]].map(([title,text])=>`<section><h2>${title}</h2><p>${escapeHtml(text || 'Não informado.')}</p></section>`).join('')}<footer><small>Relatório disponibilizado pelo professor no Aularium.</small></footer></main></body></html>`;
+}
+
+async function loadProgressReportsV33(container,studentId,teacher=false) {
+ if(!container || !studentId)return;
+ const token=String(Number(container.dataset.progressRequest||0)+1);container.dataset.progressRequest=token;
+ container.innerHTML='<p>Consultando relatórios de evolução...</p>';
+ const {data,error}=await supabaseClient.rpc('get_progress_reports_v33',{p_student_id:studentId});
+ if(!container.isConnected || container.dataset.progressRequest!==token)return;
+ if(error){container.textContent=error.message || 'Não foi possível carregar os relatórios.';return;}
+ const reports=data || [];const unread=reports.filter(r=>r.unread).length;
+ container.innerHTML=`<details class="progress-list-v33" ${unread&&!teacher?'open':''}><summary><strong>Relatórios de evolução</strong> · ${reports.length}${unread&&!teacher?` · ${unread} novo(s) disponível(is) para download`:''}</summary>${reports.length?reports.map((r,i)=>`<article><p><strong>${escapeHtml(r.student_name)}</strong> · ${formatDate(new Date(r.period_start+'T12:00:00'))} a ${formatDate(new Date(r.period_end+'T12:00:00'))}</p><div class="v33-actions"><button type="button" class="secondary-button" data-download-report-v33="${i}">Baixar relatório</button><button type="button" class="secondary-button" data-print-report-v33="${i}">Imprimir / salvar PDF</button></div></article>`).join(''):'<p>Nenhum relatório disponibilizado ainda.</p>'}</details>`;
+ const mark=async r=>{if(!teacher){const result=await supabaseClient.rpc('mark_progress_report_read_v33',{p_report_id:r.id});if(result.error)console.warn('Não foi possível marcar o relatório como lido.');}};
+ container.querySelectorAll('[data-download-report-v33]').forEach(button=>button.onclick=()=>{const r=reports[Number(button.dataset.downloadReportV33)];downloadBlobV3(`relatorio-evolucao-${r.period_end}.html`,progressDocumentV33(r),'text/html;charset=utf-8');mark(r);});
+ container.querySelectorAll('[data-print-report-v33]').forEach(button=>button.onclick=()=>{const r=reports[Number(button.dataset.printReportV33)],popup=window.open('','_blank');if(!popup){alert('Permita a abertura da janela do relatório.');return;}popup.opener=null;popup.document.write(progressDocumentV33(r));popup.document.close();popup.focus();popup.print();mark(r);});
+}
+
+async function loadTeacherNoticesV33() {
+ const area=document.getElementById('teacherCancellationNotices');if(!area)return;
+ const {data,error}=await supabaseClient.rpc('get_teacher_notices_v33');if(!area.isConnected)return;
+ if(error){area.innerHTML='<p>Não foi possível carregar os avisos. Atualize a página.</p>';return;}
+ area.innerHTML=(data||[]).map((n,i)=>`<article class="teacher-notice-v33"><img src="assets/aularium-sun.png" alt="Aularium" class="notice-logo-v33"><div><h3>${n.kind==='makeup'?'Reposição agendada':'Aula cancelada pelo aluno'}</h3><p><strong>${escapeHtml(n.student_name)}</strong></p><p>${formatDate(new Date(n.lesson_date+'T12:00:00'))} · ${normalizeTime(n.start_time)} às ${normalizeTime(n.end_time)}</p>${n.kind==='cancellation'?`<p>Motivo: ${escapeHtml(n.cancellation_message || 'Não informado pelo aluno.')}</p><p>${n.generated_makeup?'Gerou crédito de reposição.':'Não gerou crédito de reposição.'}</p>`:''}<button type="button" class="secondary-button" data-read-notice-v33="${i}">Marcar como lido</button></div></article>`).join('');
+ area.querySelectorAll('[data-read-notice-v33]').forEach(button=>button.onclick=async()=>{button.disabled=true;const n=data[Number(button.dataset.readNoticeV33)],{error}=await supabaseClient.rpc('read_teacher_notice_v33',{p_id:n.id,p_kind:n.kind});if(error){button.disabled=false;alert(error.message);return;}await loadTeacherNoticesV33();});
+}
+
+async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); }
+async function loadTeacherProfilePage() { await loadTeacherProfileBeforeV33(); const area=document.getElementById('teacherProfileFormArea');if(area)await loadPlanPanelV33(area); }
+async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;let area=document.getElementById('studentProgressReportsV33');if(!area){area=document.createElement('section');area.id='studentProgressReportsV33';anchor.after(area);}await loadProgressReportsV33(area,currentStudentId); }
+async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); }
+
+function compactClientFinancialV33(item,content) {
+ return `<details class="client-financial-v33"><summary><strong>${escapeHtml(formatMonth(item.month))}/${Number(item.year)}</strong><span>${formatPaymentStatus(effectiveFinancialStatusV31(item))}<small>${item.invoice_required?(item.invoice_issued?'NF: emitida':'NF: necessária · pendente'):'NF: não necessária'}</small></span></summary>${content}</details>`;
+}
+function renderFinancialCard(item) { return compactClientFinancialV33(item,renderFinancialCardBeforeV33(item)); }
+function renderGuardianFinancialRow(item) { return compactClientFinancialV33(item,renderGuardianFinancialRowBeforeV33(item)); }
