@@ -4128,6 +4128,8 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 @media(max-width:600px){:is(#teacherProfileFormArea,#teacherFinancialFormArea,#teacherScheduleEditArea) [style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}}
 
 .client-financial-v33 {border:1px solid #e3d3c5;border-radius:12px;background:#fffdfa;min-width:0;}
+.teacher-financial-card-v19>p {display:none;}
+.teacher-financial-card-v19:has(.teacher-financial-details-v19:not([hidden]))>p {display:block;}
 .client-financial-v33>summary {display:flex;justify-content:space-between;gap:12px;padding:15px;cursor:pointer;font-size:14px;}
 .client-financial-v33>summary span {text-align:right;}.client-financial-v33 small {display:block;font-size:12px;margin-top:5px;}
 #studentFinancialContent>div:has(>.client-financial-v33),#guardianStudentDetailArea div:has(>.client-financial-v33) {grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;}
