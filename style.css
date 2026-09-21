@@ -4134,3 +4134,6 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .client-financial-v33>summary span {text-align:right;}.client-financial-v33 small {display:block;font-size:12px;margin-top:5px;}
 #studentFinancialContent>div:has(>.client-financial-v33),#guardianStudentDetailArea div:has(>.client-financial-v33) {grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;}
 @media(max-width:760px){#studentFinancialContent>div:has(>.client-financial-v33),#guardianStudentDetailArea div:has(>.client-financial-v33){grid-template-columns:minmax(0,1fr);}}
+
+/* Mudanças 8 */
+.financial-amount-v34{display:block;font-size:18px;color:#263e35;margin-bottom:5px}.schedule-requests-v34{margin-top:20px;overflow-wrap:anywhere}.schedule-request-v34{padding:14px 0;border-bottom:1px solid #e3d3c5}.schedule-requests-v34 form{display:grid;gap:14px;margin-top:16px;max-width:550px}.schedule-requests-v34 label{display:grid;gap:7px}.schedule-requests-v34 input,.schedule-requests-v34 select{width:100%;min-width:0;padding:10px}.schedule-requests-v34 summary{cursor:pointer;padding:12px 0}#scheduleAttendanceV34{margin:16px 0}#scheduleBackV34{margin-bottom:16px}
