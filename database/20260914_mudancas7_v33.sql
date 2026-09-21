@@ -55,7 +55,7 @@ begin
   -- A downgrade cannot silently invalidate already registered active students.
   if (select count(*) from public.students where teacher_id=c.teacher_id)>v_limit then continue; end if;
   update public.teachers set subscription_plan=c.plan,system_monthly_fee=case c.plan when 'starter' then 14.90 when 'plus' then 29.90 when 'pro' then 59.90 when 'premium' then 89.90 end,
-  max_registered_students=v_limit,max_active_students=v_limit,access_type='paid',active=true,account_status='active',paid_at=coalesce(paid_at,now()),trial_started_at=null,trial_ends_at=null,
+  max_registered_students=v_limit,max_active_students=v_limit,access_type='paid',paid_at=coalesce(paid_at,now()),trial_started_at=null,trial_ends_at=null,
   pending_subscription_plan_v26=null,pending_plan_invoice_v26=null where id=c.teacher_id and deleted_at is null;
   update public.teacher_plan_changes_v33 set applied_at=now() where teacher_id=c.teacher_id;
  end loop;
