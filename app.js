@@ -37783,6 +37783,7 @@ async function confirmTeacherManualMakeupV16(
   }
 
   document.getElementById("teacherScheduleEditArea").innerHTML = "";
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
   alert(
     shouldBook
@@ -37962,6 +37963,7 @@ async function confirmTeacherMakeupBooking(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -38814,6 +38816,7 @@ async function confirmTeacherLessonCancellation(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -39519,6 +39522,7 @@ async function confirmTeacherLessonMove(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -39642,6 +39646,7 @@ async function blockTeacherScheduleDayV10(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -48058,7 +48063,7 @@ async function loadTeacherNoticesV33() {
  const {data,error}=await supabaseClient.rpc('get_teacher_notices_v33');if(!area.isConnected)return;
  if(error){area.innerHTML='<p>Não foi possível carregar os avisos. Atualize a página.</p>';return;}
  area.innerHTML=(data||[]).map((n,i)=>`<article class="teacher-notice-v33"><img src="assets/aularium-sun.png" alt="Aularium" class="notice-logo-v33"><div><h3>${n.kind==='makeup'?'Reposição agendada':'Aula cancelada pelo aluno'}</h3><p><strong>${escapeHtml(n.student_name)}</strong></p><p>${formatDate(new Date(n.lesson_date+'T12:00:00'))} · ${normalizeTime(n.start_time)} às ${normalizeTime(n.end_time)}</p>${n.kind==='cancellation'?`<p>Motivo: ${escapeHtml(n.cancellation_message || 'Não informado pelo aluno.')}</p><p>${n.generated_makeup?'Gerou crédito de reposição.':'Não gerou crédito de reposição.'}</p>`:''}<button type="button" class="secondary-button" data-read-notice-v33="${i}">Marcar como lido</button></div></article>`).join('');
- area.querySelectorAll('[data-read-notice-v33]').forEach(button=>button.onclick=async()=>{button.disabled=true;const n=data[Number(button.dataset.readNoticeV33)],{error}=await supabaseClient.rpc('read_teacher_notice_v33',{p_id:n.id,p_kind:n.kind});if(error){button.disabled=false;alert(error.message);return;}await loadTeacherNoticesV33();});
+ area.querySelectorAll('[data-read-notice-v33]').forEach(button=>button.onclick=async()=>{button.disabled=true;const n=data[Number(button.dataset.readNoticeV33)],{error}=await supabaseClient.rpc('read_teacher_notice_v33',{p_id:n.id,p_kind:n.kind});if(error){button.disabled=false;alert(error.message);return;}await loadTeacherCancellationMessages();});
 }
 
 async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); await loadScheduleRequestsV34(document.getElementById('teacherCancellationNotices'),null,true); }
