@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: mudancas-v33-20260914"
+  "Aularium build: mudancas-v34-20260921"
 );
 
 // =====================================================
@@ -16390,6 +16390,7 @@ async function deleteTeacherMakeupV23(makeupId, studentName) {
 
 function setTeacherPage(page) {
   teacherAttendanceViewV32 = null;
+  schedulePageV34 = null;
 
   const content =
     document.getElementById(
@@ -28981,7 +28982,7 @@ function renderTeacherFinancialRecordCard(
         </div>
 
 
-        <div class="financial-status-nf-v31"><strong>${formatPaymentStatus(effectiveFinancialStatusV31(item))}</strong>
+        <div class="financial-status-nf-v31"><strong class="financial-amount-v34">${formatCurrency(netAmount)}</strong><strong>${formatPaymentStatus(effectiveFinancialStatusV31(item))}</strong>
           <small>${item.invoice_required ? (item.invoice_issued ? 'NF: emitida' : 'NF: necessária · pendente') : 'NF: não necessária'}</small></div>
 
       </div>
@@ -35591,18 +35592,7 @@ async function renderTeacherAttendanceFormV32(
   if (!area.isConnected) return;
   const statusOptions =
     isMakeup
-
-      ? `
-
-        <option
-          value="makeup"
-          selected
-        >
-          Reposicao realizada
-        </option>
-
-      `
-
+      ? `<option value="makeup" ${currentStatus !== 'absent'?'selected':''}>Reposição realizada</option><option value="absent" ${currentStatus === 'absent'?'selected':''}>Faltou à reposição (sem novo crédito)</option>`
       : `
 
         <option value="">
@@ -35788,11 +35778,6 @@ async function renderTeacherAttendanceFormV32(
 
         <select
           id="teacherAttendanceStatus"
-          ${
-            isMakeup
-              ? "disabled"
-              : ""
-          }
           style="
             width:100%;
             padding:10px;
@@ -36174,8 +36159,8 @@ async function renderTeacherAttendanceFormV32(
                 background:#f7e9e1;
               "
             >
-              Ao salvar, a reposicao sera marcada
-              como realizada e deixara de ficar pendente.
+              Ao salvar, esta reposição será encerrada com a situação escolhida.
+              A falta não gera um novo crédito de reposição.
             </div>
 
           `
@@ -36321,8 +36306,7 @@ async function renderTeacherAttendanceFormV32(
 
 
   if (
-    statusSelect &&
-    !isMakeup
+    statusSelect
   ) {
 
     statusSelect.addEventListener(
@@ -36581,13 +36565,7 @@ async function saveTeacherAttendance(
 
 
   const status =
-    isMakeup
-      ? "makeup"
-      : (
-          statusSelect
-            ? statusSelect.value
-            : ""
-        );
+    statusSelect ? statusSelect.value : "";
 
 
   const subjectId =
@@ -36784,7 +36762,7 @@ async function saveTeacherAttendance(
 
   alert(
     isMakeup
-      ? "Reposicao registrada como realizada."
+      ? (status === "absent" ? "Falta à reposição registrada, sem novo crédito." : "Reposição registrada como realizada.")
       : "Registro da aula salvo com sucesso."
   );
 
@@ -36943,7 +36921,7 @@ function bindStudentPixCopyV20(pix) {
   });
 }
 
-async function openTeacherScheduleEditor(
+async function openTeacherScheduleEditorBeforeV34(
   date,
   slot
 ) {
@@ -37666,7 +37644,7 @@ async function openTeacherScheduleEditor(
 // PROFESSOR - AGENDAR REPOSICAO
 // =====================================================
 
-async function openTeacherMakeupBooking(date,slot) {
+async function openTeacherMakeupBookingBeforeV34(date,slot) {
   const area=document.getElementById("teacherScheduleEditArea");
   if (!area) return;
   area.innerHTML="<p>Carregando créditos disponíveis...</p>";
@@ -37704,7 +37682,7 @@ async function openTeacherMakeupBooking(date,slot) {
       const result=await supabaseClient.rpc("teacher_reserve_makeup_part_v26",{p_makeup_id:credit.makeup_id,p_duration_minutes:duration,p_reservation_date:formatDateForDatabase(date),p_start_time:normalizeTime(slot.start_time)});
       if(result.error){message.textContent=result.error.message;save.disabled=false;return;}
       area.innerHTML="<p>Reposição agendada. O saldo restante foi preservado.</p>";
-      await loadTeacherWeeklySchedule();
+      closeSchedulePageV34(); await loadTeacherWeeklySchedule();
       await loadTeacherClassLinksForAgenda();
     }catch{message.textContent="Falha de conexão. Confira a agenda antes de tentar novamente.";save.disabled=false;}
   });
@@ -37998,7 +37976,7 @@ async function confirmTeacherMakeupBooking(
 // PROFESSOR - GERENCIAR REPOSICAO AGENDADA
 // =====================================================
 
-function openTeacherMakeupReservationManager(
+function openTeacherMakeupReservationManagerBeforeV34(
   date,
   slot
 ) {
@@ -38260,6 +38238,7 @@ async function cancelTeacherMakeupReservation(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -39868,6 +39847,7 @@ async function saveTeacherWeeklySlot(
   }
 
 
+  closeSchedulePageV34();
   await loadTeacherWeeklySchedule();
 
 
@@ -48081,13 +48061,75 @@ async function loadTeacherNoticesV33() {
  area.querySelectorAll('[data-read-notice-v33]').forEach(button=>button.onclick=async()=>{button.disabled=true;const n=data[Number(button.dataset.readNoticeV33)],{error}=await supabaseClient.rpc('read_teacher_notice_v33',{p_id:n.id,p_kind:n.kind});if(error){button.disabled=false;alert(error.message);return;}await loadTeacherNoticesV33();});
 }
 
-async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); }
+async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); await loadScheduleRequestsV34(document.getElementById('teacherCancellationNotices'),null,true); }
 async function loadTeacherProfilePage() { await loadTeacherProfileBeforeV33(); const area=document.getElementById('teacherProfileFormArea');if(area)await loadPlanPanelV33(area); }
-async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;let area=document.getElementById('studentProgressReportsV33');if(!area){area=document.createElement('section');area.id='studentProgressReportsV33';anchor.after(area);}await loadProgressReportsV33(area,currentStudentId); }
-async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); }
+async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;let area=document.getElementById('studentProgressReportsV33');if(!area){area=document.createElement('section');area.id='studentProgressReportsV33';anchor.after(area);}await loadProgressReportsV33(area,currentStudentId); await loadScheduleRequestsV34(anchor.parentElement,currentStudentId); }
+async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); await loadScheduleRequestsV34(anchor,studentId); }
 
 function compactClientFinancialV33(item,content) {
  return `<details class="client-financial-v33"><summary><strong>${escapeHtml(formatMonth(item.month))}/${Number(item.year)}</strong><span>${formatPaymentStatus(effectiveFinancialStatusV31(item))}<small>${item.invoice_required?(item.invoice_issued?'NF: emitida':'NF: necessária · pendente'):'NF: não necessária'}</small></span></summary>${content}</details>`;
 }
 function renderFinancialCard(item) { return compactClientFinancialV33(item,renderFinancialCardBeforeV33(item)); }
 function renderGuardianFinancialRow(item) { return compactClientFinancialV33(item,renderGuardianFinancialRowBeforeV33(item)); }
+
+
+// Agenda actions use an internal page, preserving the previous view and filters.
+let schedulePageV34 = null;
+function beginSchedulePageV34() {
+ const content=document.getElementById('teacherContent');
+ if(!content || content.querySelector('#scheduleScreenV34'))return;
+ const previous=document.createDocumentFragment();
+ schedulePageV34={previous,scroll:window.scrollY,focus:document.activeElement};
+ while(content.firstChild)previous.append(content.firstChild);
+ content.innerHTML='<section id="scheduleScreenV34" class="attendance-screen-v32"><button type="button" class="secondary-button" id="scheduleBackV34">← Voltar à agenda</button><div id="teacherScheduleEditArea"></div></section>';
+ document.getElementById('scheduleBackV34').onclick=closeSchedulePageV34;
+ content.scrollIntoView({block:'start'});
+}
+function closeSchedulePageV34() {
+ const view=schedulePageV34,content=document.getElementById('teacherContent');schedulePageV34=null;
+ if(!view || !content?.querySelector('#scheduleScreenV34'))return;
+ content.replaceChildren(view.previous);
+ if(view.focus?.isConnected)view.focus.focus({preventScroll:true});
+ window.scrollTo({top:view.scroll,behavior:'instant'});
+}
+function bindSchedulePageV34(date,slot,closeId) {
+ const close=document.getElementById(closeId);
+ if(close)close.addEventListener('click',closeSchedulePageV34);
+ if(!['lesson','makeup'].includes(String(slot.status).toLowerCase()))return;
+ const area=document.getElementById('teacherScheduleEditArea');if(!area?.isConnected)return;
+ const button=document.createElement('button');button.type='button';button.className='action-button';
+ button.textContent='Registrar presença / falta';button.id='scheduleAttendanceV34';
+ button.onclick=()=>{closeSchedulePageV34();openTeacherAttendanceManager(date,slot);};
+ area.prepend(button);
+}
+async function openTeacherScheduleEditor(date,slot) {
+ beginSchedulePageV34();await openTeacherScheduleEditorBeforeV34(date,slot);
+ bindSchedulePageV34(date,slot,'closeTeacherSlotEditorButton');
+}
+async function openTeacherMakeupBooking(date,slot) {
+ beginSchedulePageV34();await openTeacherMakeupBookingBeforeV34(date,slot);
+}
+function openTeacherMakeupReservationManager(date,slot) {
+ beginSchedulePageV34();openTeacherMakeupReservationManagerBeforeV34(date,slot);
+ bindSchedulePageV34(date,slot,'closeTeacherMakeupManagerButton');
+}
+
+async function loadScheduleRequestsV34(anchor,studentId=null,teacher=false) {
+ if(!anchor?.isConnected)return;
+ const id=teacher?'teacherScheduleRequestsV34':`scheduleRequestsV34-${studentId}`;
+ document.getElementById(id)?.remove();
+ const area=document.createElement('section');area.id=id;area.className='card schedule-requests-v34';anchor.append(area);
+ area.innerHTML='<h3>Troca de horário fixo</h3><p>Carregando solicitações...</p>';
+ const [requests,slots]=await Promise.all([supabaseClient.rpc('get_schedule_requests_v34',{p_student_id:studentId}),studentId?supabaseClient.rpc('get_my_fixed_slots_v34',{p_student_id:studentId}):Promise.resolve({data:[]})]);
+ if(!area.isConnected)return;
+ if(requests.error || slots.error){area.innerHTML='<h3>Troca de horário fixo</h3><p>Não foi possível consultar as solicitações. Atualize a página.</p>';return;}
+ const days=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+ const data=requests.data||[],fixed=slots.data||[],pending=data.some(r=>['pending','approved','conflict'].includes(r.status));
+ const labels={pending:'Aguardando aprovação',approved:'Aprovada · aguardando início',applied:'Horário alterado',rejected:'Recusada',conflict:'Precisa de revisão do professor'};
+ area.innerHTML=`<h3>Troca de horário fixo</h3><p>A mudança vale a partir da semana seguinte à última aprovação. O professor precisa confirmar. Para menores de idade, o responsável também precisa confirmar.</p>${data.length?data.map((r,i)=>`<article class="schedule-request-v34"><strong>${escapeHtml(r.student_name)}</strong><p>${days[r.old_day]} às ${normalizeTime(r.old_time)} → ${days[r.new_day]} às ${normalizeTime(r.new_time)}</p><p><strong>${labels[r.status]}</strong> · Início previsto: ${formatDate(new Date(r.effective_date+'T12:00:00'))}</p><p>Professor: ${r.teacher_approved_by?'confirmado':'aguardando'}${r.needs_guardian?` · Responsável: ${r.guardian_approved_by?'confirmado':'aguardando'}`:''}</p>${r.detail?`<p role="status">${escapeHtml(r.detail)}</p>`:''}${['pending','conflict','approved'].includes(r.status)&&(r.can_teacher||r.can_guardian)?`<div class="v33-actions">${((r.can_teacher&&!r.teacher_approved_by)||(r.can_guardian&&r.needs_guardian&&!r.guardian_approved_by))?`<button class="action-button" data-approve-schedule-v34="${i}">Confirmar troca</button>`:''}<button class="secondary-button" data-reject-schedule-v34="${i}">Recusar solicitação</button></div>`:''}</article>`).join(''):'<p>Nenhuma solicitação.</p>'}${!teacher&&!pending&&fixed.length?`<details><summary>Solicitar troca de horário</summary><form id="scheduleRequestFormV34"><label>Aula que deseja trocar<select name="old" required>${fixed.map((s,i)=>`<option value="${i}">${days[s.day_of_week]} às ${normalizeTime(s.start_time)} · ${s.duration} minutos</option>`).join('')}</select></label><label for="requestDayV34">Novo dia</label><select id="requestDayV34" name="day" required>${days.map((d,i)=>`<option value="${i}">${d}</option>`).join('')}</select><label>Novo horário<input name="time" type="time" step="1800" required></label><p>Informe um horário livre na agenda do professor. A duração da aula permanece igual.</p><button class="action-button" type="submit">Enviar solicitação</button></form></details>`:''}<p class="schedule-message-v34" role="status"></p>`;
+ const message=area.querySelector('.schedule-message-v34');
+ const review=async(i,approve,button)=>{button.disabled=true;const result=await supabaseClient.rpc('review_schedule_change_v34',{p_id:data[i].id,p_approve:approve});if(!area.isConnected)return;if(result.error){message.textContent=result.error.message;button.disabled=false;return;}await loadScheduleRequestsV34(anchor,studentId,teacher);};
+ area.querySelectorAll('[data-approve-schedule-v34]').forEach(b=>b.onclick=()=>review(Number(b.dataset.approveScheduleV34),true,b));
+ area.querySelectorAll('[data-reject-schedule-v34]').forEach(b=>b.onclick=()=>review(Number(b.dataset.rejectScheduleV34),false,b));
+ const form=area.querySelector('form');if(form)form.onsubmit=async event=>{event.preventDefault();const fields=new FormData(form),old=fixed[Number(fields.get('old'))],button=form.querySelector('button');button.disabled=true;const result=await supabaseClient.rpc('request_schedule_change_v34',{p_student_id:studentId,p_old_day:Number(old.day_of_week),p_old_time:old.start_time,p_new_day:Number(fields.get('day')),p_new_time:fields.get('time')});if(!area.isConnected)return;if(result.error){message.textContent=result.error.message;button.disabled=false;return;}await loadScheduleRequestsV34(anchor,studentId,teacher);};
+}
