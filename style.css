@@ -3997,14 +3997,14 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .public-instagram-button-v25 { display:inline-flex; align-items:center; gap:8px; }
 
 /* A single color source serves the student's legend and actual agenda cells. */
-[data-agenda-color="available"] { --agenda-fill:#d9f7df; --agenda-ink:#176b2c; --agenda-dot:#279951; }
-[data-agenda-color="occupied"] { --agenda-fill:#fbdcdd; --agenda-ink:#832f35; --agenda-dot:#c34b56; }
-[data-agenda-color="unavailable"] { --agenda-fill:#e0dce5; --agenda-ink:#3f3948; --agenda-dot:#51485b; }
-[data-agenda-color="own"] { --agenda-fill:#dceafb; --agenda-ink:#234f83; --agenda-dot:#427bc2; }
-[data-agenda-color="own-makeup"] { --agenda-fill:#ecdef8; --agenda-ink:#63338b; --agenda-dot:#8651ac; }
-[data-agenda-color="paused-own"] { --agenda-fill:#ece9e5; --agenda-ink:#615b55; --agenda-dot:#80786f; }
-[data-agenda-color="cancelled"] { --agenda-fill:#fff0c4; --agenda-ink:#73520c; --agenda-dot:#d4a122; }
-[data-agenda-color="expired"] { --agenda-fill:#f2f2f2; --agenda-ink:#666; --agenda-dot:#aaa; }
+[data-agenda-color="available"] { --agenda-fill:#dff5e3; --agenda-ink:#246b37; --agenda-dot:#dff5e3; }
+[data-agenda-color="occupied"] { --agenda-fill:#dbeafe; --agenda-ink:#1d4ed8; --agenda-dot:#dbeafe; }
+[data-agenda-color="unavailable"] { --agenda-fill:#333333; --agenda-ink:#ffffff; --agenda-dot:#333333; }
+[data-agenda-color="own"] { --agenda-fill:#dbeafe; --agenda-ink:#1d4ed8; --agenda-dot:#dbeafe; }
+[data-agenda-color="own-makeup"] { --agenda-fill:#ede9fe; --agenda-ink:#6d28d9; --agenda-dot:#ede9fe; }
+[data-agenda-color="paused-own"] { --agenda-fill:#e5e5e5; --agenda-ink:#555555; --agenda-dot:#e5e5e5; }
+[data-agenda-color="cancelled"] { --agenda-fill:#fff3cd; --agenda-ink:#856404; --agenda-dot:#fff3cd; }
+[data-agenda-color="expired"] { --agenda-fill:#eeeeee; --agenda-ink:#777777; --agenda-dot:#eeeeee; }
 #studentScreen .schedule-cell[data-agenda-color] { background:var(--agenda-fill); color:var(--agenda-ink); }
 .student-legend-v26 span::before { content:""; display:inline-block; width:11px; height:11px; border-radius:50%; background:var(--agenda-dot); margin-right:5px; }
 /* Financial report retains the Aularium brand on screen and paper. */
@@ -4137,3 +4137,14 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 
 /* Mudanças 8 */
 .financial-amount-v34{display:block;font-size:18px;color:#263e35;margin-bottom:5px}.schedule-requests-v34{margin-top:20px;overflow-wrap:anywhere}.schedule-request-v34{padding:14px 0;border-bottom:1px solid #e3d3c5}.schedule-requests-v34 form{display:grid;gap:14px;margin-top:16px;max-width:550px}.schedule-requests-v34 label{display:grid;gap:7px}.schedule-requests-v34 input,.schedule-requests-v34 select{width:100%;min-width:0;padding:10px}.schedule-requests-v34 summary{cursor:pointer;padding:12px 0}#scheduleAttendanceV34{margin:16px 0}#scheduleBackV34{margin-bottom:16px}
+
+/* Mudanças 9: shared agenda palette, compact rules and consistent forms. */
+.student-legend-v26 span::before{border:1px solid rgba(0,0,0,.22);border-radius:4px;width:15px;height:15px;vertical-align:middle}
+#studentRulesContent{white-space:normal!important}
+.client-financial-amount-v35{display:block;font-size:18px;color:#263e35;margin-bottom:6px}
+.schedule-requests-v34 input,.schedule-requests-v34 select,.receipt-panel-v35 input,.receipt-panel-v35 select{font:inherit;color:#263e35;background:#fffdf9;border:1px solid #dbc9b9;border-radius:10px;padding:11px 12px;box-sizing:border-box;min-width:0;max-width:100%}
+.schedule-requests-v34 details{border:1px solid #e3d3c5;border-radius:12px;padding:0 16px;background:#fffdf9}
+.schedule-requests-v34 form{padding-bottom:18px}.schedule-requests-v34 summary{color:#a75135;font-weight:600}
+.receipt-panel-v35{margin-top:24px;overflow-wrap:anywhere}.receipt-panel-v35 form{display:grid;gap:14px;max-width:600px}.receipt-panel-v35 label{display:grid;gap:7px}.receipt-panel-v35 article{padding:12px 0;border-bottom:1px solid #e3d3c5}
+
+.lesson-choice-form-v35{padding:16px 0;display:grid;gap:15px}.lesson-choice-grid-v35{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;max-height:430px;overflow:auto}.lesson-choice-grid-v35 fieldset{border:1px solid #dbc9b9;border-radius:10px;padding:10px;min-width:0}.lesson-choice-grid-v35 label{display:flex;align-items:center;gap:7px;padding:5px}.lesson-choice-grid-v35 input{width:auto;accent-color:#c9704b}.lesson-choice-grid-v35 label:has(input:checked){background:#dbeafe;border-radius:7px}.lesson-hold-v35{background:#fff3cd!important;color:#856404!important;cursor:default!important}
