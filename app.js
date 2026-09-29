@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: mudancas-v34-20260921"
+  "Aularium build: mudancas-v35-20260929"
 );
 
 // =====================================================
@@ -6879,7 +6879,8 @@ async function loadAdminTeachers() {
     teachersResult,
     systemFinancialResult,
     capacityResult,
-    accessResult
+    accessResult,
+    registrationResult
   ] =
     await Promise.all([
 
@@ -6904,7 +6905,8 @@ async function loadAdminTeachers() {
 
       supabaseClient.rpc(
         "get_admin_teacher_access_v2"
-      )
+      ),
+      supabaseClient.rpc("get_admin_teacher_registration_v35")
 
     ]);
 
@@ -6997,6 +6999,7 @@ async function loadAdminTeachers() {
 
           return {
             ...teacher,
+            registered_at: (registrationResult.data || []).find(r=>r.teacher_id===teacher.teacher_id)?.registered_at,
             ...billing,
             ...capacity,
             ...access,
@@ -7056,6 +7059,7 @@ async function loadAdminTeachers() {
 
 
   renderAdminTeacherListV2();
+  await loadSystemReceiptsV35(container.parentElement,true);
 
 }
 
@@ -7591,6 +7595,7 @@ function renderAdminTeacherCard(
         <span class="admin-teacher-summary-status-v24 status-${escapeHtml(status)}">${statusLabel}</span>
       </summary>
       <div class="admin-teacher-details-body-v24">
+      <p>Primeiro cadastro: <strong>${teacher.registered_at ? escapeHtml(formatDateTime(teacher.registered_at)) : "Não foi possível consultar a data"}</strong></p>
 
       <div
         style="
@@ -8656,6 +8661,11 @@ function setStudentPage(page) {
   // AGENDA
   // ===================================================
 
+  if(page==='profile') {
+    content.innerHTML='<section class="card"><h2>Meu perfil · minhas aulas</h2><p>Gerencie a quantidade, a duração e os horários das suas aulas.</p><div id="studentLessonProfileV35"></div></section>';
+    loadLessonChangesV35(document.getElementById('studentLessonProfileV35'),currentStudentId);
+    return;
+  }
   if (page === "agenda") {
 
     content.innerHTML = `
@@ -8953,6 +8963,7 @@ function setStudentPage(page) {
         </p>
 
         <div
+          id="studentProgressReportsV33"></div><div
           id="studentHistoryContent"
           style="margin-top:20px;"
         >
@@ -8964,6 +8975,7 @@ function setStudentPage(page) {
     `;
 
 
+    loadProgressReportsV33(document.getElementById('studentProgressReportsV33'),currentStudentId);
     loadStudentHistory()
       .catch(error => {
 
@@ -9642,7 +9654,7 @@ async function loadStudentRules() {
 
     <div class="student-rules-card-v11 ${rules ? "has-text" : "image-only"}">
 
-      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="Imagem das regras" class="student-rules-image-v11">` : ""}
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="Imagem das regras" class="student-rules-image-v11" crossorigin="anonymous">` : ""}
 
       ${
         rules
@@ -12598,6 +12610,8 @@ async function loadStudentWeeklySchedule() {
     weeklyLessonHistory,
     weeklyPausePeriods
   );
+  await overlayLessonHoldsV35(document.getElementById('studentScheduleBody'),selectedWeekStart,currentStudentId);
+
 }
 
 
@@ -33636,7 +33650,7 @@ async function loadTeacherWeeklySchedule() {
               slot.start_time
             );
 
-          const slotEnd =
+          const slotEnd = 1440 * (normalizeTime(slot.end_time) === "00:00") ||
             timeToMinutes(
               slot.end_time
             );
@@ -33651,7 +33665,7 @@ async function loadTeacherWeeklySchedule() {
                     item.start_time
                   );
 
-                const itemEnd =
+                const itemEnd = 1440 * (normalizeTime(item.end_time) === "00:00") ||
                   timeToMinutes(
                     item.end_time
                   );
@@ -33702,6 +33716,8 @@ async function loadTeacherWeeklySchedule() {
   renderTeacherWeeklySchedule(
     days
   );
+
+  await overlayLessonHoldsV35(document.getElementById('teacherScheduleBody'),selectedTeacherWeekStart,null);
 
 }
 
@@ -48052,7 +48068,18 @@ async function loadProgressReportsV33(container,studentId,teacher=false) {
  if(!container.isConnected || container.dataset.progressRequest!==token)return;
  if(error){container.textContent=error.message || 'Não foi possível carregar os relatórios.';return;}
  const reports=data || [];const unread=reports.filter(r=>r.unread).length;
- container.innerHTML=`<details class="progress-list-v33" ${unread&&!teacher?'open':''}><summary><strong>Relatórios de evolução</strong> · ${reports.length}${unread&&!teacher?` · ${unread} novo(s) disponível(is) para download`:''}</summary>${reports.length?reports.map((r,i)=>`<article><p><strong>${escapeHtml(r.student_name)}</strong> · ${formatDate(new Date(r.period_start+'T12:00:00'))} a ${formatDate(new Date(r.period_end+'T12:00:00'))}</p><div class="v33-actions"><button type="button" class="secondary-button" data-download-report-v33="${i}">Baixar relatório</button><button type="button" class="secondary-button" data-print-report-v33="${i}">Imprimir / salvar PDF</button></div></article>`).join(''):'<p>Nenhum relatório disponibilizado ainda.</p>'}</details>`;
+ container.innerHTML=`<details class="progress-list-v33" ${unread&&!teacher?'open':''}><summary><strong>Relatórios de evolução</strong> · ${reports.length}${unread&&!teacher?` · ${unread} novo(s) disponível(is) para download`:''}</summary>${reports.length?reports.map((r,i)=>`<article><p><strong>${escapeHtml(r.student_name)}</strong> · ${formatDate(new Date(r.period_start+'T12:00:00'))} a ${formatDate(new Date(r.period_end+'T12:00:00'))}</p><div class="v33-actions"><button type="button" class="secondary-button" data-download-report-v33="${i}">Baixar relatório</button><button type="button" class="secondary-button" data-print-report-v33="${i}">Imprimir / salvar PDF</button>${teacher?`<button type="button" class="secondary-button" data-delete-report-v35="${i}">Excluir relatório</button>`:""}</div></article>`).join(''):'<p>Nenhum relatório disponibilizado ainda.</p>'}</details>`;
+ container.querySelectorAll('[data-delete-report-v35]').forEach(button=>button.onclick=async()=>{
+  const report=reports[Number(button.dataset.deleteReportV35)];
+  if(!confirm('Excluir este relatório de evolução? Ele deixará de aparecer para o aluno e responsável.'))return;
+  button.disabled=true;
+  const result=await supabaseClient.rpc('set_progress_report_deleted_v35',{p_id:report.id,p_deleted:true});
+  if(result.error){button.disabled=false;alert(result.error.message);return;}
+  await loadProgressReportsV33(container,studentId,teacher);
+  if(!container.isConnected)return;
+  const undo=document.createElement('button');undo.className='secondary-button';undo.textContent='Desfazer exclusão do relatório';
+  undo.onclick=async()=>{undo.disabled=true;const restored=await supabaseClient.rpc('set_progress_report_deleted_v35',{p_id:report.id,p_deleted:false});if(restored.error){undo.disabled=false;alert(restored.error.message);return;}await loadProgressReportsV33(container,studentId,teacher);};container.prepend(undo);
+ });
  const mark=async r=>{if(!teacher){const result=await supabaseClient.rpc('mark_progress_report_read_v33',{p_report_id:r.id});if(result.error)console.warn('Não foi possível marcar o relatório como lido.');}};
  container.querySelectorAll('[data-download-report-v33]').forEach(button=>button.onclick=()=>{const r=reports[Number(button.dataset.downloadReportV33)];downloadBlobV3(`relatorio-evolucao-${r.period_end}.html`,progressDocumentV33(r),'text/html;charset=utf-8');mark(r);});
  container.querySelectorAll('[data-print-report-v33]').forEach(button=>button.onclick=()=>{const r=reports[Number(button.dataset.printReportV33)],popup=window.open('','_blank');if(!popup){alert('Permita a abertura da janela do relatório.');return;}popup.opener=null;popup.document.write(progressDocumentV33(r));popup.document.close();popup.focus();popup.print();mark(r);});
@@ -48066,13 +48093,14 @@ async function loadTeacherNoticesV33() {
  area.querySelectorAll('[data-read-notice-v33]').forEach(button=>button.onclick=async()=>{button.disabled=true;const n=data[Number(button.dataset.readNoticeV33)],{error}=await supabaseClient.rpc('read_teacher_notice_v33',{p_id:n.id,p_kind:n.kind});if(error){button.disabled=false;alert(error.message);return;}await loadTeacherCancellationMessages();});
 }
 
-async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); await loadScheduleRequestsV34(document.getElementById('teacherCancellationNotices'),null,true); }
-async function loadTeacherProfilePage() { await loadTeacherProfileBeforeV33(); const area=document.getElementById('teacherProfileFormArea');if(area)await loadPlanPanelV33(area); }
-async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;let area=document.getElementById('studentProgressReportsV33');if(!area){area=document.createElement('section');area.id='studentProgressReportsV33';anchor.after(area);}await loadProgressReportsV33(area,currentStudentId); await loadScheduleRequestsV34(anchor.parentElement,currentStudentId); }
-async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); await loadScheduleRequestsV34(anchor,studentId); }
+async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); await loadScheduleRequestsV34(document.getElementById('teacherCancellationNotices'),null,true);await loadLessonChangesV35(document.getElementById('teacherCancellationNotices'),null,true); }
+async function loadTeacherProfilePage() { await loadTeacherProfileBeforeV33(); const area=document.getElementById('teacherProfileFormArea');if(area){await loadPlanPanelV33(area);if(area.querySelector("#systemSubscriptionV33"))await loadSystemReceiptsV35(area);} }
+async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;await loadProgressAlertV35(anchor);await loadScheduleRequestsV34(anchor.parentElement,currentStudentId); }
+
+async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); await loadScheduleRequestsV34(anchor,studentId);await loadLessonChangesV35(anchor,studentId); }
 
 function compactClientFinancialV33(item,content) {
- return `<details class="client-financial-v33"><summary><strong>${escapeHtml(formatMonth(item.month))}/${Number(item.year)}</strong><span>${formatPaymentStatus(effectiveFinancialStatusV31(item))}<small>${item.invoice_required?(item.invoice_issued?'NF: emitida':'NF: necessária · pendente'):'NF: não necessária'}</small></span></summary>${content}</details>`;
+ return `<details class="client-financial-v33"><summary><strong>${escapeHtml(formatMonth(item.month))}/${Number(item.year)}</strong><span>${item.financial_values_hidden === true ? '' : `<strong class="client-financial-amount-v35">${formatCurrency(Math.max(0,Number(item.amount || 0)-Number(item.discount || 0)))}</strong>`}${formatPaymentStatus(effectiveFinancialStatusV31(item))}<small>${item.invoice_required?(item.invoice_issued?'NF: emitida':'NF: necessária · pendente'):'NF: não necessária'}</small></span></summary>${content}</details>`;
 }
 function renderFinancialCard(item) { return compactClientFinancialV33(item,renderFinancialCardBeforeV33(item)); }
 function renderGuardianFinancialRow(item) { return compactClientFinancialV33(item,renderGuardianFinancialRowBeforeV33(item)); }
@@ -48138,3 +48166,118 @@ async function loadScheduleRequestsV34(anchor,studentId=null,teacher=false) {
  area.querySelectorAll('[data-reject-schedule-v34]').forEach(b=>b.onclick=()=>review(Number(b.dataset.rejectScheduleV34),false,b));
  const form=area.querySelector('form');if(form)form.onsubmit=async event=>{event.preventDefault();const fields=new FormData(form),old=fixed[Number(fields.get('old'))],button=form.querySelector('button');button.disabled=true;const result=await supabaseClient.rpc('request_schedule_change_v34',{p_student_id:studentId,p_old_day:Number(old.day_of_week),p_old_time:old.start_time,p_new_day:Number(fields.get('day')),p_new_time:fields.get('time')});if(!area.isConnected)return;if(result.error){message.textContent=result.error.message;button.disabled=false;return;}await loadScheduleRequestsV34(anchor,studentId,teacher);};
 }
+
+async function loadProgressAlertV35(anchor) {
+ const studentId=currentStudentId;
+ const {data,error}=await supabaseClient.rpc('get_progress_reports_v33',{p_student_id:studentId});
+ if(error || !anchor.isConnected || currentStudentId!==studentId)return;
+ const unread=(data||[]).filter(r=>r.unread).length;
+ if(!unread)return;
+ const notice=document.createElement('p');notice.className='v33-notice';
+ notice.textContent=`Você tem ${unread} relatório(s) de evolução novo(s). `;
+ const button=document.createElement('button');button.type='button';button.className='secondary-button';button.textContent='Ver no histórico de aulas';button.onclick=()=>setStudentPage('history');notice.append(button);anchor.append(notice);
+}
+
+async function loadSystemReceiptsV35(anchor,admin=false) {
+ if(!anchor?.isConnected)return;
+ const id=admin?'adminSystemReceiptsV35':'teacherSystemReceiptsV35';
+ document.getElementById(id)?.remove();
+ const area=document.createElement('section');area.className='card receipt-panel-v35';area.id=id;anchor.append(area);
+ area.innerHTML='<h3>Comprovantes de pagamento do sistema</h3><p>Carregando...</p>';
+ const {data,error}=await supabaseClient.rpc('get_system_receipts_v35',{p_admin:admin});
+ if(!area.isConnected)return;
+ if(error){area.innerHTML='<h3>Comprovantes de pagamento do sistema</h3><p role="alert">Não foi possível consultar os comprovantes. Atualize a página.</p>';return;}
+ const rows=data||[],pending=[...new Map(rows.filter(r=>r.payment_status!=='paid').map(r=>[r.financial_id,r])).values()];
+ const receipts=rows.filter(r=>r.id);
+ area.innerHTML=`<h3>Comprovantes de pagamento do sistema</h3><p>${admin?'Confira o comprovante e registre a confirmação na cobrança do professor. O envio, sozinho, não confirma o pagamento.':'Envie PDF, JPG ou PNG de até 3 MB. Somente a administração poderá abrir o arquivo. O pagamento ficará pendente até a conferência.'}</p>${!admin&&pending.length?`<form><label>Cobrança<select name="financial" required>${pending.map(r=>`<option value="${escapeHtml(r.financial_id)}">${formatMonth(r.month)}/${Number(r.year)} · ${formatCurrency(r.amount)}</option>`).join('')}</select></label><label>Comprovante<input name="receipt" type="file" accept="application/pdf,image/png,image/jpeg" required></label><button type="submit" class="action-button">Enviar comprovante</button></form>`:!admin?'<p>Nenhuma cobrança pendente disponível para envio.</p>':''}<p role="status"></p><div>${receipts.length?receipts.map((r,i)=>`<article>${admin?`<strong>${escapeHtml(r.teacher_name)}</strong> · `:''}${formatMonth(r.month)}/${Number(r.year)} · ${escapeHtml(r.filename)}<p>Enviado em ${escapeHtml(formatDateTime(r.created_at))} · ${r.payment_status==='paid'?'Pagamento confirmado':'Aguardando conferência'}</p>${admin?`<button type="button" class="secondary-button" data-receipt-v35="${i}">Baixar comprovante</button>`:''}</article>`).join(''):'<p>Nenhum comprovante enviado.</p>'}</div>`;
+ const message=area.querySelector('[role=status]'),form=area.querySelector('form');
+ if(form)form.onsubmit=async event=>{
+  event.preventDefault();const file=form.elements.receipt.files[0],button=form.querySelector('button');
+  if(!file || file.size>3*1024*1024 || !['application/pdf','image/png','image/jpeg'].includes(file.type)){message.textContent='Selecione um PDF, PNG ou JPG de até 3 MB.';return;}
+  button.disabled=true;message.textContent='Enviando comprovante...';
+  try {
+   const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+   const result=await supabaseClient.rpc('submit_system_receipt_v35',{p_financial_id:form.elements.financial.value,p_filename:file.name,p_mime:file.type,p_base64:btoa(binary)});
+   if(result.error)throw result.error;
+   await loadSystemReceiptsV35(anchor,admin);
+   const status=document.getElementById(id)?.querySelector('[role=status]');if(status)status.textContent='Comprovante enviado. Aguardando conferência da administração.';
+  }catch(error){if(area.isConnected){button.disabled=false;message.textContent=error.message||'Não foi possível enviar o arquivo. Tente novamente.';}}
+ };
+ area.querySelectorAll('[data-receipt-v35]').forEach(button=>button.onclick=async()=>{
+  button.disabled=true;
+  try{
+   const result=await supabaseClient.rpc('download_system_receipt_v35',{p_id:receipts[Number(button.dataset.receiptV35)].id});
+   if(result.error)throw result.error;if(!result.data)throw new Error('Comprovante não encontrado.');
+   const r=result.data,bytes=Uint8Array.from(atob(r.base64.replace(/\s/g,'')),c=>c.charCodeAt(0));
+   const url=URL.createObjectURL(new Blob([bytes],{type:r.mime_type}));const link=document.createElement('a');link.href=url;link.download=r.filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(error){message.textContent=error.message||'Não foi possível baixar o comprovante.';}finally{button.disabled=false;}
+ });
+}
+
+
+const lessonDaysV35=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+async function loadLessonChangesV35(anchor,studentId=null,teacher=false) {
+ if(!anchor?.isConnected)return;
+ const id=teacher?'teacherLessonChangesV35':`lessonChangesV35-${studentId}`;document.getElementById(id)?.remove();
+ const area=document.createElement('section');area.id=id;area.className='card schedule-requests-v34';anchor.append(area);
+ area.innerHTML='<h3>Quantidade e duração das aulas</h3><p>Carregando...</p>';
+ const {data,error}=await supabaseClient.rpc('get_lesson_changes_v35',{p_student_id:studentId});
+ if(!area.isConnected)return;if(error){area.innerHTML='<p role="alert">Não foi possível carregar as alterações de aulas.</p>';return;}
+ const requests=data||[],active=requests.some(r=>['pending','approved','conflict'].includes(r.status));
+ const labels={pending:'Aguardando aprovação',approved:'Aprovada · aguardando início',applied:'Alteração concluída',rejected:'Solicitação encerrada',conflict:'Revisão necessária'};
+ area.innerHTML=`<h3>Quantidade e duração das aulas</h3><p>Escolha a duração e todos os horários que deseja manter na semana. Os horários ficam reservados provisoriamente até a decisão. A alteração começa na semana seguinte à última aprovação.</p>${requests.map((r,i)=>`<article class="schedule-request-v34"><strong>${escapeHtml(r.student_name)}</strong><p>${r.schedule.length} aula(s) por semana · ${Number(r.duration)} minutos cada</p><p>${r.schedule.map(s=>`${lessonDaysV35[Number(s.day_of_week)]} às ${normalizeTime(s.start_time)}`).join('<br>')}</p><p><strong>${labels[r.status]}</strong> · Início: ${formatDate(new Date(r.effective_date+'T12:00:00'))}</p>${r.new_value!=null?`<p>Novo valor ${r.billing_type==='per_lesson'?'por aula':'mensal'}: <strong>${formatCurrency(r.new_value)}</strong></p>`:''}${r.needs_guardian?`<p>Responsável: ${r.guardian_approved_by?'confirmado':'aguardando aprovação'}</p>`:''}${r.detail?`<p role="status">${escapeHtml(r.detail)}</p>`:''}${['pending','approved','conflict'].includes(r.status)?`<div class="v33-actions">${r.can_teacher&&!r.teacher_approved_by?`<label>Novo valor ${r.billing_type==='per_lesson'?'por aula':'mensal'} (R$)<input type="number" min="0" max="999999.99" step="0.01" required data-value-v35="${i}" value="${r.new_value??r.original_value??''}"></label><button type="button" class="action-button" data-review-lesson-v35="${i}">Aprovar alteração e valor</button>`:r.can_guardian&&r.needs_guardian&&!r.guardian_approved_by?`<button type="button" class="action-button" data-review-lesson-v35="${i}">Confirmar como responsável</button>`:''}<button type="button" class="secondary-button" data-reject-lesson-v35="${i}">${teacher?'Recusar':'Cancelar'} solicitação</button></div>`:''}</article>`).join('')}${!teacher&&!active?'<details><summary>Alterar minhas aulas</summary><div class="lesson-choice-form-v35"></div></details>':''}<p role="status" class="lesson-change-message-v35"></p>`;
+ const message=area.querySelector('.lesson-change-message-v35');
+ const review=async(i,approve,button)=>{
+  const input=area.querySelector(`[data-value-v35="${i}"]`);if(approve&&input&&!input.reportValidity())return;
+  button.disabled=true;const {error}=await supabaseClient.rpc('review_lesson_change_v35',{p_id:requests[i].id,p_approve:approve,p_value:approve&&input?Number(input.value):null});
+  if(error){message.textContent=error.message;button.disabled=false;return;}await loadLessonChangesV35(anchor,studentId,teacher);
+  if(teacher&&document.getElementById('teacherScheduleBody'))await loadTeacherWeeklySchedule();
+ };
+ area.querySelectorAll('[data-review-lesson-v35]').forEach(b=>b.onclick=()=>review(Number(b.dataset.reviewLessonV35),true,b));
+ area.querySelectorAll('[data-reject-lesson-v35]').forEach(b=>b.onclick=()=>review(Number(b.dataset.rejectLessonV35),false,b));
+ const formArea=area.querySelector('.lesson-choice-form-v35');if(formArea)await loadLessonChoiceFormV35(formArea,studentId,()=>loadLessonChangesV35(anchor,studentId,teacher));
+}
+
+async function loadLessonChoiceFormV35(area,studentId,reload) {
+ area.innerHTML='<label>Duração de cada aula<select aria-label="Duração de cada aula">'+[30,60,90,120].map(d=>`<option value="${d}">${d} minutos</option>`).join('')+'</select></label><p>Selecione na agenda todos os horários desejados. Desmarque os que deseja retirar.</p><p class="choice-message-v35" role="status"></p><div class="lesson-choice-grid-v35"></div><p class="choice-count-v35"></p><button type="button" class="action-button" disabled>Enviar para aprovação</button>';
+ const select=area.querySelector('select'),grid=area.querySelector('.lesson-choice-grid-v35'),message=area.querySelector('[role=status]'),button=area.querySelector('button'),count=area.querySelector('.choice-count-v35');let selected=[],choices=[],generation=0;
+ const update=()=>{count.textContent=`${selected.length} aula(s) por semana · ${select.value} minutos cada`;button.disabled=!selected.length;};
+ const fetchChoices=async(initial=false)=>{
+  const token=++generation;button.disabled=true;grid.textContent='Consultando horários disponíveis...';message.textContent='';selected=[];
+  let result=await supabaseClient.rpc('get_lesson_choices_v35',{p_student_id:studentId,p_duration:Number(select.value)});
+  if(initial&&!result.error&&result.data.duration!==Number(select.value)){select.value=String(result.data.duration);result=await supabaseClient.rpc('get_lesson_choices_v35',{p_student_id:studentId,p_duration:Number(select.value)});}
+  if(!area.isConnected||token!==generation)return;
+  if(result.error){grid.textContent='';message.textContent=result.error.message;return;}
+  choices=result.data.choices||[];
+  if(initial)selected=choices.filter(c=>(result.data.fixed||[]).some(s=>s.day_of_week===c.day_of_week&&normalizeTime(s.start_time)===normalizeTime(c.start_time)));
+  const same=(a,b)=>a.day_of_week===b.day_of_week&&a.start_time===b.start_time;
+  grid.innerHTML=[1,2,3,4,5,6,0].map(day=>`<fieldset><legend>${lessonDaysV35[day]}</legend>${choices.filter(c=>c.day_of_week===day).map(c=>`<label><input type="checkbox" data-choice-v35="${choices.indexOf(c)}" ${selected.some(s=>same(s,c))?'checked':''}><span>${normalizeTime(c.start_time)}</span></label>`).join('')||'<small>Sem horários disponíveis</small>'}</fieldset>`).join('');
+  grid.querySelectorAll('input').forEach(input=>input.onchange=()=>{
+   const choice=choices[Number(input.dataset.choiceV35)];
+   if(input.checked){const duration=Number(select.value),start=timeToMinutes(choice.start_time);if(selected.some(s=>s.day_of_week===choice.day_of_week&&Math.abs(timeToMinutes(s.start_time)-start)<duration)){input.checked=false;message.textContent='Escolha horários que não se sobreponham.';return;}selected.push(choice);}
+   else selected=selected.filter(s=>!same(s,choice));message.textContent='';update();
+  });update();
+ };
+ select.onchange=()=>fetchChoices();
+ button.onclick=async()=>{button.disabled=true;select.disabled=true;const {error}=await supabaseClient.rpc('request_lesson_change_v35',{p_student_id:studentId,p_duration:Number(select.value),p_schedule:selected});if(error){message.textContent=error.message;button.disabled=false;select.disabled=false;return;}await reload();};
+ await fetchChoices(true);
+}
+
+async function overlayLessonHoldsV35(body,weekStart,studentId=null) {
+ if(!body?.isConnected)return;
+ const {data,error}=await supabaseClient.rpc('get_lesson_holds_v35',{p_student_id:studentId});
+ if(!body.isConnected)return;
+ if(error){console.warn('Não foi possível consultar reservas provisórias.');return;}
+ for(const row of body.rows){
+  const time=normalizeTime(row.cells[0]?.textContent?.trim()||'');
+  for(let column=1;column<row.cells.length;column++){
+   const date=addDays(weekStart,column-1),dateDb=formatDateForDatabase(date);
+   const hold=(data||[]).find(h=>Number(h.day_of_week)===date.getDay()&&normalizeTime(h.start_time)===time&&dateDb>=h.effective_date);
+   if(!hold)continue;
+   const replacement=row.cells[column].cloneNode(false);replacement.className='schedule-cell lesson-hold-v35';replacement.removeAttribute('style');replacement.removeAttribute('data-agenda-color');
+   replacement.innerHTML=`<strong>${escapeHtml(hold.student_name||'Horário reservado')}</strong><br><small>Provisório · aguardando alteração de aulas</small>`;replacement.title='Horário reservado enquanto a alteração de aulas aguarda confirmação.';
+   row.cells[column].replaceWith(replacement);
+  }
+ }
+}
+
