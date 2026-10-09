@@ -6855,7 +6855,9 @@ function getAdminTeacherSystemMonthParts() {
 // LISTAR PROFESSORES NO ADM
 // =====================================================
 
+let adminTeacherLoadErrorV36 = "";
 async function loadAdminTeachers() {
+  adminTeacherLoadErrorV36 = "";
 
   const container =
     document.getElementById(
@@ -6911,39 +6913,11 @@ async function loadAdminTeachers() {
     ]);
 
 
-  if (
-    teachersResult.error ||
-    systemFinancialResult.error ||
-    capacityResult.error ||
-    accessResult.error
-  ) {
-
-    console.error(
-      "Erro ao carregar professores:",
-      teachersResult.error ||
-      systemFinancialResult.error ||
-      capacityResult.error ||
-      accessResult.error
-    );
-
-
-    container.innerHTML = `
-
-      <p>
-        ${escapeHtml(
-          (
-            teachersResult.error ||
-            systemFinancialResult.error ||
-            capacityResult.error ||
-            accessResult.error
-          ).message ||
-          "Nao foi possivel carregar os professores."
-        )}
-      </p>
-
-    `;
-
-
+  const adminLoadError = teachersResult.error || systemFinancialResult.error || capacityResult.error || accessResult.error || registrationResult.error;
+  if (adminLoadError) {
+    console.error("Erro ao carregar professores:", adminLoadError);
+    adminTeacherLoadErrorV36 = adminLoadError.message || "Não foi possível carregar os professores.";
+    renderAdminTeacherListV2();
     return;
   }
 
@@ -7072,6 +7046,12 @@ function renderAdminTeacherListV2() {
     );
 
   if (!container) {
+    return;
+  }
+
+  if (adminTeacherLoadErrorV36) {
+    container.innerHTML = `<p role="alert">Não foi possível carregar os professores: ${escapeHtml(adminTeacherLoadErrorV36)}</p><button type="button" class="secondary-button" id="adminTeacherRetryV36">Tentar novamente</button>`;
+    document.getElementById('adminTeacherRetryV36').onclick = loadAdminTeachers;
     return;
   }
 
