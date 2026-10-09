@@ -4148,3 +4148,13 @@ body:has(#loginScreen:not(.hidden)) > .site-footer {
 .receipt-panel-v35{margin-top:24px;overflow-wrap:anywhere}.receipt-panel-v35 form{display:grid;gap:14px;max-width:600px}.receipt-panel-v35 label{display:grid;gap:7px}.receipt-panel-v35 article{padding:12px 0;border-bottom:1px solid #e3d3c5}
 
 .lesson-choice-form-v35{padding:16px 0;display:grid;gap:15px}.lesson-choice-grid-v35{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;max-height:430px;overflow:auto}.lesson-choice-grid-v35 fieldset{border:1px solid #dbc9b9;border-radius:10px;padding:10px;min-width:0}.lesson-choice-grid-v35 label{display:flex;align-items:center;gap:7px;padding:5px}.lesson-choice-grid-v35 input{width:auto;accent-color:#c9704b}.lesson-choice-grid-v35 label:has(input:checked){background:#dbeafe;border-radius:7px}.lesson-hold-v35{background:#fff3cd!important;color:#856404!important;cursor:default!important}
+
+/* Mudanças 10 */
+.navigation [data-student-page="profile"]::before{content:"👤"}
+.agenda-legend-v36{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap}
+.history-month-v36,.makeup-group-v36{border:1px solid #e3d3c5;border-radius:12px;background:#fffdfa;margin:12px 0;min-width:0}
+.history-month-v36>summary,.history-day-v36>summary,.makeup-group-v36>summary{padding:16px;cursor:pointer;font-weight:600;text-transform:capitalize}
+.history-day-v36{margin:0 12px 12px;border-top:1px solid #e3d3c5}.history-day-v36>div,.makeup-group-v36>div{display:grid;gap:12px;padding:0 16px 16px}
+#studentScheduleBackV36{margin-bottom:16px}
+
+[data-agenda-color="holiday"]{--agenda-fill:#f7e9e1;--agenda-ink:#6b3fa0;--agenda-dot:#f7e9e1}

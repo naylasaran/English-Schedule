@@ -1,5 +1,5 @@
 console.log(
-  "Aularium build: mudancas-v35-20260929"
+  "Aularium build: mudancas-v36-20261009"
 );
 
 // =====================================================
@@ -7590,7 +7590,7 @@ function renderAdminTeacherCard(
   return `
     <details class="admin-teacher-details-v24">
       <summary>
-        <span><strong>${escapeHtml(teacher.teacher_name)}</strong><small>${escapeHtml(teacher.teacher_email)}</small></span>
+        <span><strong>${escapeHtml(teacher.teacher_name)}</strong><small>${escapeHtml(teacher.teacher_email)}</small><small>Cadastro: ${teacher.registered_at ? escapeHtml(formatDateTime(teacher.registered_at)) : "Data não disponível"}</small></span>
         <span class="admin-teacher-summary-plan-v24">${escapeHtml(getTeacherPlanLabelV24(teacher.subscription_plan, teacher.access_type))}</span>
         <span class="admin-teacher-summary-status-v24 status-${escapeHtml(status)}">${statusLabel}</span>
       </summary>
@@ -8625,6 +8625,7 @@ async function changeAdminTeacherStatus(
 
 
 function setStudentPage(page) {
+  studentSchedulePageV36 = null;
 
   if (
     currentStudentAccessMode === "makeups_only" &&
@@ -8662,8 +8663,9 @@ function setStudentPage(page) {
   // ===================================================
 
   if(page==='profile') {
-    content.innerHTML='<section class="card"><h2>Meu perfil · minhas aulas</h2><p>Gerencie a quantidade, a duração e os horários das suas aulas.</p><div id="studentLessonProfileV35"></div></section>';
+    content.innerHTML='<section class="card"><h2>Meu perfil · minhas aulas</h2><p>Gerencie a quantidade, a duração e os horários das suas aulas.</p><div id="studentLessonProfileV35"></div><div id="studentFixedProfileV36"></div></section>';
     loadLessonChangesV35(document.getElementById('studentLessonProfileV35'),currentStudentId);
+    loadScheduleRequestsV34(document.getElementById('studentFixedProfileV36'),currentStudentId);
     return;
   }
   if (page === "agenda") {
@@ -8781,12 +8783,7 @@ function setStudentPage(page) {
           style="margin-top:20px;"
         ></div>
 
-        <div class="schedule-legend student-legend-v26">
-          <span data-agenda-color="available">Livre</span><span data-agenda-color="occupied">Ocupado</span>
-          <span data-agenda-color="unavailable">Indisponível</span><span data-agenda-color="own">Minha aula</span>
-          <span data-agenda-color="paused-own">Aulas pausadas</span><span data-agenda-color="own-makeup">Minha reposição</span>
-          <span data-agenda-color="cancelled">Aula cancelada</span><span data-agenda-color="expired">Prazo encerrado</span>
-        </div>
+        ${renderAgendaLegendV36()}
 
       </div>
 
@@ -10423,7 +10420,7 @@ async function loadStudentHistory() {
       <label>Até <input type="date" id="studentHistoryToV23"></label>
       <button type="button" class="secondary-button" id="clearStudentHistoryFiltersV23">Mostrar tudo</button>
     </div>
-    <p class="student-history-order-v23">Aulas exibidas da mais antiga para a mais recente.</p>
+    <p class="student-history-order-v23">Meses mais recentes primeiro; aulas agrupadas por dia.</p>
     <div id="studentHistoryResultsV23" style="display:grid;gap:18px;"></div>
   `;
 
@@ -10441,7 +10438,7 @@ async function loadStudentHistory() {
     const results = document.getElementById("studentHistoryResultsV23");
     if (!results) return;
     results.innerHTML = filtered.length
-      ? filtered.map(lesson => renderHistoryLesson(lesson, commentList)).join("")
+      ? renderStudentHistoryGroupsV36(filtered, commentList)
       : `<div class="card"><strong>Nenhuma aula encontrada no período selecionado.</strong></div>`;
     results.querySelectorAll(".add-lesson-comment-button").forEach(button => {
       button.addEventListener("click", () => addLessonComment(button.dataset.lessonId));
@@ -11021,52 +11018,8 @@ async function loadStudentMakeups() {
   }
 
 
-  const enrichedMakeups =
-    makeups.map(
-      makeup => {
-
-        const isReserved =
-          Boolean(
-            makeup.reservation_id
-          );
-
-
-        return {
-
-          ...makeup,
-
-          reserved_now:
-            isReserved,
-
-          display_status:
-            isReserved
-              ? "reserved"
-              : makeup.status
-
-        };
-
-      }
-    );
-
-
-  container.innerHTML = `
-
-    <div
-      style="
-        display:grid;
-        gap:15px;
-      "
-    >
-
-      ${enrichedMakeups
-        .map(
-          renderMakeupCard
-        )
-        .join("")}
-
-    </div>
-
-  `;
+  const enrichedMakeups = makeups.map(classifyMakeupV36);
+  container.innerHTML = renderMakeupGroupsV36(enrichedMakeups);
 
 
   document
@@ -12930,7 +12883,7 @@ function renderStudentWeeklySchedule(
                 );
 
               const recordEnd =
-                timeToMinutes(
+                timeToEndBoundaryMinutes(
                   record.end_time
                 );
 
@@ -12940,7 +12893,7 @@ function renderStudentWeeklySchedule(
                 );
 
               const slotEnd =
-                timeToMinutes(
+                timeToEndBoundaryMinutes(
                   slot.end_time
                 );
 
@@ -12984,7 +12937,7 @@ function renderStudentWeeklySchedule(
                 );
 
               const reservationEnd =
-                timeToMinutes(
+                timeToEndBoundaryMinutes(
                   reservation.end_time
                 );
 
@@ -12994,7 +12947,7 @@ function renderStudentWeeklySchedule(
                 );
 
               const slotEnd =
-                timeToMinutes(
+                timeToEndBoundaryMinutes(
                   slot.end_time
                 );
 
@@ -14360,6 +14313,9 @@ function normalizeStudentScheduleStatus(
       };
 
 
+    case "occupied_makeup":
+      return {className: "occupied-makeup", label: "Reposição"};
+
     case "occupied":
 
       return {
@@ -15632,7 +15588,7 @@ async function confirmLessonCancellation(
 // SELECIONAR REPOSI\xc7\xc3O
 // =====================================================
 
-async function openMakeupSelection(
+async function openMakeupSelectionBeforeV36(
   slot
 ) {
 
@@ -15880,15 +15836,7 @@ async function getAvailableMakeups() {
   }
 
 
-  return (
-    data || []
-  ).filter(
-    makeup =>
-      String(
-        makeup.status
-      ).toLowerCase() ===
-      "available"
-  );
+  return (data || []).map(classifyMakeupV36).filter(m => m.group_v36 === 'available').sort(compareMakeupExpiryV36);
 }
 
 
@@ -16266,7 +16214,7 @@ async function confirmRealReservation(
 
 
   button.remove();
-
+  closeMakeupSelection();
 
   await loadStudentWeeklySchedule();
 
@@ -16288,7 +16236,7 @@ async function confirmRealReservation(
 // FECHAR RESERVA
 // =====================================================
 
-function closeMakeupSelection() {
+function closeMakeupSelectionBeforeV36() {
 
   selectedScheduleSlot =
     null;
@@ -19103,34 +19051,7 @@ function setTeacherPage(page) {
           "
         ></div>
 
-        <div
-          class="schedule-legend"
-          style="
-            margin-top:20px;
-          "
-        >
-
-          <span>
-            \uD83D\uDFE2 Livre
-          </span>
-
-          <span>
-            \uD83D\uDD35 Aula
-          </span>
-
-          <span>
-            \uD83D\uDFE3 Reposi\u00E7\u00E3o
-          </span>
-
-          <span>
-            \uD83D\uDFE1 Cancelada
-          </span>
-
-          <span>
-            \u26AB Indispon\u00EDvel
-          </span>
-
-        </div>
+        ${renderAgendaLegendV36()}
 
       </div>
 
@@ -33651,7 +33572,7 @@ async function loadTeacherWeeklySchedule() {
             );
 
           const slotEnd = 1440 * (normalizeTime(slot.end_time) === "00:00") ||
-            timeToMinutes(
+            timeToEndBoundaryMinutes(
               slot.end_time
             );
 
@@ -33666,7 +33587,7 @@ async function loadTeacherWeeklySchedule() {
                   );
 
                 const itemEnd = 1440 * (normalizeTime(item.end_time) === "00:00") ||
-                  timeToMinutes(
+                  timeToEndBoundaryMinutes(
                     item.end_time
                   );
 
@@ -34892,7 +34813,7 @@ function isTeacherOccurrenceFinished(
           occurrenceEnd =
             Math.max(
               occurrenceEnd,
-              timeToMinutes(
+              timeToEndBoundaryMinutes(
                 item.end_time
               )
             );
@@ -47662,7 +47583,10 @@ document.addEventListener("DOMContentLoaded", () => {
 function applyStudentAgendaColorV26(cell) {
   if (!cell.classList.contains("schedule-cell")) return;
   let state = ["available","occupied","unavailable","own","paused-own","own-makeup"].find(name => cell.classList.contains(name));
-  if (cell.textContent.includes("Prazo encerrado")) state = "expired";
+  if (cell.classList.contains("occupied-makeup")) state = "own-makeup";
+  if (cell.textContent.includes("Prazo encerrado")) state = "available";
+  if (cell.textContent.includes("Feriado")) state = "holiday";
+  if (cell.title.includes("dias de atendimento") || cell.textContent.trim()==="—") state = "expired";
   if (cell.classList.contains("student-history")) {
     state = cell.textContent.includes("cancelada") ? "cancelled" : cell.textContent.includes("Reposicao realizada") ? "own-makeup" : "own";
   }
@@ -48062,13 +47986,14 @@ function progressDocumentV33(report) {
 
 async function loadProgressReportsV33(container,studentId,teacher=false) {
  if(!container || !studentId)return;
+ teacher = teacher || currentProfile?.role === 'teacher';
  const token=String(Number(container.dataset.progressRequest||0)+1);container.dataset.progressRequest=token;
  container.innerHTML='<p>Consultando relatórios de evolução...</p>';
  const {data,error}=await supabaseClient.rpc('get_progress_reports_v33',{p_student_id:studentId});
  if(!container.isConnected || container.dataset.progressRequest!==token)return;
  if(error){container.textContent=error.message || 'Não foi possível carregar os relatórios.';return;}
  const reports=data || [];const unread=reports.filter(r=>r.unread).length;
- container.innerHTML=`<details class="progress-list-v33" ${unread&&!teacher?'open':''}><summary><strong>Relatórios de evolução</strong> · ${reports.length}${unread&&!teacher?` · ${unread} novo(s) disponível(is) para download`:''}</summary>${reports.length?reports.map((r,i)=>`<article><p><strong>${escapeHtml(r.student_name)}</strong> · ${formatDate(new Date(r.period_start+'T12:00:00'))} a ${formatDate(new Date(r.period_end+'T12:00:00'))}</p><div class="v33-actions"><button type="button" class="secondary-button" data-download-report-v33="${i}">Baixar relatório</button><button type="button" class="secondary-button" data-print-report-v33="${i}">Imprimir / salvar PDF</button>${teacher?`<button type="button" class="secondary-button" data-delete-report-v35="${i}">Excluir relatório</button>`:""}</div></article>`).join(''):'<p>Nenhum relatório disponibilizado ainda.</p>'}</details>`;
+ container.innerHTML=`<details class="progress-list-v33" ${unread&&!teacher?'open':''}><summary><strong>Relatórios de evolução</strong> · ${reports.length}${unread&&!teacher?` · ${unread} novo(s) disponível(is) para download`:''}</summary>${reports.length?reports.map((r,i)=>`<article><p><strong>${escapeHtml(r.student_name)}</strong> · ${formatDate(new Date(r.period_start+'T12:00:00'))} a ${formatDate(new Date(r.period_end+'T12:00:00'))}</p><div class="v33-actions"><button type="button" class="secondary-button" data-download-report-v33="${i}">Baixar relatório</button><button type="button" class="secondary-button" data-print-report-v33="${i}">Imprimir / salvar PDF</button>${(r.can_delete===true||teacher)?`<button type="button" class="secondary-button" data-delete-report-v35="${i}">Excluir relatório</button>`:""}</div></article>`).join(''):'<p>Nenhum relatório disponibilizado ainda.</p>'}</details>`;
  container.querySelectorAll('[data-delete-report-v35]').forEach(button=>button.onclick=async()=>{
   const report=reports[Number(button.dataset.deleteReportV35)];
   if(!confirm('Excluir este relatório de evolução? Ele deixará de aparecer para o aluno e responsável.'))return;
@@ -48095,7 +48020,7 @@ async function loadTeacherNoticesV33() {
 
 async function loadTeacherCancellationMessages() { await loadTeacherNoticesV33(); await loadScheduleRequestsV34(document.getElementById('teacherCancellationNotices'),null,true);await loadLessonChangesV35(document.getElementById('teacherCancellationNotices'),null,true); }
 async function loadTeacherProfilePage() { await loadTeacherProfileBeforeV33(); const area=document.getElementById('teacherProfileFormArea');if(area){await loadPlanPanelV33(area);if(area.querySelector("#systemSubscriptionV33"))await loadSystemReceiptsV35(area);} }
-async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;await loadProgressAlertV35(anchor);await loadScheduleRequestsV34(anchor.parentElement,currentStudentId); }
+async function loadStudentNotices() { await loadStudentNoticesBeforeV33();const anchor=document.getElementById('studentNoticesArea');if(!anchor)return;await loadProgressAlertV35(anchor); }
 
 async function loadGuardianStudentDetail(studentId) { await loadGuardianStudentDetailBeforeV33(studentId);const anchor=document.getElementById('guardianStudentDetailArea');if(!anchor || String(selectedGuardianStudentId)!==String(studentId))return;const area=document.createElement('section');area.id='guardianProgressReportsV33';anchor.prepend(area);await loadProgressReportsV33(area,studentId); await loadScheduleRequestsV34(anchor,studentId);await loadLessonChangesV35(anchor,studentId); }
 
@@ -48157,7 +48082,8 @@ async function loadScheduleRequestsV34(anchor,studentId=null,teacher=false) {
  if(!area.isConnected)return;
  if(requests.error || slots.error){area.innerHTML='<h3>Troca de horário fixo</h3><p>Não foi possível consultar as solicitações. Atualize a página.</p>';return;}
  const days=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
- const data=requests.data||[],fixed=slots.data||[],pending=data.some(r=>['pending','approved','conflict'].includes(r.status));
+ const data=(requests.data||[]).filter(r=>!teacher||['pending','approved','conflict'].includes(r.status)),fixed=slots.data||[],pending=data.some(r=>['pending','approved','conflict'].includes(r.status));
+ if(teacher&&!data.length){area.remove();return;}
  const labels={pending:'Aguardando aprovação',approved:'Aprovada · aguardando início',applied:'Horário alterado',rejected:'Recusada',conflict:'Precisa de revisão do professor'};
  area.innerHTML=`<h3>Troca de horário fixo</h3><p>A mudança vale a partir da semana seguinte à última aprovação. O professor precisa confirmar. Para menores de idade, o responsável também precisa confirmar.</p>${data.length?data.map((r,i)=>`<article class="schedule-request-v34"><strong>${escapeHtml(r.student_name)}</strong><p>${days[r.old_day]} às ${normalizeTime(r.old_time)} → ${days[r.new_day]} às ${normalizeTime(r.new_time)}</p><p><strong>${labels[r.status]}</strong> · Início previsto: ${formatDate(new Date(r.effective_date+'T12:00:00'))}</p><p>Professor: ${r.teacher_approved_by?'confirmado':'aguardando'}${r.needs_guardian?` · Responsável: ${r.guardian_approved_by?'confirmado':'aguardando'}`:''}</p>${r.detail?`<p role="status">${escapeHtml(r.detail)}</p>`:''}${['pending','conflict','approved'].includes(r.status)&&(r.can_teacher||r.can_guardian)?`<div class="v33-actions">${((r.can_teacher&&!r.teacher_approved_by)||(r.can_guardian&&r.needs_guardian&&!r.guardian_approved_by))?`<button class="action-button" data-approve-schedule-v34="${i}">Confirmar troca</button>`:''}<button class="secondary-button" data-reject-schedule-v34="${i}">Recusar solicitação</button></div>`:''}</article>`).join(''):'<p>Nenhuma solicitação.</p>'}${!teacher&&!pending&&fixed.length?`<details><summary>Solicitar troca de horário</summary><form id="scheduleRequestFormV34"><label>Aula que deseja trocar<select name="old" required>${fixed.map((s,i)=>`<option value="${i}">${days[s.day_of_week]} às ${normalizeTime(s.start_time)} · ${s.duration} minutos</option>`).join('')}</select></label><label for="requestDayV34">Novo dia</label><select id="requestDayV34" name="day" required>${days.map((d,i)=>`<option value="${i}">${d}</option>`).join('')}</select><label>Novo horário<input name="time" type="time" step="1800" required></label><p>Informe um horário livre na agenda do professor. A duração da aula permanece igual.</p><button class="action-button" type="submit">Enviar solicitação</button></form></details>`:''}<p class="schedule-message-v34" role="status"></p>`;
  const message=area.querySelector('.schedule-message-v34');
@@ -48223,7 +48149,8 @@ async function loadLessonChangesV35(anchor,studentId=null,teacher=false) {
  area.innerHTML='<h3>Quantidade e duração das aulas</h3><p>Carregando...</p>';
  const {data,error}=await supabaseClient.rpc('get_lesson_changes_v35',{p_student_id:studentId});
  if(!area.isConnected)return;if(error){area.innerHTML='<p role="alert">Não foi possível carregar as alterações de aulas.</p>';return;}
- const requests=data||[],active=requests.some(r=>['pending','approved','conflict'].includes(r.status));
+ const requests=(data||[]).filter(r=>!teacher||['pending','approved','conflict'].includes(r.status)),active=requests.some(r=>['pending','approved','conflict'].includes(r.status));
+ if(teacher&&!requests.length){area.remove();return;}
  const labels={pending:'Aguardando aprovação',approved:'Aprovada · aguardando início',applied:'Alteração concluída',rejected:'Solicitação encerrada',conflict:'Revisão necessária'};
  area.innerHTML=`<h3>Quantidade e duração das aulas</h3><p>Escolha a duração e todos os horários que deseja manter na semana. Os horários ficam reservados provisoriamente até a decisão. A alteração começa na semana seguinte à última aprovação.</p>${requests.map((r,i)=>`<article class="schedule-request-v34"><strong>${escapeHtml(r.student_name)}</strong><p>${r.schedule.length} aula(s) por semana · ${Number(r.duration)} minutos cada</p><p>${r.schedule.map(s=>`${lessonDaysV35[Number(s.day_of_week)]} às ${normalizeTime(s.start_time)}`).join('<br>')}</p><p><strong>${labels[r.status]}</strong> · Início: ${formatDate(new Date(r.effective_date+'T12:00:00'))}</p>${r.new_value!=null?`<p>Novo valor ${r.billing_type==='per_lesson'?'por aula':'mensal'}: <strong>${formatCurrency(r.new_value)}</strong></p>`:''}${r.needs_guardian?`<p>Responsável: ${r.guardian_approved_by?'confirmado':'aguardando aprovação'}</p>`:''}${r.detail?`<p role="status">${escapeHtml(r.detail)}</p>`:''}${['pending','approved','conflict'].includes(r.status)?`<div class="v33-actions">${r.can_teacher&&!r.teacher_approved_by?`<label>Novo valor ${r.billing_type==='per_lesson'?'por aula':'mensal'} (R$)<input type="number" min="0" max="999999.99" step="0.01" required data-value-v35="${i}" value="${r.new_value??r.original_value??''}"></label><button type="button" class="action-button" data-review-lesson-v35="${i}">Aprovar alteração e valor</button>`:r.can_guardian&&r.needs_guardian&&!r.guardian_approved_by?`<button type="button" class="action-button" data-review-lesson-v35="${i}">Confirmar como responsável</button>`:''}<button type="button" class="secondary-button" data-reject-lesson-v35="${i}">${teacher?'Recusar':'Cancelar'} solicitação</button></div>`:''}</article>`).join('')}${!teacher&&!active?'<details><summary>Alterar minhas aulas</summary><div class="lesson-choice-form-v35"></div></details>':''}<p role="status" class="lesson-change-message-v35"></p>`;
  const message=area.querySelector('.lesson-change-message-v35');
@@ -48281,3 +48208,51 @@ async function overlayLessonHoldsV35(body,weekStart,studentId=null) {
  }
 }
 
+
+
+// Mudanças 10: shared legend and client views, without changing historical records.
+function renderAgendaLegendV36() {
+ return '<div class="schedule-legend student-legend-v26 agenda-legend-v36">'+[['available','Livre'],['own','Aula'],['own-makeup','Reposição'],['cancelled','Cancelada'],['unavailable','Indisponível']].map(([color,label])=>`<span data-agenda-color="${color}">${label}</span>`).join('')+'</div>';
+}
+function renderStudentHistoryGroupsV36(lessons,comments) {
+ const months=new Map();
+ for(const lesson of lessons){const date=String(lesson.lesson_date||'');const month=date.slice(0,7)||'Sem data';if(!months.has(month))months.set(month,new Map());const days=months.get(month);if(!days.has(date))days.set(date,[]);days.get(date).push(lesson);}
+ return [...months].sort(([a],[b])=>b.localeCompare(a)).map(([month,days],index)=>{
+ const label=/^\d{4}-\d{2}$/.test(month)?new Date(month+'-01T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):month;
+ return `<details class="history-month-v36" ${index===0?'open':''}><summary>${escapeHtml(label)} · ${[...days.values()].flat().length} aula(s)</summary>${[...days].sort(([a],[b])=>b.localeCompare(a)).map(([date,records])=>`<details class="history-day-v36" open><summary>${date?formatDate(new Date(date+'T12:00:00')):'Sem data'} · ${records.length} aula(s)</summary><div>${records.sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time))).map(l=>renderHistoryLesson(l,comments)).join('')}</div></details>`).join('')}</details>`;
+ }).join('');
+}
+function compareMakeupExpiryV36(a,b) {
+ const expiry=m=>m.expires_at && Number.isFinite(Date.parse(m.expires_at))?Date.parse(m.expires_at):Infinity;
+ return expiry(a)-expiry(b)||String(a.id||a.makeup_id||'').localeCompare(String(b.id||b.makeup_id||''));
+}
+function classifyMakeupV36(makeup) {
+ const status=String(makeup.status||'').toLowerCase();
+ const used=['used','completed'].includes(status);
+ const expired=['expired','lost','cancelled'].includes(status) || (status==='available'&&!makeup.reservation_id&&makeup.expires_at&&Date.parse(makeup.expires_at)<Date.now());
+ const reserved=!used&&!expired&&Boolean(makeup.reservation_id);
+ return {...makeup,reserved_now:reserved,display_status:used?status:expired?'expired':reserved?'reserved':status,group_v36:used?'used':expired?'expired':reserved||status!=='available'?'unavailable':'available'};
+}
+function renderMakeupGroupsV36(makeups) {
+ return [['available','Disponível'],['unavailable','Indisponível'],['expired','Vencidas'],['used','Utilizadas']].map(([key,label])=>{
+ const rows=makeups.filter(m=>m.group_v36===key).sort(compareMakeupExpiryV36);
+ return `<details class="makeup-group-v36" ${key==='available'?'open':''}><summary>${label} · ${rows.length}</summary><div>${rows.map(renderMakeupCard).join('')||'<p>Nenhuma reposição neste grupo.</p>'}</div></details>`;
+ }).join('');
+}
+let studentSchedulePageV36 = null;
+async function openMakeupSelection(slot) {
+ const date=getDateForDay(selectedWeekStart,Number(slot.day_of_week));
+ if(!canBookMakeupOnDate(date)){alert('As reposições precisam ser marcadas até o dia anterior à aula.');return;}
+ const content=document.getElementById('studentContent');if(!content)return;
+ if(!studentSchedulePageV36){const previous=document.createDocumentFragment();studentSchedulePageV36={previous,scroll:window.scrollY,focus:document.activeElement};while(content.firstChild)previous.append(content.firstChild);}
+ content.innerHTML='<section id="studentScheduleScreenV36" class="attendance-screen-v32"><button type="button" class="secondary-button" id="studentScheduleBackV36">← Voltar à agenda</button><h2>Agendar reposição</h2><p>'+formatDate(date)+' · '+normalizeTime(slot.start_time)+'</p><div id="makeupSelectionArea"></div></section>';
+ document.getElementById('studentScheduleBackV36').onclick=closeMakeupSelection;
+ content.scrollIntoView({block:'start'});
+ await openMakeupSelectionBeforeV36(slot);
+}
+function closeMakeupSelection() {
+ closeMakeupSelectionBeforeV36();
+ const view=studentSchedulePageV36,content=document.getElementById('studentContent');studentSchedulePageV36=null;
+ if(!view||!content?.querySelector('#studentScheduleScreenV36'))return;
+ content.replaceChildren(view.previous);if(view.focus?.isConnected)view.focus.focus({preventScroll:true});window.scrollTo({top:view.scroll,behavior:'instant'});
+}
