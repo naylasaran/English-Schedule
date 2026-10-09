@@ -12718,6 +12718,7 @@ function renderStudentWeeklySchedule(
         cell.title =
           "O professor nao atende neste dia.";
 
+        applyStudentAgendaColorV26(cell);
         row.appendChild(cell);
 
         continue;
@@ -12801,7 +12802,7 @@ function renderStudentWeeklySchedule(
           cell.title =
             holiday.holiday_name;
 
-
+          applyStudentAgendaColorV26(cell);
           row.appendChild(
             cell
           );
@@ -47566,7 +47567,7 @@ function applyStudentAgendaColorV26(cell) {
   if (cell.classList.contains("occupied-makeup")) state = "own-makeup";
   if (cell.textContent.includes("Prazo encerrado")) state = "available";
   if (cell.textContent.includes("Feriado")) state = "holiday";
-  if (cell.title.includes("dias de atendimento") || cell.textContent.trim()==="—") state = "expired";
+  if (cell.title.includes("dias de atendimento") || cell.title.includes("nao atende neste dia") || cell.textContent.trim()==="—") state = "expired";
   if (cell.classList.contains("student-history")) {
     state = cell.textContent.includes("cancelada") ? "cancelled" : cell.textContent.includes("Reposicao realizada") ? "own-makeup" : "own";
   }
